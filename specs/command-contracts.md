@@ -35,7 +35,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 
 | Variable | Effect |
 | --- | --- |
-| `AGENTS_REPO_CONFIG` | Absolute path to `agents.json`; `agents-lock.json` MUST be in the same directory |
+| `AGENTS_REPO_CONFIG` | Absolute path to `agents.json`; lock file in same directory |
 | `AGENTS_REPO_REGISTRY_URL` | Overrides `registry.url` after file resolution |
 | `DEBUG` | Enables debug logging when set to a non-empty value |
 
@@ -87,7 +87,7 @@ Reserved for follow-up feature issues. MVP MUST NOT implement these interfaces.
 
 | Interface | Description | Tracking |
 | --- | --- | --- |
-| `install <package-id>:<selector>` | Install one agent or flow by exact id | See follow-up issue (colon syntax) |
+| `install <package-id>:<selector>` | Install one agent or flow by exact id | Follow-up (colon) |
 | `--agents <id>` (repeatable) | Install listed agents from package | See follow-up issue (flags) |
 | `--flows <id>` (repeatable) | Install listed flows from package | See follow-up issue (flags) |
 
