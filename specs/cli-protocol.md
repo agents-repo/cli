@@ -18,22 +18,39 @@ RFC 2119.
 This spec defines end-to-end **install** behavior for single-package and bulk commands.
 Implementation is provided by the registry, config, and install modules.
 
+## Install Scope
+
+**Project scope** (default): extract under the project root; update `agents.json` and
+`agents-lock.json` unless `--no-save`.
+
+**Global scope**: extract under `~/.config/agents-repo/`. Single-package global installs MUST NOT
+mutate project `agents.json` or `agents-lock.json`. Bulk `install` with `global: true` MAY update
+`agents.json` only; see [Config and Lock Writes](#config-and-lock-writes).
+
+Global scope applies when:
+
+- `--global` / `-g` is passed, or
+- resolved config has `global: true` and `-g` was not passed.
+
+`-g` forces global scope even when config has `global: false`.
+
 ## Pipeline Overview
 
 Install MUST execute these steps in order:
 
 1. Load config and apply environment overrides (`config-schema.md`, `command-contracts.md`).
 2. Resolve registry `ref` to a concrete git ref; record in lock `resolvedRef` on save.
-3. Fetch `packages/index.json` (registry `index-schema.md`).
+3. Fetch `packages/index.json` ([registry index-schema](https://github.com/agents-repo/registry/blob/main/specs/index-schema.md)).
 4. Resolve package id (qualified id or index `aliases`).
-5. Fetch `versions/manifest.json` (registry `manifest-schema.md`).
+5. Fetch `versions/manifest.json` ([registry manifest-schema](https://github.com/agents-repo/registry/blob/main/specs/manifest-schema.md)).
 6. Pick version via semver range (highest satisfying; npm default).
 7. Pick artifact for resolved install `target`.
 8. Download target artifact ZIP.
 9. Verify SHA-256 against manifest.
 10. Run ZIP security scan (registry `zip-scan` conformance).
 11. Extract **entire package** (all agents and flows) per registry `install-targets.md`.
-12. Update `agents.json` and `agents-lock.json` (project scope only) unless `--no-save`.
+12. Update `agents.json` and `agents-lock.json` per [install scope](#install-scope) unless
+    `--no-save`.
 
 `--dry-run` MUST execute through step 7 and MUST NOT download, extract, or mutate config/lock.
 
@@ -60,7 +77,7 @@ index or artifacts. Store the concrete value in `agents-lock.json` `resolvedRef`
 ### 4. Resolve package
 
 - Match qualified package id.
-- Package `status` per registry `metadata-schema.md`:
+- Package `status` per [registry metadata-schema](https://github.com/agents-repo/registry/blob/main/specs/metadata-schema.md):
   - `yanked` → MUST reject install.
   - `deprecated` → MUST warn; MAY proceed.
   - `archived` → MUST warn; MAY proceed.
@@ -76,8 +93,9 @@ index or artifacts. Store the concrete value in `agents-lock.json` `resolvedRef`
 - Use semver range from `agents.json` `packages[<id>]` when present.
 - Select the **highest** version in `manifest.versions[]` satisfying the range.
 - Manifest `latest` is a catalog hint only; it MUST NOT override range logic.
-- Single `install <package-id>` without a prior `packages` entry MUST add an entry (resolved
-  version or range per command defaults) unless `--no-save`.
+- Single `install <package-id>` without a prior `packages` entry MUST add
+  `packages[<id>] = ^<resolved-version>` (caret range on the resolved semver) unless `--no-save`.
+  See `command-contracts.md`.
 
 ### 7. Pick artifact
 
@@ -101,9 +119,10 @@ Downloaded bytes MUST match `artifacts[].sha256` (bare lowercase hex) from the m
 
 ### 10. ZIP security scan
 
-CLI MUST reject archives that fail conformance with the registry zip-scan validator
-(`registry/scripts/lib/validators/snapshot/zip-scan.ts`). Normative baseline: `ERR_ZIP_*` error
-codes from that implementation.
+CLI MUST reject archives that fail registry artifact security validation per
+[registry package-format](https://github.com/agents-repo/registry/blob/main/specs/package-format.md)
+(`package:validate-artifacts` workflow). `ERR_ZIP_*` codes from the registry zip-scan validator
+are the canonical rejection labels.
 
 At minimum, tooling MUST reject archives with:
 
@@ -115,28 +134,40 @@ At minimum, tooling MUST reject archives with:
 
 ### 11. Extract
 
-- Extract per registry `install-targets.md` ZIP layout for the chosen target.
+- Extract per [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md)
+  ZIP layout for the chosen target.
 - MVP: install the **entire package** (all agents and flows in the artifact).
 - **Project scope:** extract under project root.
-- **Global scope (`-g` or `global: true`):** extract under `~/.config/agents-repo/`.
+- **Global scope:** extract under `~/.config/agents-repo/`.
 
 ### 12. Update config and lock
 
-Project scope only (unless `--no-save`):
+Behavior depends on [install scope](#install-scope) and `--no-save`:
+
+**Project scope** (unless `--no-save`):
 
 - Add or update `packages[<id>]` in `agents.json`.
 - Add or update lock entry per `lock-schema.md`.
 
-Global scope MUST NOT mutate project `agents.json` or `agents-lock.json`.
+**Global scope:**
+
+- Single-package global installs MUST NOT mutate project `agents.json` or `agents-lock.json`.
+- Bulk `install` with `global: true` MAY update `agents.json` `packages` but MUST NOT update the
+  project lock (see [Config and Lock Writes](#config-and-lock-writes)).
 
 ## Config and Lock Writes
 
-| Invocation | Mutate `agents.json` | Mutate `agents-lock.json` |
-| --- | --- | --- |
-| `install <pkg>` (default) | Yes (unless `--no-save`) | Yes |
-| `install <pkg> -g` | No | No |
-| `install` (bulk) | Yes | Yes (unless `global: true` in config) |
-| `install` (bulk, `global: true`) | Yes (`packages` map) | No |
+| Invocation | Extract scope | Mutate `agents.json` | Mutate `agents-lock.json` |
+| --- | --- | --- | --- |
+| `install <pkg>` (project scope) | Project | Yes (unless `--no-save`) | Yes |
+| `install <pkg> -g` | Global | No | No |
+| `install <pkg>` (`global: true`, no `-g`) | Global | No | No |
+| `install` (bulk, project scope) | Project | Yes | Yes (unless `--no-save`) |
+| `install` (bulk, `global: true`) | Global | Yes (`packages` map) | No |
+
+**Bulk + `global: true` drift:** `agents.json` records declared package ranges while the project
+lock is unchanged. This is intentional in MVP (npm global-install parity for lock). Reconcile by
+running project-scope `install` without `global: true`, or by removing `global: true` from config.
 
 ## MVP Install Scope
 
@@ -145,5 +176,10 @@ flows) is out of MVP scope. Reserved future interfaces are listed in `command-co
 
 ## Cross-References
 
-- Registry: `install-targets.md`, `index-schema.md`, `manifest-schema.md`, `metadata-schema.md`
+- Registry:
+  [install-targets.md](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md),
+  [index-schema.md](https://github.com/agents-repo/registry/blob/main/specs/index-schema.md),
+  [manifest-schema.md](https://github.com/agents-repo/registry/blob/main/specs/manifest-schema.md),
+  [metadata-schema.md](https://github.com/agents-repo/registry/blob/main/specs/metadata-schema.md),
+  [package-format.md](https://github.com/agents-repo/registry/blob/main/specs/package-format.md)
 - CLI: `config-schema.md`, `lock-schema.md`, `command-contracts.md`

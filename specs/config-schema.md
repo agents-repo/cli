@@ -16,13 +16,15 @@ the spec document version (`1.0.0`).
 | --- | --- | --- | --- |
 | `1.0.0` | config schemaVersion | current | Initial release |
 
-Tooling MUST reject config files whose top-level `schemaVersion` is not in the table above unless
-it explicitly supports a newer schema version.
+Tooling that supports only `1.0.0` MUST NOT treat other top-level `schemaVersion` values as
+top-level-ours. Those values MUST trigger **namespace fallback** (see [Schema Gate](#schema-gate)).
+
+Tooling that explicitly supports a newer listed `schemaVersion` MAY treat it as top-level-ours.
 
 Lifecycle enforcement:
 
-- Unsupported top-level `schemaVersion` values MUST trigger **namespace fallback** (see
-  [Schema Gate](#schema-gate)); tooling MUST NOT treat them as top-level-ours.
+- Unsupported or unknown top-level `schemaVersion` values MUST use namespace fallback; tooling
+  MUST NOT exit solely because an alien top-level `schemaVersion` is present.
 - New projects MUST use `1.0.0`.
 
 ## Purpose
@@ -36,7 +38,8 @@ package semver ranges.
 Project-root `agents.json` is a **local package-install manifest**. It is unrelated to web
 discovery manifests served at `/.well-known/agents.json` (actions, tools, API endpoints).
 
-In MVP, `agents.json` MUST be stored at the project root only.
+In MVP, the default `agents.json` path is the project root. `AGENTS_REPO_CONFIG` MAY override that
+path for local development and tests; production workflows SHOULD use the project root.
 
 ## File Location
 
@@ -54,7 +57,7 @@ are:
 | --- | --- | --- | --- |
 | `schemaVersion` | string | yes | MUST be `1.0.0` for new files; see [Schema Version Lifecycle](#schema-version-lifecycle) |
 | `registry` | object | yes | `{ "url": string, "ref": string }`; see [Registry](#registry) |
-| `target` | string | yes for install | Install target id per registry `install-targets.md` |
+| `target` | string | yes for install | Install target id per [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md) |
 | `packages` | object | yes | Map qualified id → semver range string; see [Packages](#packages) |
 | `global` | boolean | no | When true, installs use global extract dir per `command-contracts.md` |
 
@@ -81,7 +84,7 @@ alongside `url`.
 ### Packages
 
 - Keys MUST be qualified package ids:
-  `^[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$` (per registry `index-schema.md`).
+  `^[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$` (per [registry index-schema](https://github.com/agents-repo/registry/blob/main/specs/index-schema.md)).
 - Values MUST be valid npm-style semver range strings.
 - There MUST NOT be a `dependencies` alias for `packages`.
 
@@ -91,6 +94,8 @@ alongside `url`.
 read-only legacy alias for a single registry URL.
 
 - On read, tooling MUST map `registryUrl` to `registry.url` when `registry.url` is absent.
+- When only `registryUrl` is present, `registry.ref` MUST default to `v2.x` unless `registry.ref`
+  is explicitly set in the same gate target.
 - Tooling MUST NOT write `registryUrl` on new or updated files; canonical output uses
   `registry: { url, ref }`.
 
@@ -166,10 +171,10 @@ CLI-managed field names: `schemaVersion`, `registry`, `target`, `packages`, `glo
 ## Validation Rules
 
 - `packages` keys MUST be unique qualified ids.
-- `target` MUST be one of the install target ids in registry `install-targets.md`.
-- `global` when true applies to install extract scope per `cli-protocol.md` and
-  `command-contracts.md`.
-- Flag `-g` overrides config `global` for that invocation.
+- `target` MUST be one of the install target ids in [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md).
+- `global` when true sets default **global extract scope** per `cli-protocol.md` and
+  `command-contracts.md`. It does not imply project lock updates when extract is global.
+- Flag `-g` forces global extract scope for that invocation and overrides `global: false`.
 
 ## Canonical JSON Example
 
@@ -189,5 +194,7 @@ CLI-managed field names: `schemaVersion`, `registry`, `target`, `packages`, `glo
 
 ## Cross-References
 
-- Registry: `install-targets.md`, `index-schema.md`
+- Registry:
+  [install-targets.md](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md),
+  [index-schema.md](https://github.com/agents-repo/registry/blob/main/specs/index-schema.md)
 - CLI: `lock-schema.md`, `command-contracts.md`, `cli-protocol.md`

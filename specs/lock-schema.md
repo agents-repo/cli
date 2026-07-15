@@ -54,15 +54,15 @@ Each entry in `packages` MUST be an object with:
 
 ### Integrity format
 
-Lock `integrity` MUST use npm Subresource Integrity style:
+Lock `integrity` MUST use a prefixed lowercase hex digest:
 
 ```text
 sha256-<manifest-sha256-hex>
 ```
 
 Where `<manifest-sha256-hex>` is the bare lowercase hex from registry `manifest.json`
-`artifacts[].sha256` for the installed artifact. Tooling MUST NOT re-hash with a different
-algorithm.
+`artifacts[].sha256` for the installed artifact. This is not Subresource Integrity (SRI) base64;
+tooling MUST NOT re-hash with a different algorithm or encoding.
 
 ## Behavioral Rules
 
@@ -78,11 +78,18 @@ corresponding lock entry.
 
 ### Global scope
 
-Global installs (`-g` / `global: true` extract) MUST NOT modify project `agents.json` or
-`agents-lock.json`. There is no global lockfile in MVP (npm `install -g` parity).
+Global extract scope (`-g` or resolved `global: true`) MUST NOT modify project `agents-lock.json`.
+There is no global lockfile in MVP (npm `install -g` parity).
 
-Bulk `install` when `global: true` is set in config: extract globally, do not update the project
-lock.
+| Invocation | Lock behavior |
+| --- | --- |
+| `install <pkg> -g` | No project lock write |
+| `install <pkg>` with `global: true` (no `-g`) | No project lock write |
+| `install` (bulk, `global: true`) | No project lock write |
+
+Bulk `install` when `global: true` is set in config: extract globally, update `agents.json`
+`packages` if needed, do not update the project lock. Config and lock may temporarily diverge until
+a project-scope install reconciles the lock.
 
 ### Bulk install without lock
 
@@ -112,7 +119,7 @@ format MUST support that command; MVP does not implement it. See issue #16.
     "agents-repo/hello-agent": {
       "version": "1.0.0",
       "target": "cursor",
-      "integrity": "sha256aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "integrity": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "artifact": "1.0.0-cursor.zip",
       "resolved": "2026-07-15T12:00:00Z"
     }
@@ -122,5 +129,5 @@ format MUST support that command; MVP does not implement it. See issue #16.
 
 ## Cross-References
 
-- Registry: `manifest-schema.md`
+- Registry: [manifest-schema.md](https://github.com/agents-repo/registry/blob/main/specs/manifest-schema.md)
 - CLI: `config-schema.md`, `cli-protocol.md`, `command-contracts.md`

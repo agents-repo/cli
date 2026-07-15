@@ -63,7 +63,7 @@ Merge semantics per `config-schema.md`.
 
 | Flag | Description |
 | --- | --- |
-| `--global` / `-g` | Extract to `~/.config/agents-repo/`; do not mutate project config/lock |
+| `--global` / `-g` | Global extract scope; single-package: no project config/lock writes |
 | `--target <id>` | Override install target for this invocation |
 | `--no-save` | Skip `agents.json` and lock writes |
 | `--dry-run` | Resolve only; no download, extract, or save |
@@ -72,14 +72,22 @@ Merge semantics per `config-schema.md`.
 MVP argument grammar: `install <package-id>` where `<package-id>` is a qualified id or index
 alias. Bulk: `install` with no arguments syncs all entries in `packages` (issue #9).
 
-Flag `-g` overrides config `global: true` for that invocation when both apply.
+**Ad-hoc install default:** when `install <package-id>` adds a new `packages` entry, the range MUST
+be `^<resolved-version>` (caret on the semver chosen in step 6 of `cli-protocol.md`).
+
+**Global scope:** `-g` or resolved `global: true` extracts to `~/.config/agents-repo/`. Single-package
+global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bulk `install` with
+`global: true` MAY update `agents.json` `packages` but MUST NOT update the project lock.
+
+`-g` forces global extract scope even when config has `global: false`.
 
 ### Global install directory
 
 Global extract target: `~/.config/agents-repo/` (XDG-friendly).
 
 Project `agents.json` and `agents-lock.json` remain at the config directory (project root by
-default). Global installs MUST NOT modify them (npm `install -g` parity).
+default). Single-package global installs MUST NOT modify them (npm `install -g` parity). Bulk
+`install` with `global: true` MAY update `agents.json` `packages` only; see `cli-protocol.md`.
 
 ## Deferred / Post-MVP Interfaces
 
