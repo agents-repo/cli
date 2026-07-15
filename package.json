@@ -1,0 +1,52 @@
+{
+  "name": "agents-repo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Official CLI for installing and managing agents-repo packages.",
+  "type": "module",
+  "bin": {
+    "agents-repo": "./dist/bin/agents-repo.js"
+  },
+  "engines": {
+    "node": "24.18.0"
+  },
+  "packageManager": "npm@12.0.1",
+  "scripts": {
+    "env:check": "node scripts/validate-env.mjs",
+    "lint": "eslint .",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"**/.*/**/*.md\"",
+    "lint:yaml": "node scripts/lint-yaml.js",
+    "lint:all": "npm run lint:md && npm run lint && npm run lint:yaml",
+    "sync:cursor-rules": "node scripts/sync-cursor-rules.mjs",
+    "test:sync": "node --test test/*.test.mjs",
+    "check:secrets": "bash scripts/check-secrets.sh",
+    "pretest": "npm run build",
+    "test": "npm run test:sync && vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "release:dry-run": "semantic-release --dry-run",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/github": "^12.0.9",
+    "@semantic-release/npm": "^13.1.5",
+    "@semantic-release/release-notes-generator": "^14.1.1",
+    "@types/node": "^24.12.3",
+    "conventional-changelog-conventionalcommits": "^8.0.0",
+    "eslint": "^10.7.0",
+    "eslint-plugin-security": "^4.0.1",
+    "eslint-plugin-sonarjs": "^4.1.0",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "js-yaml": "^4.3.0",
+    "markdownlint-cli2": "^0.23.0",
+    "semantic-release": "^25.0.6",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.63.0",
+    "vitest": "^4.1.10"
+  },
+  "allowScripts": {}
+}

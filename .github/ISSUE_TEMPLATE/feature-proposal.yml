@@ -1,0 +1,69 @@
+name: Feature proposal
+description: Propose a new capability for the agents-repo CLI.
+title: "feat: "
+labels:
+  - enhancement
+type: Feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Workflow:** Submit this issue first. After GitHub assigns a number,
+        create your branch and draft PR—do not edit this issue body to add the
+        number.
+
+        **Branch pattern:** `feat/<issue-number>-<slug>` (use the assigned number
+        and a short lowercase kebab-case slug from the title)
+
+        **Example:** `feat/8-install-package`
+
+        **Draft PR:** Open with `gh pr create --draft` before implementation
+        commits. For standard tasks, use `Closes #<issue-number>` in the PR
+        `## Related Issues` section (not in this issue).
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What feature should be added?
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this needed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      placeholder: |
+        In scope:
+        -
+        Out of scope:
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: impacted
+    attributes:
+      label: Impacted areas
+      placeholder: |
+        - src/
+        - specs/
+        - docs/
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I described measurable acceptance criteria.
+          required: true
+        - label: I reviewed existing issues for duplicates.
+          required: true
