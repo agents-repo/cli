@@ -45,7 +45,7 @@ body:
     attributes:
       label: Reproduction steps
       placeholder: |
-        1. Run `npx agents-repo ...`
+        1. Run `npm run build && node dist/bin/agents-repo.js ...`
         2. Observe ...
     validations:
       required: true

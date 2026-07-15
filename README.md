@@ -4,7 +4,8 @@ Official CLI for installing and managing agents-repo packages from the
 registry.
 
 ```bash
-npx agents-repo <command>
+npm run build
+node dist/bin/agents-repo.js <command>
 ```
 
 Commands (`init`, `install`, `search`, and more) land in later milestones.
