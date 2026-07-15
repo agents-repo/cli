@@ -1,0 +1,74 @@
+name: Bug or inconsistency report
+description: Report broken CLI behavior, documentation mismatch, or workflow inconsistency.
+title: "fix: "
+labels:
+  - bug
+type: Bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Workflow:** Submit this issue first. After GitHub assigns a number,
+        create your branch and draft PR—do not edit this issue body to add the
+        number.
+
+        Security vulnerabilities MUST NOT be reported in public issues.
+        Use https://github.com/agents-repo/cli/security/advisories/new
+        for private disclosure instead.
+
+        **Branch pattern:** `fix/<issue-number>-<slug>` (use the assigned number
+        and a short lowercase kebab-case slug from the title)
+
+        **Example:** `fix/42-config-merge-bug`
+
+        **Draft PR:** Open with `gh pr create --draft` before implementation
+        commits. For standard tasks, use `Closes #<issue-number>` in the PR
+        `## Related Issues` section (not in this issue).
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken or inconsistent?
+    validations:
+      required: true
+
+  - type: input
+    id: affected-file
+    attributes:
+      label: Affected file
+      description: Provide a path if known.
+      placeholder: src/modules/config/...
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Run `npx agents-repo ...`
+        2. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include command output or logs.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I confirmed this issue is reproducible on latest main.
+          required: true
+        - label: I searched for existing related issues.
+          required: true

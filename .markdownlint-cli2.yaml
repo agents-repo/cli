@@ -1,0 +1,17 @@
+config:
+  default: true
+  line-length:
+    line_length: 100
+  no-multiple-blanks:
+    maximum: 2
+  no-duplicate-heading:
+    siblings_only: true
+
+globs:
+  - "**/*.md"
+  - "**/.*/**/*.md"
+
+ignores:
+  - "node_modules/**"
+  - "dist/**"
+  - "LICENSE"

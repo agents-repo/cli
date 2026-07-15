@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contributor guide
+    url: https://github.com/agents-repo/cli/blob/main/.github/CONTRIBUTING.md
+    about: Review the project workflow before opening an issue.
+  - name: Security vulnerability report
+    url: https://github.com/agents-repo/cli/security/advisories/new
+    about: Report security vulnerabilities privately through GitHub Security Advisories.
