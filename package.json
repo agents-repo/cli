@@ -20,6 +20,7 @@
     "sync:cursor-rules": "node scripts/sync-cursor-rules.mjs",
     "test:sync": "node --test test/sync-cursor-rules.test.mjs",
     "check:secrets": "bash scripts/check-secrets.sh",
+    "pretest": "npm run build",
     "test": "npm run test:sync && vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",

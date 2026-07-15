@@ -14,3 +14,4 @@ if (process.argv.includes('--version') || process.argv.includes('-V')) {
 }
 
 console.log('agents-repo CLI — commands coming in M3 (see issues #7–#11)');
+process.exit(1);
