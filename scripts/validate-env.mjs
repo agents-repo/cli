@@ -35,7 +35,10 @@ const packageJson = JSON.parse(
   readFileSync(resolve(root, 'package.json'), 'utf8')
 );
 const pinnedNode = readFileSync(resolve(root, '.nvmrc'), 'utf8').trim();
-const pinnedNpm = String(packageJson.packageManager ?? '').replace(/^npm@/, '');
+const pinnedNpm = String(packageJson.packageManager ?? '')
+  .replace(/^npm@/, '')
+  .split('+')[0]
+  .trim();
 
 const currentNode = process.version.replace(/^v/, '');
 const currentNpm = detectNpmVersion();

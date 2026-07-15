@@ -99,4 +99,19 @@ describe('validate-env', () => {
     assert.match(String(stderr), /npm patch differs/);
     assert.match(stdout, /satisfy repository requirements/);
   });
+
+  it('ignores packageManager corepack hash suffix on patch check', async () => {
+    const repo = makeTempRepo({
+      nvmrc: currentNode,
+      packageManager: 'npm@12.0.1+sha512-deadbeef',
+    });
+    tempRepos.push(repo);
+
+    const { stdout, stderr } = await runValidateEnv(repo, {
+      npm_config_user_agent: 'npm/12.0.1',
+    });
+
+    assert.doesNotMatch(String(stderr), /npm patch differs/);
+    assert.match(stdout, /satisfy repository requirements/);
+  });
 });
