@@ -1,5 +1,5 @@
 name: Spec change request
-description: Request a change to one or more files in cli/specs/.
+description: Request a change to one or more files in specs/.
 title: "spec: "
 labels:
   - specs
