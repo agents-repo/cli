@@ -87,11 +87,11 @@ Reserved for follow-up feature issues. MVP MUST NOT implement these interfaces.
 
 | Interface | Description | Tracking |
 | --- | --- | --- |
-| `install <package-id>:<selector>` | Install one agent or flow by exact id | Follow-up (colon) |
-| `--agents <id>` (repeatable) | Install listed agents from package | See follow-up issue (flags) |
-| `--flows <id>` (repeatable) | Install listed flows from package | See follow-up issue (flags) |
+| `install <package-id>:<selector>` | Install one agent or flow by exact id | [#19](https://github.com/agents-repo/cli/issues/19) |
+| `--agents <id>` (repeatable) | Install listed agents from package | [#20](https://github.com/agents-repo/cli/issues/20) |
+| `--flows <id>` (repeatable) | Install listed flows from package | [#20](https://github.com/agents-repo/cli/issues/20) |
 
-After follow-up issues are filed, this section MUST link to `agents-repo/cli#<number>`.
+After follow-up issues land, implementation MUST update this table with behavior details.
 
 ## Exit Codes
 
