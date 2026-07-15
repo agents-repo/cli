@@ -38,6 +38,12 @@
         "preset": "conventionalcommits"
       }
     ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": false
+      }
+    ],
     "@semantic-release/github"
   ]
 }

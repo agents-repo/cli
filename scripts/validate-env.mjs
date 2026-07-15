@@ -1,5 +1,34 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+
+function resolveNpmCliInvocation() {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath) {
+    return { command: process.execPath, args: [npmExecPath, '--version'] };
+  }
+
+  return {
+    command: join(dirname(process.execPath), 'npm'),
+    args: ['--version'],
+  };
+}
+
+function detectNpmVersion() {
+  const fromUserAgent = process.env.npm_config_user_agent?.match(
+    /npm\/(\d+\.\d+\.\d+)/
+  )?.[1];
+  if (fromUserAgent) {
+    return fromUserAgent;
+  }
+
+  const { command, args } = resolveNpmCliInvocation();
+  try {
+    return execFileSync(command, args, { encoding: 'utf8' }).trim();
+  } catch {
+    return undefined;
+  }
+}
 
 const root = process.cwd();
 const packageJson = JSON.parse(
@@ -9,7 +38,7 @@ const pinnedNode = readFileSync(resolve(root, '.nvmrc'), 'utf8').trim();
 const pinnedNpm = String(packageJson.packageManager ?? '').replace(/^npm@/, '');
 
 const currentNode = process.version.replace(/^v/, '');
-const currentNpm = process.env.npm_config_user_agent?.match(/npm\/(\d+\.\d+\.\d+)/)?.[1];
+const currentNpm = detectNpmVersion();
 
 const pinnedNodeMajor = pinnedNode.split('.')[0];
 const currentNodeMajor = currentNode.split('.')[0];

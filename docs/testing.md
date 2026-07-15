@@ -25,10 +25,10 @@ Use `describe` / `it` with explicit imports from `vitest` (no globals).
 - **Application code** (`src/`) — tests under `tests/` using Vitest with
   `environment: 'node'`.
 
-Co-located `src/**/*.test.ts` files are also supported by `vitest.config.ts`
-when added in later issues.
+Co-located `src/**/*.test.ts` files are also supported by `vitest.config.ts`.
 
 ## PR baseline
 
-CI runs `npm run test`, which executes `test:sync` then `vitest run`. No build
-step is required for the bootstrap test suite.
+CI runs `npm run test`, which triggers `pretest` (`npm run build`) then
+`test:sync` and `vitest run`. Bin subprocess tests require the compiled
+`dist/` output.
