@@ -51,7 +51,7 @@ Each entry in `packages` MUST be an object with:
 | `target` | string | yes | Install target id used for this install |
 | `integrity` | string | yes | `sha256-<64-char-lowercase-hex>` |
 | `artifact` | string | yes | Artifact filename (e.g. `1.0.0-cursor.zip`) |
-| `resolved` | string | yes | RFC 3339 timestamp of last resolution/install |
+| `resolved` | string | no | RFC 3339 last-resolution timestamp; omitted in MVP for lock stability |
 
 ### Integrity format
 
@@ -75,7 +75,8 @@ same directory as `agents.json` unless `--no-save`.
 When `agents.json` semver ranges allow a newer compatible version, `install` MAY update the
 corresponding lock entry.
 
-`resolvedRef` MUST be updated at lock-write time.
+`resolvedRef` MUST be updated at lock-write time. Tooling MUST NOT write `resolved` in MVP so
+identical resolution produces identical lock content.
 
 ### Global scope
 
@@ -121,8 +122,7 @@ format MUST support that command; MVP does not implement it. See issue #16.
       "version": "1.0.0",
       "target": "cursor",
       "integrity": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "artifact": "1.0.0-cursor.zip",
-      "resolved": "2026-07-15T12:00:00Z"
+      "artifact": "1.0.0-cursor.zip"
     }
   }
 }

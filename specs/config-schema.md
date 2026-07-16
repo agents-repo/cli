@@ -56,11 +56,14 @@ are:
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `schemaVersion` | string | yes | MUST be `1.0.0` for new files; see [Schema Version Lifecycle](#schema-version-lifecycle) |
-| `registry` | object | yes | `{ "url": string, "ref": string }`; see [Registry](#registry) |
+| `schemaVersion` | string | yes on write | MUST be `1.0.0` for new files; see [Schema Version Lifecycle](#schema-version-lifecycle) |
+| `registry` | object | yes on write; optional on read | `{ "url": string, "ref": string }`; defaults on read; see [Registry](#registry) |
 | `target` | string | yes for install | Install target id per [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md) |
-| `packages` | object | yes | Map qualified id → semver range string; see [Packages](#packages) |
+| `packages` | object | yes on write | Map qualified id → semver range string; see [Packages](#packages) |
 | `global` | boolean | no | When true, installs use global extract dir per `command-contracts.md` |
+
+Required on write means persisted output MUST include the field. Optional on read means absent
+values are valid input and MUST be filled from defaults during resolution.
 
 ### Registry
 
@@ -102,13 +105,21 @@ read-only legacy alias for a single registry URL.
 
 ## Schema Gate
 
-The schema gate determines where CLI-managed fields are read and written.
+The schema gate determines where CLI-managed fields are read and written. Evaluate in this order;
+first match wins:
+
+1. **greenfield** — no file, or file parses as `{}` only.
+2. **top-level-ours** — supported `schemaVersion` at top level.
+3. **namespace** — all other valid JSON files (including foreign configs with absent or unsupported
+   top-level `schemaVersion`).
 
 | Mode | Condition | Read/write target |
 | --- | --- | --- |
 | **greenfield** | No file, or file parses as `{}` only | Top-level canonical fields |
 | **top-level-ours** | Supported `schemaVersion` at top level | Top-level canonical fields |
-| **namespace** | Top-level `schemaVersion` absent or unsupported | `"@agents-repo"` block only |
+| **namespace** | Valid JSON not matching greenfield or top-level-ours | `"@agents-repo"` only |
+
+A file that parses as `{}` MUST select **greenfield**, not namespace.
 
 Rules:
 
