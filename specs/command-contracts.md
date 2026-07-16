@@ -28,7 +28,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | `--json` | | Machine-readable output |
 | `--verbose` | | Detailed logging |
 | `--yes` | `-y` | Non-interactive; continue past conflicts with warnings |
-| `--dry-run` | | No side effects per `cli-protocol.md` |
+| `--dry-run` | | Resolve through install step 7; no download, extract, or save |
 | `--no-save` | | Skip `agents.json` and lock writes |
 
 ## Environment Overrides
