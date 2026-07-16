@@ -15,8 +15,9 @@ RFC 2119.
 | --- | --- | --- | --- |
 | `1` | lockfileVersion | current | Initial release |
 
-Tooling MUST reject lock files whose `lockfileVersion` is not supported unless it explicitly
-supports a newer version.
+MVP implementations MUST support `lockfileVersion` `1` only. Tooling MUST reject lock files whose
+`lockfileVersion` is outside its supported set (exit `3`). When this table lists a newer version
+and the implementation explicitly supports it, tooling MAY accept that version.
 
 ## Purpose
 
