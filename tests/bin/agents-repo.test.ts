@@ -12,10 +12,26 @@ describe('agents-repo bin', () => {
     expect(stdout.trim()).toBe('0.0.0');
   });
 
-  it('prints placeholder and exits 1 with no flags', () => {
+  it('prints help and exits 0 with --help', () => {
+    const result = spawnSync(nodeExecutable, [binPath, '--help'], { encoding: 'utf8' });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('agents-repo');
+    expect(result.stdout).toContain('init');
+  });
+
+  it('prints root help and exits 0 with no flags', () => {
     const result = spawnSync(nodeExecutable, [binPath], { encoding: 'utf8' });
 
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Usage: agents-repo');
+  });
+
+  it('prints placeholder and exits 1 for init', () => {
+    const result = spawnSync(nodeExecutable, [binPath, 'init'], { encoding: 'utf8' });
+
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain('commands coming in M3');
+    expect(result.stderr).toContain('not implemented yet');
+    expect(result.stderr).toContain('issue #7');
   });
 });
