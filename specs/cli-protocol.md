@@ -50,7 +50,7 @@ Install MUST execute these steps in order:
 10. Run ZIP security scan (registry `zip-scan` conformance).
 11. Extract **entire package** (all agents and flows) per registry `install-targets.md`.
 12. Update `agents.json` and `agents-lock.json` per [install scope](#install-scope) unless
-    `--no-save`.
+    `--no-save` or `--dry-run`.
 
 `--dry-run` MUST execute through step 7 and MUST NOT download, extract, or mutate config/lock.
 
@@ -96,7 +96,7 @@ index or artifacts. Store the concrete value in `agents-lock.json` `resolvedRef`
   `manifest.versions[]` with no range filter (npm `install <pkg>` latest semantics).
 - Manifest `latest` is a catalog hint only; it MUST NOT override the selection rules above.
 - After resolution, ad-hoc installs MUST add `packages[<id>] = ^<resolved-version>` unless
-  `--no-save`. See `command-contracts.md`.
+  `--no-save` or `--dry-run`. See `command-contracts.md`.
 
 ### 7. Pick artifact
 
@@ -143,9 +143,9 @@ At minimum, tooling MUST reject archives with:
 
 ### 12. Update config and lock
 
-Behavior depends on [install scope](#install-scope) and `--no-save`:
+Behavior depends on [install scope](#install-scope). Skip when `--no-save` or `--dry-run`:
 
-**Project scope** (unless `--no-save`):
+**Project scope**:
 
 - Add or update `packages[<id>]` in `agents.json`.
 - Add or update lock entry per `lock-schema.md`.
@@ -158,7 +158,7 @@ Behavior depends on [install scope](#install-scope) and `--no-save`:
 
 ## Config and Lock Writes
 
-Unless `--no-save`, config and lock mutation follows:
+Unless `--no-save` or `--dry-run`, config and lock mutation follows:
 
 | Invocation | Extract scope | Mutate `agents.json` | Mutate `agents-lock.json` |
 | --- | --- | --- | --- |
@@ -168,8 +168,8 @@ Unless `--no-save`, config and lock mutation follows:
 | `install` (bulk, project scope) | Project | Yes | Yes |
 | `install` (bulk, `global: true`) | Global | Yes (`packages` map) | No |
 
-With `--no-save`, all rows skip `agents.json` and `agents-lock.json` writes. Global-scope rows
-already skip project file writes regardless.
+With `--no-save` or `--dry-run`, all rows skip `agents.json` and `agents-lock.json` writes.
+Global-scope rows already skip project file writes regardless.
 
 **Bulk + `global: true` drift:** `agents.json` records declared package ranges while the project
 lock is unchanged. This is intentional in MVP (npm global-install parity for lock). Reconcile by

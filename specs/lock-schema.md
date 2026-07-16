@@ -105,10 +105,10 @@ format MUST support that command; MVP does not implement it. See issue #16.
 ## Validation Rules
 
 - `packages` keys MUST match qualified id format from `config-schema.md`.
-- `packages[].version` MUST be an exact semver present in the resolved manifest.
-- `packages[].artifact` MUST match the manifest artifact filename for the resolved version and
+- `packages[<id>].version` MUST be an exact semver present in the resolved manifest.
+- `packages[<id>].artifact` MUST match the manifest artifact filename for the resolved version and
   target.
-- `packages[].integrity` MUST equal `sha256-` + manifest `artifacts[].sha256` for that artifact.
+- `packages[<id>].integrity` MUST equal `sha256-` + manifest `artifacts[].sha256` for that artifact.
 
 ## Canonical JSON Example
 

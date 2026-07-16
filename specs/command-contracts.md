@@ -21,10 +21,10 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 
 ## Global Flags
 
-| Flag | Short | Scope |
+| Flag | Short | Description |
 | --- | --- | --- |
-| `--help` | `-h` | All commands |
-| `--version` | `-V` | Root program |
+| `--help` | `-h` | Show help (all commands) |
+| `--version` | `-V` | Show CLI version (root program only) |
 | `--json` | | Machine-readable output |
 | `--verbose` | | Detailed logging |
 | `--yes` | `-y` | Non-interactive; continue past conflicts with warnings |
@@ -74,7 +74,7 @@ alias. Bulk: `install` with no arguments syncs all entries in `packages` (issue 
 
 **Ad-hoc install default:** when `install <package-id>` has no existing `packages` entry, step 6
 selects the highest `manifest.versions[]` entry (no range filter), then writes
-`packages[<id>] = ^<resolved-version>` unless `--no-save`.
+`packages[<id>] = ^<resolved-version>` unless `--no-save` or `--dry-run`.
 
 **Global scope:** `-g` or resolved `global: true` extracts to `~/.config/agents-repo/`. Single-package
 global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bulk `install` with
