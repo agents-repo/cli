@@ -72,8 +72,9 @@ Merge semantics per `config-schema.md`.
 MVP argument grammar: `install <package-id>` where `<package-id>` is a qualified id or index
 alias. Bulk: `install` with no arguments syncs all entries in `packages` (issue #9).
 
-**Ad-hoc install default:** when `install <package-id>` adds a new `packages` entry, the range MUST
-be `^<resolved-version>` (caret on the semver chosen in step 6 of `cli-protocol.md`).
+**Ad-hoc install default:** when `install <package-id>` has no existing `packages` entry, step 6
+selects the highest `manifest.versions[]` entry (no range filter), then writes
+`packages[<id>] = ^<resolved-version>` unless `--no-save`.
 
 **Global scope:** `-g` or resolved `global: true` extracts to `~/.config/agents-repo/`. Single-package
 global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bulk `install` with

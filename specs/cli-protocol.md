@@ -90,12 +90,13 @@ index or artifacts. Store the concrete value in `agents-lock.json` `resolvedRef`
 
 ### 6. Pick version
 
-- Use semver range from `agents.json` `packages[<id>]` when present.
+- When `packages[<id>]` is present, use that semver range.
 - Select the **highest** version in `manifest.versions[]` satisfying the range.
-- Manifest `latest` is a catalog hint only; it MUST NOT override range logic.
-- Single `install <package-id>` without a prior `packages` entry MUST add
-  `packages[<id>] = ^<resolved-version>` (caret range on the resolved semver) unless `--no-save`.
-  See `command-contracts.md`.
+- When `packages[<id>]` is absent (ad-hoc `install <package-id>`), select the **highest** version in
+  `manifest.versions[]` with no range filter (npm `install <pkg>` latest semantics).
+- Manifest `latest` is a catalog hint only; it MUST NOT override the selection rules above.
+- After resolution, ad-hoc installs MUST add `packages[<id>] = ^<resolved-version>` unless
+  `--no-save`. See `command-contracts.md`.
 
 ### 7. Pick artifact
 
@@ -157,13 +158,18 @@ Behavior depends on [install scope](#install-scope) and `--no-save`:
 
 ## Config and Lock Writes
 
+Unless `--no-save`, config and lock mutation follows:
+
 | Invocation | Extract scope | Mutate `agents.json` | Mutate `agents-lock.json` |
 | --- | --- | --- | --- |
-| `install <pkg>` (project scope) | Project | Yes (unless `--no-save`) | Yes |
+| `install <pkg>` (project scope) | Project | Yes | Yes |
 | `install <pkg> -g` | Global | No | No |
 | `install <pkg>` (`global: true`, no `-g`) | Global | No | No |
-| `install` (bulk, project scope) | Project | Yes | Yes (unless `--no-save`) |
+| `install` (bulk, project scope) | Project | Yes | Yes |
 | `install` (bulk, `global: true`) | Global | Yes (`packages` map) | No |
+
+With `--no-save`, all rows skip `agents.json` and `agents-lock.json` writes. Global-scope rows
+already skip project file writes regardless.
 
 **Bulk + `global: true` drift:** `agents.json` records declared package ranges while the project
 lock is unchanged. This is intentional in MVP (npm global-install parity for lock). Reconcile by

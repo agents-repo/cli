@@ -46,7 +46,8 @@ path for local development and tests; production workflows SHOULD use the projec
 - Default path: `./agents.json` at the project root.
 - When `AGENTS_REPO_CONFIG` is set, it MUST be an absolute path to `agents.json`; see
   `command-contracts.md`.
-- The file MUST be valid UTF-8 encoded JSON.
+- The file MUST be valid UTF-8 encoded JSON when present. Whitespace-only or otherwise invalid
+  JSON MUST exit `3` on read (not greenfield).
 
 ## Top-Level Canonical Schema
 
@@ -105,7 +106,7 @@ The schema gate determines where CLI-managed fields are read and written.
 
 | Mode | Condition | Read/write target |
 | --- | --- | --- |
-| **greenfield** | No file, empty `{}`, or whitespace-only | Top-level canonical fields |
+| **greenfield** | No file, or file parses as `{}` only | Top-level canonical fields |
 | **top-level-ours** | Supported `schemaVersion` at top level | Top-level canonical fields |
 | **namespace** | Top-level `schemaVersion` absent or unsupported | `"@agents-repo"` block only |
 
