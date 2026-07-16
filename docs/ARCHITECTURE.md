@@ -24,7 +24,12 @@ src/modules/
   target/
 ```
 
-Normative contracts live under `specs/` (see issue #2).
+Normative contracts live under `specs/`:
+
+- [config-schema.md](../specs/config-schema.md) — `agents.json` schema and schema gate
+- [lock-schema.md](../specs/lock-schema.md) — `agents-lock.json` lockfile format
+- [cli-protocol.md](../specs/cli-protocol.md) — install pipeline protocol
+- [command-contracts.md](../specs/command-contracts.md) — flags, exit codes, env overrides
 
 ## Related docs
 

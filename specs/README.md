@@ -2,11 +2,13 @@
 
 Normative CLI contracts live in this directory.
 
-Planned spec files (issue #2):
+## Spec index
 
-- `config-schema.md` — `agents.json` schema and merge rules
-- `lock-schema.md` — `agents-lock.json` lockfile format
-- `cli-protocol.md` — install flow protocol
-- `command-contracts.md` — flags, exit codes, and environment overrides
+| Spec | Description |
+| --- | --- |
+| [config-schema.md](config-schema.md) | `agents.json` schema, schema gate, merge rules |
+| [lock-schema.md](lock-schema.md) | `agents-lock.json` lockfile format |
+| [cli-protocol.md](cli-protocol.md) | Install pipeline protocol |
+| [command-contracts.md](command-contracts.md) | Flags, exit codes, environment overrides |
 
 Use `.github/ISSUE_TEMPLATE/spec-change.yml` to propose changes.
