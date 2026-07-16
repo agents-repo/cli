@@ -90,13 +90,12 @@ index or artifacts. Store the concrete value in `agents-lock.json` `resolvedRef`
 
 ### 6. Pick version
 
-- When `packages[<id>]` is present, use that semver range.
+- When `packages[<id>]` is present in the active gate target, use that semver range.
 - Select the **highest** version in `manifest.versions[]` satisfying the range.
 - When `packages[<id>]` is absent (ad-hoc `install <package-id>`), select the **highest** version in
   `manifest.versions[]` with no range filter (npm `install <pkg>` latest semantics).
 - Manifest `latest` is a catalog hint only; it MUST NOT override the selection rules above.
-- After resolution, ad-hoc installs MUST add `packages[<id>] = ^<resolved-version>` unless
-  `--no-save` or `--dry-run`. See `command-contracts.md`.
+- Config writes for ad-hoc installs occur in step 12 per [install scope](#install-scope).
 
 ### 7. Pick artifact
 
@@ -147,14 +146,19 @@ Behavior depends on [install scope](#install-scope). Skip when `--no-save` or `-
 
 **Project scope**:
 
-- Add or update `packages[<id>]` in `agents.json`.
+- Write CLI-managed fields to the active schema gate target per `config-schema.md` (top-level for
+  greenfield/top-level-ours; `"@agents-repo"` only for namespace mode).
+- On greenfield file create, MUST persist `schemaVersion: "1.0.0"`, resolved `registry`, resolved
+  `target`, and `packages` (npm create-on-install parity for in-memory defaults).
+- Add or update `packages[<id>]` (`^<resolved-version>` for ad-hoc installs).
 - Add or update lock entry per `lock-schema.md`.
 
-**Global scope:**
+**Global scope**:
 
-- Single-package global installs MUST NOT mutate project `agents.json` or `agents-lock.json`.
-- Bulk `install` with `global: true` MAY update `agents.json` `packages` but MUST NOT update the
-  project lock (see [Config and Lock Writes](#config-and-lock-writes)).
+- Single-package global installs MUST NOT mutate project `agents.json` or `agents-lock.json` (no
+  ad-hoc `packages` write).
+- Bulk `install` with `global: true` MAY update `packages` in the active gate target but MUST NOT
+  update the project lock (see [Config and Lock Writes](#config-and-lock-writes)).
 
 ## Config and Lock Writes
 

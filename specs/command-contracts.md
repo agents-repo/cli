@@ -73,8 +73,9 @@ MVP argument grammar: `install <package-id>` where `<package-id>` is a qualified
 alias. Bulk: `install` with no arguments syncs all entries in `packages` (issue #9).
 
 **Ad-hoc install default:** when `install <package-id>` has no existing `packages` entry, step 6
-selects the highest `manifest.versions[]` entry (no range filter), then writes
-`packages[<id>] = ^<resolved-version>` unless `--no-save` or `--dry-run`.
+selects the highest `manifest.versions[]` entry (no range filter). Step 12 writes
+`packages[<id>] = ^<resolved-version>` in project scope (or bulk `global: true` exception) unless
+`--no-save` or `--dry-run`. Single-package global installs skip config writes.
 
 **Global scope:** `-g` or resolved `global: true` extracts to `~/.config/agents-repo/`. Single-package
 global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bulk `install` with
