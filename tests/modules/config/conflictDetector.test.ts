@@ -142,4 +142,22 @@ describe('ConflictDetector', () => {
 
     expect(result.errors.some((entry) => entry.code === 'dual_definition_mismatch')).toBe(false)
   })
+
+  it('reports type_mismatch when @agents-repo is not an object in namespace mode', () => {
+    const result = detector.detect(
+      {
+        customTool: { enabled: true },
+        '@agents-repo': [],
+      },
+      'namespace',
+    )
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: 'type_mismatch',
+        path: '@agents-repo',
+        severity: 'error',
+      }),
+    ])
+  })
 })

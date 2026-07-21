@@ -178,6 +178,23 @@ describe('ConfigResolver', () => {
     expect(resolved.packages).toEqual({ 'agents-repo/hello-agent': '^1.0.0' })
   })
 
+  it('rejects non-object @agents-repo in namespace mode', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
+    const configPath = path.join(cwd, 'agents.json')
+    await writeFile(
+      configPath,
+      stringifyJsonDocument({
+        customTool: { enabled: true },
+        '@agents-repo': 'cursor',
+      }),
+    )
+
+    await expect(resolver.resolve({ cwd, env: {} })).rejects.toMatchObject({
+      code: 'type_mismatch',
+      exitCode: 3,
+    })
+  })
+
   it('preserves registry ref when only ref is set in registry object', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
     const configPath = path.join(cwd, 'agents.json')

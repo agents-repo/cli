@@ -1,4 +1,4 @@
-import { DEFAULT_REGISTRY_CONFIG } from '../../registry/infrastructure/registrySourceConfig.js'
+import { DEFAULT_REGISTRY_CONFIG, type RegistryConfig } from '../../registry/infrastructure/registrySourceConfig.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import { DEFAULT_REGISTRY_REF } from '../domain/configConstants.js'
 import { ConfigValidationError } from '../domain/configErrors.js'
@@ -9,18 +9,24 @@ import { getRegistryRefDefault, getRegistryUrlAlias } from './schemaGate.js'
 export const extractCliManagedConfig = (
   activeTarget: Record<string, unknown>,
 ): CliManagedConfig => {
-  const result: CliManagedConfig = {}
+  const managed: {
+    schemaVersion?: string
+    registry?: RegistryConfig
+    target?: InstallTargetId
+    packages?: Record<string, string>
+    global?: boolean
+  } = {}
 
   if (typeof activeTarget.schemaVersion === 'string') {
-    result.schemaVersion = activeTarget.schemaVersion
+    managed.schemaVersion = activeTarget.schemaVersion
   }
 
   if (typeof activeTarget.target === 'string') {
-    result.target = activeTarget.target as InstallTargetId
+    managed.target = activeTarget.target as InstallTargetId
   }
 
   if (typeof activeTarget.global === 'boolean') {
-    result.global = activeTarget.global
+    managed.global = activeTarget.global
   }
 
   if (activeTarget.packages !== undefined) {
@@ -35,7 +41,7 @@ export const extractCliManagedConfig = (
       }
       packages[key] = value
     }
-    result.packages = packages
+    managed.packages = packages
   }
 
   const registryUrlAlias = getRegistryUrlAlias(activeTarget)
@@ -43,27 +49,27 @@ export const extractCliManagedConfig = (
     const url = activeTarget.registry.url
     const ref = activeTarget.registry.ref
     if (typeof url === 'string') {
-      result.registry = {
+      managed.registry = {
         url,
         ref: typeof ref === 'string' ? ref : DEFAULT_REGISTRY_REF,
       }
     } else if (typeof ref === 'string') {
-      result.registry = {
+      managed.registry = {
         url: DEFAULT_REGISTRY_CONFIG.url,
         ref,
       }
     } else if (registryUrlAlias) {
-      result.registry = {
+      managed.registry = {
         url: registryUrlAlias,
         ref: getRegistryRefDefault(activeTarget),
       }
     }
   } else if (registryUrlAlias) {
-    result.registry = {
+    managed.registry = {
       url: registryUrlAlias,
       ref: getRegistryRefDefault(activeTarget),
     }
   }
 
-  return result
+  return managed
 }

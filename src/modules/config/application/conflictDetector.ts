@@ -32,6 +32,10 @@ export class ConflictDetector {
       return { errors, warnings }
     }
 
+    if (gateMode === 'namespace') {
+      errors.push(...this.validateNamespaceBlockShape(raw))
+    }
+
     const activeTarget = getActiveGateTarget(raw, gateMode)
     errors.push(...this.validateActiveTarget(activeTarget, gateMode))
 
@@ -198,6 +202,21 @@ export class ConflictDetector {
     }
 
     return conflicts
+  }
+
+  private validateNamespaceBlockShape(raw: AgentsConfigDocument): ConfigConflictRecord[] {
+    if (!(AGENTS_REPO_NAMESPACE in raw)) {
+      return []
+    }
+
+    const namespaceBlock = raw[AGENTS_REPO_NAMESPACE]
+    if (isPlainObject(namespaceBlock)) {
+      return []
+    }
+
+    return [
+      typeMismatch(AGENTS_REPO_NAMESPACE, '@agents-repo must be an object'),
+    ]
   }
 }
 
