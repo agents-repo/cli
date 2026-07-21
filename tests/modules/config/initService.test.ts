@@ -1,8 +1,8 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { InitService } from '../../../src/modules/config/application/initService.js'
 import {
@@ -21,9 +21,19 @@ import {
   partialNamespaceNoTargetConfig,
 } from '../../fixtures/agentsJson/index.js'
 
+const tempDirs: string[] = []
+
 const createProjectDir = async (): Promise<string> => {
-  return mkdtemp(path.join(os.tmpdir(), 'agents-init-'))
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'agents-init-'))
+  tempDirs.push(dir)
+  return dir
 }
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  )
+})
 
 const writeAgentsJson = async (cwd: string, document: Record<string, unknown>): Promise<string> => {
   const configPath = path.join(cwd, 'agents.json')

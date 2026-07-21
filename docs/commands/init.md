@@ -14,7 +14,7 @@ agents-repo init [options]
 
 | Flag | Scope | Description |
 | --- | --- | --- |
-| `--target <id>` | init | Set install target id (for example `cursor`, `copilot`) |
+| `--target <id>` | init | Set install target id (for example `cursor`, `github-copilot`) |
 | `--force` | init | Overwrite agents-repo-managed keys in the active schema gate target |
 | `--yes` / `-y` | global | Waive dual-definition conflicts with warnings instead of failing |
 | `--verbose` | global | Include marker paths when target detection is ambiguous |
@@ -109,7 +109,7 @@ agents-repo init
 Foreign-only `agents.json` (managed block added under `@agents-repo`):
 
 ```bash
-agents-repo init --target copilot
+agents-repo init --target github-copilot
 ```
 
 Waive conflicts non-interactively:
@@ -121,7 +121,7 @@ agents-repo -y init --target cursor
 Change an existing target:
 
 ```bash
-agents-repo init --target copilot --force
+agents-repo init --target github-copilot --force
 ```
 
 ## Related specs
