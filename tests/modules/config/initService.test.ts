@@ -16,6 +16,7 @@ import {
   canonicalTopLevelConfig,
   conflictingTopLevelConfig,
   foreignOnlyConfig,
+  namespaceOnlyTargetConfig,
   partialNamespaceConfig,
   partialNamespaceNoTargetConfig,
 } from '../../fixtures/agentsJson/index.js'
@@ -291,6 +292,41 @@ describe('InitService', () => {
       schemaVersion: '1.0.0',
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
+    })
+  })
+
+  it('propagates namespace target to top level when top-level target is missing', async () => {
+    const cwd = await createProjectDir()
+    await writeAgentsJson(cwd, namespaceOnlyTargetConfig)
+    const service = new InitService(stubDetector(singleCursorDetection))
+
+    const result = await service.run({ cwd })
+
+    expect(result.gateMode).toBe('top-level-ours')
+    expect(result.target).toBe('claude-code')
+    const written = await readAgentsJson(result.configPath)
+    expect(written.target).toBe('claude-code')
+    expect(written['@agents-repo']).toMatchObject({ target: 'claude-code' })
+  })
+
+  it('rejects --target that conflicts with namespace-only target without --force', async () => {
+    const cwd = await createProjectDir()
+    await writeAgentsJson(cwd, namespaceOnlyTargetConfig)
+    const service = new InitService(stubDetector(noneDetection))
+
+    await expect(service.run({ cwd, target: 'cursor' })).rejects.toMatchObject({
+      code: 'target_mismatch',
+      exitCode: 3,
+    })
+  })
+
+  it('rejects --force target changes that create dual-definition mismatches without --yes', async () => {
+    const cwd = await createProjectDir()
+    await writeAgentsJson(cwd, namespaceOnlyTargetConfig)
+    const service = new InitService(stubDetector(noneDetection))
+
+    await expect(service.run({ cwd, target: 'cursor', force: true })).rejects.toMatchObject({
+      exitCode: 4,
     })
   })
 

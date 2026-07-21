@@ -54,6 +54,7 @@ Foreign keys outside the active gate target are preserved.
 | `--target` differs from existing, no `--force` | Exit `3` |
 | `--target` differs, with `--force` | Managed `target` updated |
 | No existing `target`, no `--target` | Run filesystem marker detection |
+| Top-level `target` missing, namespace has `target` | Propagate namespace `target` to top level |
 | Detection finds one target | Use detected target |
 | Detection finds none or multiple | Exit `3`; pass `--target <id>` |
 

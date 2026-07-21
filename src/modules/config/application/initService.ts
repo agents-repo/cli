@@ -9,7 +9,7 @@ import { resolveConfigPaths } from '../infrastructure/configPaths.js'
 import { extractCliManagedConfig } from './cliManagedSlice.js'
 import { ConfigMerger } from './configMerger.js'
 import { ConflictDetector } from './conflictDetector.js'
-import { SchemaGate, getActiveGateTarget } from './schemaGate.js'
+import { SchemaGate, getActiveGateTarget, getNamespaceBlock } from './schemaGate.js'
 
 export interface InitServiceOptions {
   readonly cwd?: string
@@ -53,13 +53,22 @@ export class InitService {
     const activeTarget =
       rawDocument === null ? {} : getActiveGateTarget(rawDocument, gateMode)
     const existingManaged = extractCliManagedConfig(activeTarget)
+    const namespaceManaged =
+      rawDocument === null || gateMode !== 'top-level-ours'
+        ? {}
+        : extractCliManagedConfig(getNamespaceBlock(rawDocument) ?? {})
+
+    const topTarget = existingManaged.target
+    const namespaceTarget = namespaceManaged.target
 
     const resolvedTarget = await this.resolveTarget({
       cwd,
       force,
       verbose,
       targetOption: options.target,
-      existingTarget: existingManaged.target,
+      existingTarget: topTarget ?? namespaceTarget,
+      topTarget,
+      namespaceTarget,
     })
 
     const patch: {
@@ -70,15 +79,21 @@ export class InitService {
     }
 
     const merged = this.configMerger.merge(rawDocument, patch, { gateMode, force })
+
+    const postMergeWarnings =
+      rawDocument !== null && gateMode === 'top-level-ours'
+        ? this.conflictDetector.detectOrThrow(merged, gateMode, { waiveConflicts: yes })
+        : []
+
     await this.agentsJsonRepository.write(configPath, merged)
 
-    const finalTarget = resolvedTarget ?? existingManaged.target
+    const finalTarget = resolvedTarget ?? topTarget ?? namespaceTarget
 
     return {
       configPath,
       gateMode,
       target: finalTarget,
-      warnings,
+      warnings: [...warnings, ...postMergeWarnings],
       created,
     }
   }
@@ -89,8 +104,10 @@ export class InitService {
     readonly verbose: boolean
     readonly targetOption?: string
     readonly existingTarget?: InstallTargetId
+    readonly topTarget?: InstallTargetId
+    readonly namespaceTarget?: InstallTargetId
   }): Promise<InstallTargetId | undefined> {
-    const { cwd, force, verbose, targetOption, existingTarget } = options
+    const { cwd, force, verbose, targetOption, existingTarget, topTarget, namespaceTarget } = options
 
     if (targetOption !== undefined) {
       if (!isValidInstallTargetId(targetOption)) {
@@ -107,15 +124,19 @@ export class InitService {
         )
       }
 
-      if (existingTarget === targetOption) {
+      if (topTarget === targetOption) {
         return undefined
       }
 
       return targetOption
     }
 
-    if (existingTarget !== undefined) {
+    if (topTarget !== undefined) {
       return undefined
+    }
+
+    if (namespaceTarget !== undefined) {
+      return namespaceTarget
     }
 
     const detection = await this.targetDetector.detect(cwd)

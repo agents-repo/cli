@@ -51,6 +51,19 @@ export const partialNamespaceNoTargetConfig = {
   },
 } as const
 
+export const namespaceOnlyTargetConfig = {
+  schemaVersion: '1.0.0',
+  packages: {},
+  registry: {
+    url: 'https://registry-proxy.maiconfz.workers.dev',
+    ref: 'v2.x',
+  },
+  '@agents-repo': {
+    target: 'claude-code',
+    packages: {},
+  },
+} as const
+
 export const conflictingTopLevelConfig = {
   schemaVersion: '1.0.0',
   target: 'cursor',
