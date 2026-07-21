@@ -23,6 +23,13 @@ export const resolveConfigPaths = (cwd: string, env: NodeJS.ProcessEnv = process
       )
     }
 
+    if (path.basename(configOverride) !== AGENTS_JSON_FILENAME) {
+      throw new ConfigValidationError(
+        `${ENV_AGENTS_REPO_CONFIG} must be an absolute path to ${AGENTS_JSON_FILENAME}`,
+        'config_path_not_agents_json',
+      )
+    }
+
     const configPath = configOverride
     const lockPath = path.join(path.dirname(configPath), AGENTS_LOCK_FILENAME)
     return { configPath, lockPath }

@@ -25,6 +25,7 @@ export type ConfigValidationCode =
   | 'invalid_semver_range'
   | 'missing_target'
   | 'config_path_not_absolute'
+  | 'config_path_not_agents_json'
   | 'invalid_merge_state'
 
 export class ConfigValidationError extends ConfigError {

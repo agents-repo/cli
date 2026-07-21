@@ -164,6 +164,18 @@ describe('ConfigResolver', () => {
     ).rejects.toBeInstanceOf(ConfigValidationError)
   })
 
+  it('rejects AGENTS_REPO_CONFIG paths that do not point to agents.json', async () => {
+    await expect(
+      resolver.resolve({
+        cwd: process.cwd(),
+        env: { AGENTS_REPO_CONFIG: path.join(os.tmpdir(), 'foo.json') },
+      }),
+    ).rejects.toMatchObject({
+      code: 'config_path_not_agents_json',
+      exitCode: 3,
+    })
+  })
+
   it('throws on invalid agents.json content', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
     const configPath = path.join(cwd, 'agents.json')
