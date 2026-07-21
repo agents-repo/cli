@@ -14,10 +14,12 @@ registration, and global option hooks.
 - `src/modules/cli/` — Commander program setup, global flags, and command
   registration (implemented in issue #3). Commands delegate to other modules;
   no business logic here.
-- `src/modules/config/` — Planned `agents.json` and `agents-lock.json`
-  read/write, schema gate, and merge semantics.
-- `src/modules/registry/` — Planned registry index, manifest, and artifact URL
-  resolution; will be copy-adapted from the webapp registry module.
+- `src/modules/config/` — `agents.json` and `agents-lock.json` read/write,
+  schema gate, conflict detection, and merge semantics (implemented in issue
+  #5).
+- `src/modules/registry/` — Registry index, manifest, and artifact URL
+  resolution; copy-adapted from the webapp registry module (implemented in
+  issue #4).
 - `src/modules/install/` — Planned download, SHA-256 verification, ZIP security
   scan, and extract packages per install target.
 - `src/modules/target/` — Planned detection of IDE/project install targets
@@ -82,8 +84,8 @@ Deferred to command issues:
 ## Status
 
 Module directories and the Commander root program are scaffolded in issue #3.
-Command behavior, registry port, config/lock I/O, and install pipeline
-implementation are tracked in downstream issues.
+The registry module (issue #4) and config module (issue #5) are implemented.
+Install pipeline and command wiring are tracked in downstream issues.
 
 ## Why This Decision Exists
 
