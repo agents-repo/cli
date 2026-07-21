@@ -22,7 +22,16 @@ describe('registryTagResolver', () => {
         'https://registry-proxy.example.workers.dev?ref=1.x',
         'https://github.com/agents-repo/registry',
       ),
-    ).toBe('https://registry-proxy.example.workers.dev/tags')
+    ).toBe('https://registry-proxy.example.workers.dev/tags?ref=1.x')
+  })
+
+  it('preserves path prefixes when building registry-proxy tags URLs', () => {
+    expect(
+      buildRegistryTagsUrl(
+        'https://registry-proxy.example.workers.dev/base?ref=1.x',
+        'https://github.com/agents-repo/registry',
+      ),
+    ).toBe('https://registry-proxy.example.workers.dev/base/tags?ref=1.x')
   })
 
   it('picks the latest stable tag for a major version line', () => {

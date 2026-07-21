@@ -154,7 +154,9 @@ export const buildRegistryTagsUrl = (sourceUrl: string, fallbackRepositoryUrl: s
       const parsedSourceUrl = new URL(normalizedSourceUrl)
 
       if (!GITHUB_HOSTNAMES.has(parsedSourceUrl.hostname)) {
-        return `${parsedSourceUrl.origin}/tags`
+        const basePath = parsedSourceUrl.pathname.replace(/\/$/, '')
+        parsedSourceUrl.pathname = `${basePath}/tags`
+        return parsedSourceUrl.toString()
       }
     } catch {
       // Fall through to GitHub API URL derivation.

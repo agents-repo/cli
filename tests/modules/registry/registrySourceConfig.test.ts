@@ -38,4 +38,22 @@ describe('registrySourceConfig', () => {
       }),
     ).toBe('https://registry-proxy.example.workers.dev/?ref=v2.x')
   })
+
+  it('embeds ref in GitHub tree URLs instead of using query parameters', () => {
+    expect(
+      buildSourceUrlFromRegistryConfig({
+        url: 'https://github.com/agents-repo/registry',
+        ref: 'v2.x',
+      }),
+    ).toBe('https://github.com/agents-repo/registry/tree/v2.x')
+  })
+
+  it('embeds ref in raw GitHub content URLs instead of using query parameters', () => {
+    expect(
+      buildSourceUrlFromRegistryConfig({
+        url: 'https://raw.githubusercontent.com/agents-repo/registry/main',
+        ref: 'v1.x',
+      }),
+    ).toBe('https://raw.githubusercontent.com/agents-repo/registry/v1.x')
+  })
 })

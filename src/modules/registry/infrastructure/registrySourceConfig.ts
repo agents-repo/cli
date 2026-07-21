@@ -55,6 +55,15 @@ export const buildSourceUrlFromRegistryConfig = (config: RegistryConfig): string
 
   try {
     const parsed = new URL(url)
+    const hostname = parsed.hostname
+    const isGitHubHost = hostname === 'github.com' || hostname === 'www.github.com'
+    const isRawGitHubHost = hostname === 'raw.githubusercontent.com'
+
+    if (isGitHubHost || isRawGitHubHost) {
+      parsed.searchParams.delete('ref')
+      return substituteRegistryRef(parsed.toString(), ref)
+    }
+
     parsed.searchParams.set('ref', ref)
     return parsed.toString()
   } catch {
