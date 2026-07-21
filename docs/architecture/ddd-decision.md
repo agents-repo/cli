@@ -9,18 +9,19 @@ presentation concerns separated when those layers are useful.
 The CLI program uses **Commander 15** for argument parsing, subcommand
 registration, and global option hooks.
 
-## Current Module Boundaries
+## Planned Module Boundaries
 
 - `src/modules/cli/` — Commander program setup, global flags, and command
-  registration. Commands delegate to other modules; no business logic here.
-- `src/modules/config/` — `agents.json` and `agents-lock.json` read/write,
-  schema gate, and merge semantics.
-- `src/modules/registry/` — Registry index, manifest, and artifact URL
-  resolution. Copy-adapted from the webapp registry module.
-- `src/modules/install/` — Download, SHA-256 verification, ZIP security scan,
-  and extract packages per install target.
-- `src/modules/target/` — Detect IDE/project install targets (`.cursor/`,
-  `.github/`, etc.).
+  registration (implemented in issue #3). Commands delegate to other modules;
+  no business logic here.
+- `src/modules/config/` — Planned `agents.json` and `agents-lock.json`
+  read/write, schema gate, and merge semantics.
+- `src/modules/registry/` — Planned registry index, manifest, and artifact URL
+  resolution; will be copy-adapted from the webapp registry module.
+- `src/modules/install/` — Planned download, SHA-256 verification, ZIP security
+  scan, and extract packages per install target.
+- `src/modules/target/` — Planned detection of IDE/project install targets
+  (`.cursor/`, `.github/`, etc.).
 
 ## CLI Framework Decision
 
@@ -43,8 +44,9 @@ registration, and global option hooks.
 
 ## Registry Port Strategy
 
-Registry client code is **copy-adapted from the webapp** into
-`src/modules/registry/`. There is no shared package in M0. Adaptations include:
+Registry client code **will be copy-adapted from the webapp** into
+`src/modules/registry/`. There is no shared package in M0. Planned adaptations
+include:
 
 - Config-driven source URLs from `agents.json` and `AGENTS_REPO_REGISTRY_URL`
   instead of browser runtime overrides.

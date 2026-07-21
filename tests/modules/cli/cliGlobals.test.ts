@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getCliGlobals, resetCliGlobals } from '../../../src/modules/cli/application/cliGlobals.js';
 import { createCliProgram } from '../../../src/modules/cli/presentation/createCliProgram.js';
@@ -7,6 +7,10 @@ describe('cli global options', () => {
   beforeEach(() => {
     resetCliGlobals();
     vi.spyOn(process, 'exit').mockImplementation((() => undefined) as typeof process.exit);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('sets json and verbose globals from root options before subcommand actions', () => {

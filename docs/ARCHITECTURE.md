@@ -44,11 +44,12 @@ src/
 Command definitions live only in `cli/presentation/`. Other modules expose
 application and infrastructure APIs consumed by commands.
 
-## Registry module — webapp parity
+## Registry module — planned webapp parity
 
-The registry module is **copy-adapted** from
+The registry module **will be copy-adapted** from
 [`webapp/src/modules/registry/`](https://github.com/agents-repo/webapp/tree/main/src/modules/registry).
-There is no shared package in M0.
+There is no shared package in M0. Only module directories are scaffolded in
+issue #3.
 
 | Webapp file | CLI file | Notes |
 | --- | --- | --- |
@@ -77,8 +78,8 @@ CLI paths are under `src/modules/registry/` using the same layer folders as weba
 
 The webapp does not HTTP-download ZIP artifacts. It builds download URLs via
 `getPackageDownloadTargets` in `homePageCatalogState.ts` and
-`buildRegistryArtifactUrl` in `registrySourceUrl.ts`. The CLI reuses those
-registry helpers and adds fetch, verification, and extraction per
+`buildRegistryArtifactUrl` in `registrySourceUrl.ts`. The CLI will reuse those
+registry helpers and add fetch, verification, and extraction per
 [`specs/cli-protocol.md`](../specs/cli-protocol.md).
 
 | Concern | Webapp reference | CLI responsibility |
@@ -87,7 +88,7 @@ registry helpers and adds fetch, verification, and extraction per
 | Manifest fetch and semver pick | — | `install/application/` steps 5–7 |
 | SHA-256 verify | — | `install/infrastructure/` (protocol step 9) |
 | ZIP security scan | — | `install/infrastructure/` (protocol step 10) |
-| Extract to target paths | — | `install/infrastructure/` per registry `install-targets.md` |
+| Extract to target paths | — | `install/infrastructure/` per [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md) |
 | Config and lock writes | — | Delegates to `config/` (protocol step 12) |
 
 ### Install pipeline overview

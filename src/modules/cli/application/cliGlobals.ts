@@ -10,7 +10,7 @@ const defaultGlobals: CliGlobals = {
 
 let currentGlobals: CliGlobals = { ...defaultGlobals };
 
-export const getCliGlobals = (): Readonly<CliGlobals> => currentGlobals;
+export const getCliGlobals = (): Readonly<CliGlobals> => ({ ...currentGlobals });
 
 export const setCliGlobals = (globals: Partial<CliGlobals>): void => {
   currentGlobals = {
