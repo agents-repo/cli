@@ -1,5 +1,5 @@
 import type { Stats } from 'node:fs'
-import fs from 'node:fs/promises'
+import { stat } from 'node:fs/promises'
 
 import type { TargetMarkerProbe } from '../domain/markerProbe.js'
 import { isNodeError } from '../domain/nodeErrors.js'
@@ -9,7 +9,7 @@ const statExists = async (
   predicate: (stats: Stats) => boolean,
 ): Promise<boolean> => {
   try {
-    const stats = await fs.stat(absolutePath)
+    const stats = await stat(absolutePath)
     return predicate(stats)
   } catch (error) {
     if (isNodeError(error) && (error.code === 'ENOENT' || error.code === 'ENOTDIR')) {

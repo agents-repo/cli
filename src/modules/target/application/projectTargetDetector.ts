@@ -1,4 +1,4 @@
-import fs from 'node:fs/promises'
+import { stat } from 'node:fs/promises'
 
 import { evaluateTargetMarkers } from '../domain/installTargetMarkers.js'
 import type { TargetMarkerProbe } from '../domain/markerProbe.js'
@@ -16,7 +16,7 @@ const throwProjectRootUnavailable = (projectRoot: string): never => {
 
 const assertProjectRootAvailable = async (projectRoot: string): Promise<void> => {
   try {
-    const stats = await fs.stat(projectRoot)
+    const stats = await stat(projectRoot)
 
     if (!stats.isDirectory()) {
       throw new TargetDetectionError(

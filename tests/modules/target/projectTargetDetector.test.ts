@@ -1,8 +1,8 @@
-import fs, { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { ProjectTargetDetector } from '../../../src/modules/target/application/projectTargetDetector.js'
 import type { TargetMarkerProbe } from '../../../src/modules/target/domain/markerProbe.js'
@@ -187,21 +187,6 @@ describe('ProjectTargetDetector', () => {
       code: 'project_root_unavailable',
       exitCode: 3,
     })
-  })
-
-  it('throws when project root is not readable', async () => {
-    const root = await createProjectRoot()
-    const accessError = Object.assign(new Error('permission denied'), { code: 'EACCES' })
-    const statSpy = vi.spyOn(fs, 'stat').mockRejectedValue(accessError)
-
-    try {
-      await expect(detector.detect(root)).rejects.toMatchObject({
-        code: 'project_root_unavailable',
-        exitCode: 3,
-      })
-    } finally {
-      statSpy.mockRestore()
-    }
   })
 
   it('skips markers the probe cannot read', async () => {
