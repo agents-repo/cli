@@ -53,6 +53,7 @@ describe('config round-trip integration', () => {
     const written = await parseWritten(configPath)
     expect(written.customTool).toEqual(foreignOnlyConfig.customTool)
     expect(written['@agents-repo']).toMatchObject({
+      schemaVersion: '1.0.0',
       target: 'cursor',
       packages: { 'agents-repo/hello-agent': '^1.0.0' },
     })

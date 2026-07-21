@@ -43,6 +43,7 @@ describe('ConfigMerger', () => {
     expect(document.customTool).toEqual({ enabled: true })
     expect(document.schemaVersion).toBeUndefined()
     expect(document['@agents-repo']).toMatchObject({
+      schemaVersion: '1.0.0',
       target: 'cursor',
       packages: { 'agents-repo/hello-agent': '^1.0.0' },
       registry: DEFAULT_REGISTRY_CONFIG,
@@ -54,6 +55,7 @@ describe('ConfigMerger', () => {
     const document = merger.merge(existing, { target: 'cursor' }, { gateMode: 'namespace' })
 
     expect(document['@agents-repo']).toEqual({
+      schemaVersion: '1.0.0',
       target: 'cursor',
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
@@ -91,6 +93,7 @@ describe('ConfigMerger', () => {
 
     const namespaceBlock = document['@agents-repo']
     expect(namespaceBlock).toMatchObject({
+      schemaVersion: '1.0.0',
       target: 'cursor',
       registry: {
         url: 'https://legacy.example',

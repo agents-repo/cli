@@ -142,6 +142,11 @@ export class ConfigMerger {
 
   private finalizeManagedWriteFields(target: Record<string, unknown>): Record<string, unknown> {
     const result: Record<string, unknown> = { ...target }
+
+    if (!('schemaVersion' in result)) {
+      result.schemaVersion = CONFIG_SCHEMA_VERSION
+    }
+
     result.registry = this.mergeRegistry(result.registry, DEFAULT_REGISTRY_CONFIG, false)
 
     if (!('packages' in result) || !isPlainObject(result.packages)) {
