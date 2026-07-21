@@ -110,6 +110,26 @@ There is no shared package in M0.
 CLI paths are under `src/modules/registry/` using `domain/`, `application/`, and
 `infrastructure/`.
 
+## Target module — install target detection (issue #6)
+
+The target module detects IDE/project install targets from filesystem markers
+for `init` suggestions per [`specs/target-detection.md`](../specs/target-detection.md).
+
+### Delivered in issue #6
+
+| Area | CLI path | Notes |
+| --- | --- | --- |
+| Detection result types | `target/domain/targetDetection.ts` | `none` / `single` / `ambiguous` |
+| Detection errors | `target/domain/targetDetectionErrors.ts` | Exit `3` on bad root |
+| Marker table + evaluation | `target/domain/installTargetMarkers.ts` | Marker table + OR eval |
+| Detector service | `target/application/projectTargetDetector.ts` | Caller-supplied `projectRoot` |
+| Filesystem probe | `target/infrastructure/markerProbe.ts` | File/dir `stat` checks |
+
+`init` (#7) consumes `ProjectTargetDetector`; install and `ConfigResolver` do not
+invoke detection implicitly. Unreadable marker paths are skipped silently; a
+`none` result may therefore hide present-but-inaccessible markers—`init` should
+warn in verbose mode when appropriate.
+
 ## Install module — webapp URL logic + CLI extensions
 
 The webapp does not HTTP-download ZIP artifacts. It builds download URLs via
@@ -154,6 +174,7 @@ details.
 - [lock-schema.md](../specs/lock-schema.md) — `agents-lock.json` lockfile format
 - [cli-protocol.md](../specs/cli-protocol.md) — install pipeline protocol
 - [command-contracts.md](../specs/command-contracts.md) — flags, exit codes, env overrides
+- [target-detection.md](../specs/target-detection.md) — install target detection (`init`)
 
 ## Related docs
 
