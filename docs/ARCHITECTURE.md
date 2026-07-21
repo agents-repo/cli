@@ -44,6 +44,31 @@ src/
 Command definitions live only in `cli/presentation/`. Other modules expose
 application and infrastructure APIs consumed by commands.
 
+## Config module (issue #5)
+
+The config module implements schema-gated `agents.json` resolution, merge
+semantics, conflict detection, environment overrides, and `agents-lock.json`
+I/O per [`specs/config-schema.md`](../specs/config-schema.md) and
+[`specs/lock-schema.md`](../specs/lock-schema.md). CLI commands (`init`,
+`install`) consume these APIs in later issues.
+
+### Delivered in issue #5
+
+| Area | CLI path | Notes |
+| --- | --- | --- |
+| Config/lock types + validators | `config/domain/` | Schema version, lock format, qualified ids |
+| Typed config errors | `config/domain/configErrors.ts` | Exit codes `3` and `4` |
+| Schema gate | `config/application/schemaGate.ts` | greenfield / top-level-ours / namespace |
+| Conflict detection | `config/application/conflictDetector.ts` | Conflict codes + dual_definition |
+| Config resolution | `config/application/configResolver.ts` | Defaults and env overrides |
+| Merge semantics | `config/application/configMerger.ts` | Gate-aware merge; foreign keys kept |
+| Lock file service | `config/application/lockFileService.ts` | Validate on read; stable writes |
+| File I/O | `config/infrastructure/` | `agents.json` and `agents-lock.json` repos |
+
+Install commands (#8) pass `ResolvedAgentsConfig.registry` to
+`getRegistrySourceConfig()` from the registry module (replacing the deferred
+`registrySourceSettings.ts` webapp port).
+
 ## Registry module — webapp parity (issue #4)
 
 The registry module is copy-adapted from
@@ -77,7 +102,7 @@ There is no shared package in M0.
 | Webapp file | Status |
 | --- | --- |
 | `registryCatalogCache.ts` | Deferred — no catalog cache v1 |
-| `registrySourceSettings.ts` | Deferred — config issue #5 |
+| `registrySourceSettings.ts` | Superseded by `config/` resolver output (#8) |
 | `registrySelectors.ts` | Deferred — search command #10 |
 | `application/installTargets.ts` | Deferred — presentation labels only |
 | `presentation/*` | Not ported — web UI only |
