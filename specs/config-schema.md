@@ -140,7 +140,8 @@ Config resolution MUST be gate-aware:
 
 1. Determine schema gate mode.
 2. Read CLI-managed fields from the active target only (top-level or `"@agents-repo"`).
-3. Apply built-in defaults (`registry`, `target` when detection applies).
+3. Apply built-in defaults (`registry`, `target` when detection applies during
+   `init` per [target-detection.md](target-detection.md)).
 4. Apply environment overrides per `command-contracts.md` (`AGENTS_REPO_REGISTRY_URL` overrides
    `registry.url` only).
 

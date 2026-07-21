@@ -22,8 +22,8 @@ registration, and global option hooks.
   issue #4).
 - `src/modules/install/` — Planned download, SHA-256 verification, ZIP security
   scan, and extract packages per install target.
-- `src/modules/target/` — Planned detection of IDE/project install targets
-  (`.cursor/`, `.github/`, etc.).
+- `src/modules/target/` — Detection of IDE/project install targets from filesystem
+  markers (implemented in issue #6; consumed by `init` in issue #7).
 
 ## CLI Framework Decision
 
@@ -85,7 +85,8 @@ Deferred to command issues:
 
 Module directories and the Commander root program are scaffolded in issue #3.
 The registry module (issue #4) and config module (issue #5) are implemented.
-Install pipeline and command wiring are tracked in downstream issues.
+Install target detection (issue #6) is implemented in `target/`. Install
+pipeline and command wiring are tracked in downstream issues.
 
 ## Why This Decision Exists
 

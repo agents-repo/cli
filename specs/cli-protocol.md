@@ -60,7 +60,8 @@ Install MUST execute these steps in order:
 
 - Resolve schema gate per `config-schema.md`.
 - Apply `AGENTS_REPO_REGISTRY_URL` after file resolution.
-- Resolve install `target` from config, `--target` flag, or detection (init only).
+- Resolve install `target` from config, `--target` flag, or detection during
+  `init` only per [target-detection.md](target-detection.md).
 - Missing `target` on install MUST exit `3`.
 
 ### 2. Resolve registry ref
