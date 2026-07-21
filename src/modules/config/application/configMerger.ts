@@ -14,6 +14,7 @@ import {
   type RegistryConfig,
 } from '../../registry/infrastructure/registrySourceConfig.js'
 import { isPlainObject } from '../infrastructure/jsonDocument.js'
+import { getRegistryRefDefault, getRegistryUrlAlias } from './schemaGate.js'
 
 export class ConfigMerger {
   merge(
@@ -58,7 +59,7 @@ export class ConfigMerger {
       document.global = patch.global
     }
 
-    return this.stripRegistryUrl(document)
+    return this.canonicalizeRegistryUrl(document)
   }
 
   private mergeTopLevel(
@@ -90,7 +91,7 @@ export class ConfigMerger {
       document.packages = this.mergePackages(document.packages, patch.packages, force)
     }
 
-    return this.stripRegistryUrl(this.finalizeManagedWriteFields(document))
+    return this.finalizeManagedWriteFields(this.canonicalizeRegistryUrl(document))
   }
 
   private mergeNamespace(
@@ -103,9 +104,8 @@ export class ConfigMerger {
     const currentNamespace = isPlainObject(namespaceBlock) ? { ...namespaceBlock } : {}
 
     const mergedNamespace = this.mergeManagedIntoTarget(currentNamespace, patch, force)
-    document[AGENTS_REPO_NAMESPACE] = this.stripRegistryUrlFromTarget(
-      this.finalizeManagedWriteFields(mergedNamespace),
-    )
+    const migratedNamespace = this.canonicalizeRegistryUrl(mergedNamespace)
+    document[AGENTS_REPO_NAMESPACE] = this.finalizeManagedWriteFields(migratedNamespace)
 
     return document
   }
@@ -213,23 +213,25 @@ export class ConfigMerger {
     return existing as T
   }
 
-  private stripRegistryUrl(document: AgentsConfigDocument): AgentsConfigDocument {
-    if (!(REGISTRY_URL_MIGRATION_KEY in document)) {
-      return document
-    }
-
-    const result = { ...document }
-    delete result[REGISTRY_URL_MIGRATION_KEY]
-    return result
-  }
-
-  private stripRegistryUrlFromTarget(target: Record<string, unknown>): Record<string, unknown> {
-    if (!(REGISTRY_URL_MIGRATION_KEY in target)) {
+  private canonicalizeRegistryUrl<T extends Record<string, unknown>>(target: T): T {
+    const alias = getRegistryUrlAlias(target)
+    if (!alias) {
       return target
     }
 
-    const result = { ...target }
-    delete result[REGISTRY_URL_MIGRATION_KEY]
-    return result
+    const mutable: Record<string, unknown> = { ...target }
+    const currentRegistry = mutable.registry
+    const hasUrl = isPlainObject(currentRegistry) && typeof currentRegistry.url === 'string'
+
+    if (!hasUrl) {
+      mutable.registry = {
+        ...(isPlainObject(currentRegistry) ? currentRegistry : {}),
+        url: alias,
+        ref: getRegistryRefDefault(mutable),
+      }
+    }
+
+    delete mutable[REGISTRY_URL_MIGRATION_KEY]
+    return mutable as T
   }
 }

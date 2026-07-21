@@ -60,6 +60,47 @@ describe('ConfigMerger', () => {
     })
   })
 
+  it('migrates legacy registryUrl to canonical registry.url on top-level write', () => {
+    const existing = {
+      schemaVersion: '1.0.0',
+      registryUrl: 'https://legacy.example',
+      packages: {},
+    }
+
+    const document = merger.merge(existing, { target: 'cursor' }, { gateMode: 'top-level-ours' })
+
+    expect(document.registry).toEqual({
+      url: 'https://legacy.example',
+      ref: 'v2.x',
+    })
+    expect(document.registryUrl).toBeUndefined()
+    expect(document.target).toBe('cursor')
+  })
+
+  it('preserves explicit registry.ref when migrating registryUrl in namespace mode', () => {
+    const existing = {
+      customTool: { enabled: true },
+      '@agents-repo': {
+        registryUrl: 'https://legacy.example',
+        registry: { ref: 'v3.x' },
+        packages: {},
+      },
+    }
+
+    const document = merger.merge(existing, { target: 'cursor' }, { gateMode: 'namespace' })
+
+    const namespaceBlock = document['@agents-repo']
+    expect(namespaceBlock).toMatchObject({
+      target: 'cursor',
+      registry: {
+        url: 'https://legacy.example',
+        ref: 'v3.x',
+      },
+      packages: {},
+    })
+    expect(namespaceBlock).not.toHaveProperty('registryUrl')
+  })
+
   it('rejects greenfield merge when existing document is not empty', () => {
     expect(() =>
       merger.merge({ customTool: { enabled: true } }, { target: 'cursor' }, { gateMode: 'greenfield' }),
