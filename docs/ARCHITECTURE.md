@@ -44,48 +44,60 @@ src/
 Command definitions live only in `cli/presentation/`. Other modules expose
 application and infrastructure APIs consumed by commands.
 
-## Registry module — planned webapp parity
+## Registry module — webapp parity (issue #4)
 
-The registry module **will be copy-adapted** from
+The registry module is copy-adapted from
 [`webapp/src/modules/registry/`](https://github.com/agents-repo/webapp/tree/main/src/modules/registry).
-There is no shared package in M0. Only module directories are scaffolded in
-issue #3.
+There is no shared package in M0.
 
-| Webapp file | CLI file | Notes |
+### Delivered in issue #4
+
+| Area | CLI path | Notes |
 | --- | --- | --- |
-| `domain/package.ts` | `package.ts` | Catalog and package types |
-| `infrastructure/registrySourceUrl.ts` | `registrySourceUrl.ts` | Index and artifact URLs |
-| `infrastructure/registryMajorVersionRef.ts` | `registryMajorVersionRef.ts` | Major-line alias |
-| `infrastructure/registryTagResolver.ts` | `registryTagResolver.ts` | Git tag to concrete ref |
-| `infrastructure/registrySourceConfig.ts` | `registrySourceConfig.ts` | Config/env source |
-| `infrastructure/registryRepository.ts` | `registryRepository.ts` | Index fetch and Node cache |
-| `infrastructure/registryCatalogValidation.ts` | `registryCatalogValidation.ts` | Validation |
-| `infrastructure/registryCatalogCache.ts` | `registryCatalogCache.ts` | Cache envelope for CLI |
-| `application/catalogCacheState.ts` | `catalogCacheState.ts` | Cache state helpers |
-| `application/registrySelectors.ts` | `registrySelectors.ts` | Catalog queries |
-| `application/registrySourceSettings.ts` | `registrySourceSettings.ts` | Runtime source settings |
-| `application/registrySource.ts` | `registrySource.ts` | Barrel re-exports (optional) |
-| `application/installTargets.ts` | `installTargets.ts` | Install target labels |
-| `presentation/*` | — | Web UI only; not ported |
+| Catalog types + `resolvePackageRef` | `domain/package.ts` | No `toPackageSlug` (web UI only) |
+| Manifest types | `domain/manifest.ts` | Schema 1.1.0 |
+| Schema lifecycle tables | `domain/schemaVersions.ts` | Vendored registry `schema-versions.json` |
+| Typed errors | `domain/errors.ts` | Throw-based registry API |
+| Index/manifest URL builders | `infrastructure/registrySourceUrl.ts` | Manifest path/url helpers |
+| Major-line alias | `infrastructure/registryMajorVersionRef.ts` | |
+| Tag resolver | `infrastructure/registryTagResolver.ts` | In-memory TTL cache |
+| Source config | `infrastructure/registrySourceConfig.ts` | `RegistryConfig` injection |
+| Catalog validation | `infrastructure/registryCatalogValidation.ts` | Structural validation |
+| Schema gates | `infrastructure/registrySchemaGate.ts` | Index/manifest lifecycle |
+| Index + manifest fetch | `infrastructure/registryRepository.ts` | Network-only (no cache v1) |
+| Manifest validation | `infrastructure/registryManifestValidation.ts` | |
+| Package status policy | `application/packageStatusPolicy.ts` | yanked reject; warn deprecated |
+| Catalog package resolve | `application/resolvePackageInCatalog.ts` | Qualified id + aliases |
+| Artifact resolve + URLs | `application/resolveArtifact.ts` | Catalog parity + manifest URLs |
 
-CLI paths are under `src/modules/registry/` using the same layer folders as webapp
-(`domain/`, `application/`, `infrastructure/`).
+**Dependency:** `semver` (tag resolution and major-line alias handling).
 
-**Future dependency when porting registry:** `semver` (used by webapp
-`registryRepository.ts`).
+### Deferred (later issues)
+
+| Webapp file | Status |
+| --- | --- |
+| `registryCatalogCache.ts` | Deferred — no catalog cache v1 |
+| `registrySourceSettings.ts` | Deferred — config issue #5 |
+| `registrySelectors.ts` | Deferred — search command #10 |
+| `application/installTargets.ts` | Deferred — presentation labels only |
+| `presentation/*` | Not ported — web UI only |
+
+CLI paths are under `src/modules/registry/` using `domain/`, `application/`, and
+`infrastructure/`.
 
 ## Install module — webapp URL logic + CLI extensions
 
 The webapp does not HTTP-download ZIP artifacts. It builds download URLs via
 `getPackageDownloadTargets` in `homePageCatalogState.ts` and
-`buildRegistryArtifactUrl` in `registrySourceUrl.ts`. The CLI will reuse those
-registry helpers and add fetch, verification, and extraction per
-[`specs/cli-protocol.md`](../specs/cli-protocol.md).
+`buildRegistryArtifactUrl` in `registrySourceUrl.ts`. The CLI reuses those
+registry helpers (see `application/resolveArtifact.ts`) and will add download,
+verification, and extraction per [`specs/cli-protocol.md`](../specs/cli-protocol.md).
 
 | Concern | Webapp reference | CLI responsibility |
 | --- | --- | --- |
-| Artifact URL resolution | `homePageCatalogState.ts` | Reuse registry URL helpers |
-| Manifest fetch and semver pick | — | `install/application/` steps 5–7 |
+| Artifact URL resolution | `homePageCatalogState.ts` | `registry/application/resolveArtifact.ts` |
+| Manifest fetch + validation | — | `registry/infrastructure/registryRepository.ts` (issue #4) |
+| Semver version pick | — | `install/application/` (issue #8) |
 | SHA-256 verify | — | `install/infrastructure/` (protocol step 9) |
 | ZIP security scan | — | `install/infrastructure/` (protocol step 10) |
 | Extract to target paths | — | `install/infrastructure/` per [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md) |
@@ -98,9 +110,9 @@ registry helpers and add fetch, verification, and extraction per
 2. Resolve registry ref                   -> registry/
 3. Fetch packages/index.json              -> registry/
 4. Resolve package id                     -> registry/
-5. Fetch versions/manifest.json           -> install/application/
-6. Pick version (semver)                  -> install/application/
-7. Pick artifact for install target       -> install/application/
+5. Fetch versions/manifest.json           -> registry/ (issue #4)
+6. Pick version (semver)                  -> install/application/ (issue #8)
+7. Pick artifact for install target       -> registry/application/ + install/
 8. Download ZIP                           -> install/infrastructure/
 9. Verify SHA-256                         -> install/infrastructure/
 10. ZIP security scan                     -> install/infrastructure/

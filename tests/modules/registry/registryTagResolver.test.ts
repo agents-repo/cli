@@ -1,0 +1,51 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  buildRegistryTagsUrl,
+  clearRegistryTagListCache,
+  fetchGitHubRepositoryTagNames,
+  pickLatestStableTagForMajorVersion,
+} from '../../../src/modules/registry/infrastructure/registryTagResolver.js'
+
+describe('registryTagResolver', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  afterEach(() => {
+    clearRegistryTagListCache()
+    vi.restoreAllMocks()
+  })
+
+  it('builds registry-proxy tags URL from proxy source base', () => {
+    expect(
+      buildRegistryTagsUrl(
+        'https://registry-proxy.example.workers.dev?ref=1.x',
+        'https://github.com/agents-repo/registry',
+      ),
+    ).toBe('https://registry-proxy.example.workers.dev/tags')
+  })
+
+  it('picks the latest stable tag for a major version line', () => {
+    const tagNames = ['v1.0.0', 'v1.1.0', 'v1.2.0', 'v1.2.0-rc.1', 'v1.10.0', 'v2.0.0']
+
+    expect(pickLatestStableTagForMajorVersion(tagNames, 1)).toBe('v1.10.0')
+    expect(pickLatestStableTagForMajorVersion(tagNames, 2)).toBe('v2.0.0')
+    expect(pickLatestStableTagForMajorVersion(tagNames, 3)).toBeNull()
+  })
+
+  it('caches tag fetches in memory', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify([{ name: 'v1.0.0' }, { name: 'v1.2.0' }]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const firstFetch = await fetchGitHubRepositoryTagNames('agents-repo', 'registry')
+    const secondFetch = await fetchGitHubRepositoryTagNames('agents-repo', 'registry')
+
+    expect(firstFetch).toEqual(['v1.0.0', 'v1.2.0'])
+    expect(secondFetch).toEqual(['v1.0.0', 'v1.2.0'])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
