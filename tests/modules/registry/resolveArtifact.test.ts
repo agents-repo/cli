@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { sampleRegistryCatalog } from '../../fixtures/sampleRegistryCatalog.js'
 import {
+  ManifestArtifactNotFoundError,
+  ManifestVersionNotFoundError,
+  PackageNotFoundError,
+} from '../../../src/modules/registry/domain/errors.js'
+import {
   buildCatalogArtifactUrl,
   buildManifestArtifactUrl,
   findManifestArtifact,
 } from '../../../src/modules/registry/application/resolveArtifact.js'
+import { resolvePackageInCatalog } from '../../../src/modules/registry/application/resolvePackageInCatalog.js'
 import type { PackageManifest } from '../../../src/modules/registry/domain/manifest.js'
 
 const sampleManifest: PackageManifest = {
@@ -35,15 +41,27 @@ describe('resolveArtifact', () => {
     expect(artifact.file).toBe('1.0.0-cursor.zip')
   })
 
+  it('throws when manifest version is missing', () => {
+    expect(() => findManifestArtifact(sampleManifest, '9.9.9', 'cursor')).toThrow(
+      ManifestVersionNotFoundError,
+    )
+  })
+
+  it('throws when install target is missing for a version', () => {
+    expect(() => findManifestArtifact(sampleManifest, '1.0.0', 'github-copilot')).toThrow(
+      ManifestArtifactNotFoundError,
+    )
+  })
+
   it('matches webapp catalog artifact URLs for the same inputs', () => {
     const pkg = sampleRegistryCatalog.packages[0]
     const baseUrl = 'https://raw.githubusercontent.com/agents-repo/registry/main'
 
     const href = buildCatalogArtifactUrl(baseUrl, pkg.namespace, pkg.package, pkg.latest, 'cursor')
 
-    expect(href).toContain('packages/agents-repo/sample-agent')
-    expect(href).toContain('1.0.0-cursor.zip')
-    expect(href.startsWith('https://')).toBe(true)
+    expect(href).toBe(
+      'https://raw.githubusercontent.com/agents-repo/registry/main/packages/agents-repo/sample-agent/versions/1.0.0/1.0.0-cursor.zip',
+    )
   })
 
   it('builds manifest-file artifact URLs for install download paths', () => {
@@ -57,5 +75,25 @@ describe('resolveArtifact', () => {
     )
 
     expect(url).toContain('1.0.0-cursor.zip')
+  })
+})
+
+describe('resolvePackageInCatalog', () => {
+  it('resolves packages by qualified id', () => {
+    const pkg = resolvePackageInCatalog(sampleRegistryCatalog, 'agents-repo/sample-agent')
+
+    expect(pkg.name).toBe('sample-agent')
+  })
+
+  it('resolves packages by catalog alias', () => {
+    const pkg = resolvePackageInCatalog(sampleRegistryCatalog, 'sample-agent')
+
+    expect(pkg.id).toBe('agents-repo/sample-agent')
+  })
+
+  it('throws when package is not in catalog', () => {
+    expect(() => resolvePackageInCatalog(sampleRegistryCatalog, 'missing/package')).toThrow(
+      PackageNotFoundError,
+    )
   })
 })

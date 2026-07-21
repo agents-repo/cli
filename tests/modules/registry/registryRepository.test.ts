@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { IndexSchemaError, ManifestSchemaError, RegistryFetchError } from '../../../src/modules/registry/domain/errors.js'
+import { IndexSchemaError, ManifestSchemaError, RegistryCatalogValidationError, RegistryFetchError } from '../../../src/modules/registry/domain/errors.js'
 import { loadPackageManifest, loadRegistryCatalog } from '../../../src/modules/registry/infrastructure/registryRepository.js'
 import * as registrySourceConfig from '../../../src/modules/registry/infrastructure/registrySourceConfig.js'
 
@@ -78,6 +78,50 @@ describe('loadRegistryCatalog', () => {
     expect(result.catalog.packages).toHaveLength(1)
     expect(result.baseUrlRefResolution).toEqual({ alias: 'v2.x', resolvedRef: 'v2.0.0' })
     expect(result.warnings).toEqual([])
+  })
+
+  it('returns deprecated index schema warnings from loadRegistryCatalog', async () => {
+    vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
+      sourceUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      configuredBaseUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      baseUrl: 'https://registry-proxy.example.workers.dev/?ref=main',
+      indexPath: 'packages/index.json',
+      indexUrl: 'https://registry-proxy.example.workers.dev/packages/index.json?ref=main',
+      configuredGithubRepositoryUrl: 'https://github.com/agents-repo/registry/tree/v2.x',
+      baseUrlRefResolution: null,
+    })
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(makeTestCatalog('1.0.0')), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await loadRegistryCatalog()
+
+    expect(result.warnings[0]).toContain('deprecated')
+  })
+
+  it('throws RegistryCatalogValidationError for invalid catalog payloads', async () => {
+    vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
+      sourceUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      configuredBaseUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      baseUrl: 'https://registry-proxy.example.workers.dev/?ref=main',
+      indexPath: 'packages/index.json',
+      indexUrl: 'https://registry-proxy.example.workers.dev/packages/index.json?ref=main',
+      configuredGithubRepositoryUrl: 'https://github.com/agents-repo/registry/tree/v2.x',
+      baseUrlRefResolution: null,
+    })
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ not: 'a catalog' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(loadRegistryCatalog()).rejects.toThrow(RegistryCatalogValidationError)
   })
 
   it('throws on unsupported index schema versions', async () => {

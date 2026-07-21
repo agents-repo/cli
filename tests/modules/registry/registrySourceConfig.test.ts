@@ -29,4 +29,13 @@ describe('registrySourceConfig', () => {
     expect(source.baseUrl).toBe('https://raw.githubusercontent.com/owner/repo/main')
     expect(source.indexUrl).toBe('https://raw.githubusercontent.com/owner/repo/main/packages/index.json')
   })
+
+  it('replaces stale ref query parameters from registry config', () => {
+    expect(
+      buildSourceUrlFromRegistryConfig({
+        url: 'https://registry-proxy.example.workers.dev?ref=v1.x',
+        ref: 'v2.x',
+      }),
+    ).toBe('https://registry-proxy.example.workers.dev/?ref=v2.x')
+  })
 })

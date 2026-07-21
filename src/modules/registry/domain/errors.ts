@@ -15,6 +15,20 @@ export class RegistryFetchError extends RegistryError {
   }
 }
 
+export class RegistryCatalogValidationError extends RegistryError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'RegistryCatalogValidationError'
+  }
+}
+
+export class RegistryRefResolutionError extends RegistryError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'RegistryRefResolutionError'
+  }
+}
+
 export class IndexSchemaError extends RegistryError {
   readonly schemaVersion: string
 

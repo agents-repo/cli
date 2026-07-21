@@ -1,5 +1,5 @@
 import type { RegistryCatalog } from '../domain/package.js'
-import { IndexSchemaError, ManifestSchemaError, RegistryFetchError } from '../domain/errors.js'
+import { ManifestSchemaError, RegistryCatalogValidationError, RegistryFetchError } from '../domain/errors.js'
 import type { PackageManifest } from '../domain/manifest.js'
 import { isRegistryCatalog } from './registryCatalogValidation.js'
 import { isPackageManifest } from './registryManifestValidation.js'
@@ -68,7 +68,7 @@ export const loadRegistryCatalog = async (
   }
 
   if (!isRegistryCatalog(payload)) {
-    throw new IndexSchemaError('Registry payload does not match expected catalog schema', 'unknown')
+    throw new RegistryCatalogValidationError('Registry payload does not match expected catalog schema')
   }
 
   const { warnings } = assertIndexSchemaVersion(payload.schemaVersion)

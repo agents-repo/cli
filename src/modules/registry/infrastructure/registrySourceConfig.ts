@@ -12,6 +12,7 @@ import {
   substituteRegistryRef,
   type MajorVersionLineAlias,
 } from './registryMajorVersionRef.js'
+import { RegistryRefResolutionError } from '../domain/errors.js'
 import { resolveLatestStableTagForMajorVersion } from './registryTagResolver.js'
 
 export interface RegistryConfig {
@@ -54,16 +55,14 @@ export const buildSourceUrlFromRegistryConfig = (config: RegistryConfig): string
 
   try {
     const parsed = new URL(url)
-
-    if (!parsed.searchParams.has('ref')) {
-      parsed.searchParams.set('ref', ref)
-      return parsed.toString()
-    }
-
-    return url
+    parsed.searchParams.set('ref', ref)
+    return parsed.toString()
   } catch {
-    const separator = url.includes('?') ? '&' : '?'
-    return `${url}${separator}ref=${encodeURIComponent(ref)}`
+    const withoutRef = url
+      .replace(/([?&])ref=[^&]*/g, (_match: string, separator: string) => separator)
+      .replace(/[?&]$/, '')
+    const separator = withoutRef.includes('?') ? '&' : '?'
+    return `${withoutRef}${separator}ref=${encodeURIComponent(ref)}`
   }
 }
 
@@ -107,7 +106,9 @@ const resolveSourceUrlWithAlias = async (
   const repositoryIdentity = inferRegistryRepositoryIdentity(sourceUrl, fallbackRepositoryUrl)
 
   if (!repositoryIdentity) {
-    throw new Error('Could not infer a GitHub repository for major-version line ref resolution.')
+    throw new RegistryRefResolutionError(
+      'Could not infer a GitHub repository for major-version line ref resolution.',
+    )
   }
 
   const resolvedRef = await resolveLatestStableTagForMajorVersion(

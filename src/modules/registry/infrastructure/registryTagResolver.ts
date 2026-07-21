@@ -1,5 +1,6 @@
 import semver from 'semver'
 
+import { RegistryFetchError, RegistryRefResolutionError } from '../domain/errors.js'
 import { inferRegistryRepositoryIdentity } from './registryMajorVersionRef.js'
 
 const TAG_LIST_CACHE_TTL_MS = 60 * 60 * 1000
@@ -163,7 +164,7 @@ export const buildRegistryTagsUrl = (sourceUrl: string, fallbackRepositoryUrl: s
   const repositoryIdentity = inferRegistryRepositoryIdentity(sourceUrl, fallbackRepositoryUrl)
 
   if (!repositoryIdentity) {
-    throw new Error('Could not infer a GitHub repository for tag listing.')
+    throw new RegistryRefResolutionError('Could not infer a GitHub repository for tag listing.')
   }
 
   return `https://api.github.com/repos/${repositoryIdentity.owner}/${repositoryIdentity.repo}/tags?per_page=100`
@@ -216,7 +217,10 @@ const fetchRegistryTagNamesPage = async (
   })
 
   if (!response.ok) {
-    throw new Error(`Registry tags request failed (${response.status} ${response.statusText})`)
+    throw new RegistryFetchError(
+      `Registry tags request failed (${response.status} ${response.statusText})`,
+      response.status,
+    )
   }
 
   const payload = (await response.json()) as GitHubTagPayload[]
@@ -230,12 +234,13 @@ const fetchRegistryTagNamesPage = async (
 const fetchRegistryRepositoryTagNamesFromNetwork = async (
   tagsUrl: string,
   repositoryKey: string,
+  signal: AbortSignal | undefined,
 ): Promise<string[]> => {
   const tagNames: string[] = []
   let nextUrl: string | null = tagsUrl
 
   while (nextUrl) {
-    const pageResult = await fetchRegistryTagNamesPage(nextUrl, undefined)
+    const pageResult = await fetchRegistryTagNamesPage(nextUrl, signal)
     tagNames.push(...pageResult.tagNames)
     nextUrl = pageResult.nextUrl
   }
@@ -293,7 +298,7 @@ export const fetchRegistryRepositoryTagNames = async (
   const repositoryKey = resolveRepositoryKey(tagsUrl, options.repositoryKey)
 
   if (!repositoryKey) {
-    throw new Error(
+    throw new RegistryRefResolutionError(
       `Could not resolve a repository key for tag list caching (tags URL: ${tagsUrl}). ` +
         'Pass repositoryKey (owner/repo) when the tags URL is not a GitHub API /repos/{owner}/{repo}/tags endpoint.',
     )
@@ -314,7 +319,7 @@ export const fetchRegistryRepositoryTagNames = async (
   }
 
   const fetchPromise = ((): Promise<string[]> => {
-    const promise = fetchRegistryRepositoryTagNamesFromNetwork(tagsUrl, repositoryKey).catch(
+    const promise = fetchRegistryRepositoryTagNamesFromNetwork(tagsUrl, repositoryKey, options.signal).catch(
       async (error: unknown) => {
         if (!options.bypassCache) {
           const cachedTagNames = readTagListCache(repositoryKey)
@@ -416,7 +421,9 @@ export const resolveLatestStableTagForMajorVersion = async (
   const resolvedTag = pickLatestStableTagForMajorVersion(tagNames, major)
 
   if (!resolvedTag) {
-    throw new Error(`No stable release tag found for major version line ${major}.x in ${owner}/${repo}`)
+    throw new RegistryRefResolutionError(
+      `No stable release tag found for major version line ${major}.x in ${owner}/${repo}`,
+    )
   }
 
   return resolvedTag
