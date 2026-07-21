@@ -78,6 +78,36 @@ describe('ProjectTargetDetector', () => {
     },
   )
 
+  it('suggests claude-code for .claude/agents layout and records subpath markers', async () => {
+    const root = await createProjectRoot()
+    await ensureDir(root, '.claude/agents')
+
+    const result = await detector.detect(root)
+
+    expect(result.suggestedTarget).toBe('claude-code')
+    expect(result.matches).toEqual([
+      {
+        target: 'claude-code',
+        markers: ['.claude', '.claude/agents'],
+      },
+    ])
+  })
+
+  it('suggests openai-codex for .agents/skills layout and records subpath markers', async () => {
+    const root = await createProjectRoot()
+    await ensureDir(root, '.agents/skills')
+
+    const result = await detector.detect(root)
+
+    expect(result.suggestedTarget).toBe('openai-codex')
+    expect(result.matches).toEqual([
+      {
+        target: 'openai-codex',
+        markers: ['.agents', '.agents/skills'],
+      },
+    ])
+  })
+
   it('does not suggest github-copilot for workflows-only .github', async () => {
     const root = await createProjectRoot()
     await ensureDir(root, '.github/workflows')

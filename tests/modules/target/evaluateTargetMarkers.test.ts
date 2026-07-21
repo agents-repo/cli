@@ -91,4 +91,34 @@ describe('installTargetMarkers', () => {
       },
     ])
   })
+
+  it('matches claude layout subpath without the top-level marker', async () => {
+    const projectRoot = '/project'
+    const probe = createProbe({
+      '/project/.claude/agents': 'directory',
+    })
+
+    const matches = await evaluateTargetMarkers(projectRoot, probe)
+    expect(matches).toEqual([
+      {
+        target: 'claude-code',
+        markers: ['.claude/agents'],
+      },
+    ])
+  })
+
+  it('matches openai layout subpath without the top-level marker', async () => {
+    const projectRoot = '/project'
+    const probe = createProbe({
+      '/project/.agents/skills': 'directory',
+    })
+
+    const matches = await evaluateTargetMarkers(projectRoot, probe)
+    expect(matches).toEqual([
+      {
+        target: 'openai-codex',
+        markers: ['.agents/skills'],
+      },
+    ])
+  })
 })
