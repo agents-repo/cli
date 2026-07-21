@@ -7,6 +7,8 @@ export const QUALIFIED_PACKAGE_ID_PATTERN =
 
 export const LOCK_INTEGRITY_PATTERN = /^sha256-[a-f0-9]{64}$/
 
+export const MANIFEST_SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/
+
 export const isQualifiedPackageId = (value: string): boolean => {
   return QUALIFIED_PACKAGE_ID_PATTERN.test(value)
 }
@@ -25,4 +27,8 @@ export const isValidInstallTargetId = (value: string): value is InstallTargetId 
 
 export const isValidLockIntegrity = (value: string): boolean => {
   return LOCK_INTEGRITY_PATTERN.test(value)
+}
+
+export const isManifestSha256Hex = (value: string): boolean => {
+  return MANIFEST_SHA256_HEX_PATTERN.test(value)
 }

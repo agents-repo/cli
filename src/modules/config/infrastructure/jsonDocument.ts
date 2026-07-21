@@ -28,6 +28,21 @@ export const isPlainObject = (value: unknown): value is Record<string, unknown> 
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+const stableSerialize = (value: unknown): string => {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value)
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableSerialize(entry)).join(',')}]`
+  }
+
+  const object = value as Record<string, unknown>
+  const keys = Object.keys(object).sort((left, right) => left.localeCompare(right))
+  const entries = keys.map((key) => `${JSON.stringify(key)}:${stableSerialize(object[key])}`)
+  return `{${entries.join(',')}}`
+}
+
 export const valuesAreEqual = (left: unknown, right: unknown): boolean => {
-  return JSON.stringify(left) === JSON.stringify(right)
+  return stableSerialize(left) === stableSerialize(right)
 }

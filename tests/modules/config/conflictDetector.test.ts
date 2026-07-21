@@ -112,4 +112,34 @@ describe('ConflictDetector', () => {
       ),
     ).toThrow(ConfigValidationError)
   })
+
+  it('prioritizes validation errors over dual_definition_mismatch', () => {
+    expect(() =>
+      detector.detectOrThrow(
+        {
+          schemaVersion: '1.0.0',
+          target: 'cursor',
+          packages: [],
+          '@agents-repo': { target: 'claude-code' },
+        },
+        'top-level-ours',
+      ),
+    ).toThrow(ConfigValidationError)
+  })
+
+  it('does not report dual_definition when registry objects differ only by key order', () => {
+    const result = detector.detect(
+      {
+        schemaVersion: '1.0.0',
+        registry: { ref: 'v2.x', url: 'https://registry-proxy.maiconfz.workers.dev' },
+        packages: {},
+        '@agents-repo': {
+          registry: { url: 'https://registry-proxy.maiconfz.workers.dev', ref: 'v2.x' },
+        },
+      },
+      'top-level-ours',
+    )
+
+    expect(result.errors.some((entry) => entry.code === 'dual_definition_mismatch')).toBe(false)
+  })
 })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ConfigMerger } from '../../../src/modules/config/application/configMerger.js'
+import { ConfigValidationError } from '../../../src/modules/config/domain/configErrors.js'
 import { DEFAULT_REGISTRY_CONFIG } from '../../../src/modules/registry/infrastructure/registrySourceConfig.js'
 
 describe('ConfigMerger', () => {
@@ -44,7 +45,49 @@ describe('ConfigMerger', () => {
     expect(document['@agents-repo']).toMatchObject({
       target: 'cursor',
       packages: { 'agents-repo/hello-agent': '^1.0.0' },
+      registry: DEFAULT_REGISTRY_CONFIG,
     })
+  })
+
+  it('defaults required write fields for namespace target-only patch', () => {
+    const existing = { customTool: { enabled: true } }
+    const document = merger.merge(existing, { target: 'cursor' }, { gateMode: 'namespace' })
+
+    expect(document['@agents-repo']).toEqual({
+      target: 'cursor',
+      registry: DEFAULT_REGISTRY_CONFIG,
+      packages: {},
+    })
+  })
+
+  it('rejects greenfield merge when existing document is not empty', () => {
+    expect(() =>
+      merger.merge({ customTool: { enabled: true } }, { target: 'cursor' }, { gateMode: 'greenfield' }),
+    ).toThrow(ConfigValidationError)
+  })
+
+  it('writes greenfield top-level output when existing is null regardless of gateMode', () => {
+    const document = merger.merge(null, { target: 'cursor' }, { gateMode: 'namespace' })
+
+    expect(document).toEqual({
+      schemaVersion: '1.0.0',
+      registry: DEFAULT_REGISTRY_CONFIG,
+      packages: {},
+      target: 'cursor',
+    })
+  })
+
+  it('does not overwrite existing target without force', () => {
+    const existing = {
+      schemaVersion: '1.0.0',
+      target: 'cursor',
+      packages: {},
+      registry: DEFAULT_REGISTRY_CONFIG,
+    }
+
+    const document = merger.merge(existing, { target: 'claude-code' }, { gateMode: 'top-level-ours' })
+
+    expect(document.target).toBe('cursor')
   })
 
   it('merges packages at key level without overwriting existing keys', () => {

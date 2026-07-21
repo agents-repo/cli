@@ -48,10 +48,6 @@ export const getNamespaceBlock = (raw: AgentsConfigDocument): Record<string, unk
   return undefined
 }
 
-export const hasRegistryUrlAlias = (target: Record<string, unknown>): boolean => {
-  return typeof target[REGISTRY_URL_MIGRATION_KEY] === 'string'
-}
-
 export const getRegistryUrlAlias = (target: Record<string, unknown>): string | undefined => {
   const value = target[REGISTRY_URL_MIGRATION_KEY]
   return typeof value === 'string' ? value : undefined

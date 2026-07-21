@@ -5,7 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { LockFileService } from '../../../src/modules/config/application/lockFileService.js'
-import { LockValidationError } from '../../../src/modules/config/domain/configErrors.js'
+import { LockValidationError, ConfigParseError } from '../../../src/modules/config/domain/configErrors.js'
 import { stringifyJsonDocument } from '../../../src/modules/config/infrastructure/jsonDocument.js'
 
 const validLock = {
@@ -70,7 +70,19 @@ describe('LockFileService', () => {
   })
 
   it('formats integrity with sha256 prefix', () => {
-    expect(service.formatIntegrity('abc123')).toBe('sha256-abc123')
+    expect(service.formatIntegrity('a'.repeat(64))).toBe(`sha256-${'a'.repeat(64)}`)
+  })
+
+  it('rejects invalid manifest sha256 hex in formatIntegrity', () => {
+    expect(() => service.formatIntegrity('not-hex')).toThrow(LockValidationError)
+  })
+
+  it('throws on invalid lock JSON', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
+    const lockPath = path.join(cwd, 'agents-lock.json')
+    await writeFile(lockPath, '{invalid', 'utf8')
+
+    await expect(service.read(lockPath)).rejects.toBeInstanceOf(ConfigParseError)
   })
 
   it('writes stable lock output without resolved timestamps', async () => {

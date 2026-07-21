@@ -58,6 +58,16 @@ export class ConflictDetector {
     const blockingErrors = result.errors.filter((entry) => entry.severity === 'error')
 
     if (blockingErrors.length > 0) {
+      const validationErrors = blockingErrors.filter(
+        (entry) =>
+          entry.code === 'type_mismatch' ||
+          entry.code === 'invalid_enum' ||
+          entry.code === 'invalid_semver_range',
+      )
+      if (validationErrors.length > 0) {
+        throwConflictAsValidationError(validationErrors[0])
+      }
+
       const dualErrors = blockingErrors.filter((entry) => entry.code === 'dual_definition_mismatch')
       if (dualErrors.length > 0) {
         throw new ConfigConflictError(
@@ -66,8 +76,7 @@ export class ConflictDetector {
         )
       }
 
-      const first = blockingErrors[0]
-      throwConflictAsValidationError(first)
+      throwConflictAsValidationError(blockingErrors[0])
     }
 
     return result.warnings

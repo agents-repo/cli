@@ -146,4 +146,54 @@ describe('ConfigResolver', () => {
       resolver.resolve({ cwd: process.cwd(), env: { AGENTS_REPO_CONFIG: 'relative/agents.json' } }),
     ).rejects.toBeInstanceOf(ConfigValidationError)
   })
+
+  it('throws on invalid agents.json content', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
+    const configPath = path.join(cwd, 'agents.json')
+    await writeFile(configPath, '{not-json', 'utf8')
+
+    await expect(resolver.resolve({ cwd, env: {} })).rejects.toMatchObject({
+      code: 'config_parse_error',
+      exitCode: 3,
+    })
+  })
+
+  it('reads @agents-repo when top-level schemaVersion is unsupported', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
+    const configPath = path.join(cwd, 'agents.json')
+    await writeFile(
+      configPath,
+      stringifyJsonDocument({
+        schemaVersion: '9.9.9',
+        '@agents-repo': {
+          target: 'cursor',
+          packages: { 'agents-repo/hello-agent': '^1.0.0' },
+        },
+      }),
+    )
+
+    const resolved = await resolver.resolve({ cwd, env: {} })
+    expect(resolved.gateMode).toBe('namespace')
+    expect(resolved.target).toBe('cursor')
+    expect(resolved.packages).toEqual({ 'agents-repo/hello-agent': '^1.0.0' })
+  })
+
+  it('preserves registry ref when only ref is set in registry object', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
+    const configPath = path.join(cwd, 'agents.json')
+    await writeFile(
+      configPath,
+      stringifyJsonDocument({
+        schemaVersion: '1.0.0',
+        registry: { ref: 'v3.x' },
+        packages: {},
+      }),
+    )
+
+    const resolved = await resolver.resolve({ cwd, env: {} })
+    expect(resolved.registry).toEqual({
+      url: DEFAULT_REGISTRY_CONFIG.url,
+      ref: 'v3.x',
+    })
+  })
 })

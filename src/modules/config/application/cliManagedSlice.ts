@@ -1,23 +1,15 @@
-import type { RegistryConfig } from '../../registry/infrastructure/registrySourceConfig.js'
+import { DEFAULT_REGISTRY_CONFIG } from '../../registry/infrastructure/registrySourceConfig.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import { DEFAULT_REGISTRY_REF } from '../domain/configConstants.js'
-import type { CliManagedConfig, SchemaGateMode } from '../domain/agentsConfig.js'
+import { ConfigValidationError } from '../domain/configErrors.js'
+import type { CliManagedConfig } from '../domain/agentsConfig.js'
 import { isPlainObject } from '../infrastructure/jsonDocument.js'
-import {
-  getRegistryRefDefault,
-  getRegistryUrlAlias,
-} from './schemaGate.js'
+import { getRegistryRefDefault, getRegistryUrlAlias } from './schemaGate.js'
 
 export const extractCliManagedConfig = (
   activeTarget: Record<string, unknown>,
 ): CliManagedConfig => {
-  const result: {
-    schemaVersion?: string
-    registry?: RegistryConfig
-    target?: InstallTargetId
-    packages?: Record<string, string>
-    global?: boolean
-  } = {}
+  const result: CliManagedConfig = {}
 
   if (typeof activeTarget.schemaVersion === 'string') {
     result.schemaVersion = activeTarget.schemaVersion
@@ -31,12 +23,17 @@ export const extractCliManagedConfig = (
     result.global = activeTarget.global
   }
 
-  if (activeTarget.packages !== undefined && isPlainObject(activeTarget.packages)) {
+  if (activeTarget.packages !== undefined) {
+    if (!isPlainObject(activeTarget.packages)) {
+      throw new ConfigValidationError('packages must be an object', 'type_mismatch')
+    }
+
     const packages: Record<string, string> = {}
     for (const [key, value] of Object.entries(activeTarget.packages)) {
-      if (typeof value === 'string') {
-        packages[key] = value
+      if (typeof value !== 'string') {
+        throw new ConfigValidationError(`packages.${key} must be a string`, 'type_mismatch')
       }
+      packages[key] = value
     }
     result.packages = packages
   }
@@ -49,6 +46,11 @@ export const extractCliManagedConfig = (
       result.registry = {
         url,
         ref: typeof ref === 'string' ? ref : DEFAULT_REGISTRY_REF,
+      }
+    } else if (typeof ref === 'string') {
+      result.registry = {
+        url: DEFAULT_REGISTRY_CONFIG.url,
+        ref,
       }
     } else if (registryUrlAlias) {
       result.registry = {
@@ -64,14 +66,4 @@ export const extractCliManagedConfig = (
   }
 
   return result
-}
-
-export const resolveWriteGateMode = (
-  existing: Record<string, unknown> | null,
-  gateMode: SchemaGateMode,
-): SchemaGateMode => {
-  if (existing === null) {
-    return 'greenfield'
-  }
-  return gateMode
 }

@@ -8,6 +8,7 @@ import type {
   CliManagedConfig,
   SchemaGateMode,
 } from '../domain/agentsConfig.js'
+import { ConfigValidationError } from '../domain/configErrors.js'
 import {
   DEFAULT_REGISTRY_CONFIG,
   type RegistryConfig,
@@ -22,7 +23,17 @@ export class ConfigMerger {
   ): AgentsConfigDocument {
     const force = options.force ?? false
 
-    if (existing === null || options.gateMode === 'greenfield') {
+    if (existing === null) {
+      return this.mergeGreenfield(patch)
+    }
+
+    if (options.gateMode === 'greenfield') {
+      if (Object.keys(existing).length > 0) {
+        throw new ConfigValidationError(
+          'Cannot merge with greenfield gate mode when agents.json already contains keys',
+          'invalid_merge_state',
+        )
+      }
       return this.mergeGreenfield(patch)
     }
 
@@ -77,11 +88,9 @@ export class ConfigMerger {
 
     if (patch.packages !== undefined) {
       document.packages = this.mergePackages(document.packages, patch.packages, force)
-    } else if (!('packages' in document)) {
-      document.packages = {}
     }
 
-    return this.stripRegistryUrl(document)
+    return this.stripRegistryUrl(this.finalizeManagedWriteFields(document))
   }
 
   private mergeNamespace(
@@ -94,7 +103,9 @@ export class ConfigMerger {
     const currentNamespace = isPlainObject(namespaceBlock) ? { ...namespaceBlock } : {}
 
     const mergedNamespace = this.mergeManagedIntoTarget(currentNamespace, patch, force)
-    document[AGENTS_REPO_NAMESPACE] = this.stripRegistryUrlFromTarget(mergedNamespace)
+    document[AGENTS_REPO_NAMESPACE] = this.stripRegistryUrlFromTarget(
+      this.finalizeManagedWriteFields(mergedNamespace),
+    )
 
     return document
   }
@@ -124,6 +135,17 @@ export class ConfigMerger {
 
     if (patch.packages !== undefined) {
       result.packages = this.mergePackages(result.packages, patch.packages, force)
+    }
+
+    return result
+  }
+
+  private finalizeManagedWriteFields(target: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = { ...target }
+    result.registry = this.mergeRegistry(result.registry, DEFAULT_REGISTRY_CONFIG, false)
+
+    if (!('packages' in result) || !isPlainObject(result.packages)) {
+      result.packages = {}
     }
 
     return result

@@ -3,6 +3,7 @@ import type { AgentsLockDocument, PackageLockEntry } from '../domain/agentsLock.
 import { LockValidationError } from '../domain/configErrors.js'
 import {
   isExactSemver,
+  isManifestSha256Hex,
   isQualifiedPackageId,
   isValidInstallTargetId,
   isValidLockIntegrity,
@@ -29,6 +30,10 @@ export class LockFileService {
   }
 
   formatIntegrity(manifestSha256Hex: string): string {
+    if (!isManifestSha256Hex(manifestSha256Hex)) {
+      throw new LockValidationError('Manifest SHA-256 must be a 64-character lowercase hex string')
+    }
+
     return `sha256-${manifestSha256Hex}`
   }
 
