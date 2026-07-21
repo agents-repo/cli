@@ -53,15 +53,15 @@ export const extractCliManagedConfig = (
         url,
         ref: typeof ref === 'string' ? ref : DEFAULT_REGISTRY_REF,
       }
+    } else if (registryUrlAlias) {
+      managed.registry = {
+        url: registryUrlAlias,
+        ref: typeof ref === 'string' ? ref : getRegistryRefDefault(activeTarget),
+      }
     } else if (typeof ref === 'string') {
       managed.registry = {
         url: DEFAULT_REGISTRY_CONFIG.url,
         ref,
-      }
-    } else if (registryUrlAlias) {
-      managed.registry = {
-        url: registryUrlAlias,
-        ref: getRegistryRefDefault(activeTarget),
       }
     }
   } else if (registryUrlAlias) {

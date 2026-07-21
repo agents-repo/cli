@@ -50,6 +50,25 @@ describe('LockFileService', () => {
     await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
 
+  it('rejects prerelease package versions', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
+    const lockPath = path.join(cwd, 'agents-lock.json')
+    await writeFile(
+      lockPath,
+      stringifyJsonDocument({
+        ...validLock,
+        packages: {
+          'agents-repo/hello-agent': {
+            ...validLock.packages['agents-repo/hello-agent'],
+            version: '1.0.0-beta.1',
+          },
+        },
+      }),
+    )
+
+    await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
+  })
+
   it('throws on invalid integrity format', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')

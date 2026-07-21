@@ -63,6 +63,23 @@ describe('ConfigResolver', () => {
     expect(resolved.registry).toEqual({ url: 'https://legacy.example', ref: 'v2.x' })
   })
 
+  it('maps registryUrl alias when registry.ref is set without registry.url', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
+    const configPath = path.join(cwd, 'agents.json')
+    await writeFile(
+      configPath,
+      stringifyJsonDocument({
+        schemaVersion: '1.0.0',
+        registryUrl: 'https://legacy.example',
+        registry: { ref: 'v3.x' },
+        packages: {},
+      }),
+    )
+
+    const resolved = await resolver.resolve({ cwd, env: {} })
+    expect(resolved.registry).toEqual({ url: 'https://legacy.example', ref: 'v3.x' })
+  })
+
   it('reads namespace-only @agents-repo block', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
     const configPath = path.join(cwd, 'agents.json')
