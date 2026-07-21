@@ -1,11 +1,13 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
+import fs, { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { ProjectTargetDetector } from '../../../src/modules/target/application/projectTargetDetector.js'
+import type { TargetMarkerProbe } from '../../../src/modules/target/domain/markerProbe.js'
 import { TargetDetectionError } from '../../../src/modules/target/domain/targetDetectionErrors.js'
+import { defaultMarkerProbe } from '../../../src/modules/target/infrastructure/markerProbe.js'
 
 const detector = new ProjectTargetDetector()
 
@@ -62,16 +64,19 @@ describe('ProjectTargetDetector', () => {
   })
 
   it.each([
-  ['.cursor/skills', 'cursor'],
-  ['.claude', 'claude-code'],
-  ['.agents', 'openai-codex'],
-] as const)('suggests %s for %s marker layout', async (relativePath, expectedTarget) => {
-    const root = await createProjectRoot()
-    await ensureDir(root, relativePath)
+    { relativePath: '.cursor/skills', expectedTarget: 'cursor' },
+    { relativePath: '.claude', expectedTarget: 'claude-code' },
+    { relativePath: '.agents', expectedTarget: 'openai-codex' },
+  ] as const)(
+    'suggests $expectedTarget when $relativePath exists',
+    async ({ relativePath, expectedTarget }) => {
+      const root = await createProjectRoot()
+      await ensureDir(root, relativePath)
 
-    const result = await detector.detect(root)
-    expect(result.suggestedTarget).toBe(expectedTarget)
-  })
+      const result = await detector.detect(root)
+      expect(result.suggestedTarget).toBe(expectedTarget)
+    },
+  )
 
   it('does not suggest github-copilot for workflows-only .github', async () => {
     const root = await createProjectRoot()
@@ -103,6 +108,22 @@ describe('ProjectTargetDetector', () => {
     ])
   })
 
+  it('records all github-copilot markers when multiple paths match', async () => {
+    const root = await createProjectRoot()
+    await ensureDir(root, '.github/agents')
+    await ensureFile(root, '.github/copilot-instructions.md')
+
+    const result = await detector.detect(root)
+
+    expect(result.suggestedTarget).toBe('github-copilot')
+    expect(result.matches).toEqual([
+      {
+        target: 'github-copilot',
+        markers: ['.github/agents', '.github/copilot-instructions.md'],
+      },
+    ])
+  })
+
   it('returns ambiguous when cursor and claude markers coexist', async () => {
     const root = await createProjectRoot()
     await ensureDir(root, '.cursor')
@@ -126,6 +147,7 @@ describe('ProjectTargetDetector', () => {
     const result = await detector.detect(root)
 
     expect(result.status).toBe('ambiguous')
+    expect(result.suggestedTarget).toBeUndefined()
     expect(result.detected).toEqual([
       'github-copilot',
       'claude-code',
@@ -140,7 +162,53 @@ describe('ProjectTargetDetector', () => {
     await expect(detector.detect(missingRoot)).rejects.toBeInstanceOf(TargetDetectionError)
     await expect(detector.detect(missingRoot)).rejects.toMatchObject({
       code: 'project_root_unavailable',
+      exitCode: 3,
     })
+  })
+
+  it('throws when project root is not a directory', async () => {
+    const root = await createProjectRoot()
+    const filePath = path.join(root, 'not-a-directory')
+    await writeFile(filePath, 'not a directory\n', 'utf8')
+
+    await expect(detector.detect(filePath)).rejects.toMatchObject({
+      code: 'project_root_unavailable',
+      exitCode: 3,
+    })
+  })
+
+  it('throws when project root is not readable', async () => {
+    const root = await createProjectRoot()
+    const accessError = Object.assign(new Error('permission denied'), { code: 'EACCES' })
+    const statSpy = vi.spyOn(fs, 'stat').mockRejectedValue(accessError)
+
+    try {
+      await expect(detector.detect(root)).rejects.toMatchObject({
+        code: 'project_root_unavailable',
+        exitCode: 3,
+      })
+    } finally {
+      statSpy.mockRestore()
+    }
+  })
+
+  it('skips markers the probe cannot read', async () => {
+    const root = await createProjectRoot()
+    await ensureDir(root, '.cursor')
+
+    const probe: TargetMarkerProbe = {
+      isDirectory: async (absolutePath) => {
+        if (absolutePath.endsWith(`${path.sep}.cursor`)) {
+          return false
+        }
+
+        return defaultMarkerProbe.isDirectory(absolutePath)
+      },
+      isFile: (absolutePath) => defaultMarkerProbe.isFile(absolutePath),
+    }
+
+    const result = await new ProjectTargetDetector(probe).detect(root)
+    expect(result.status).toBe('none')
   })
 
   it('does not match github-copilot when .github/agents is a file', async () => {

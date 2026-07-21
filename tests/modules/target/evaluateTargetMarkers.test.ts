@@ -75,4 +75,20 @@ describe('installTargetMarkers', () => {
       },
     ])
   })
+
+  it('records multiple github-copilot markers for the same target', async () => {
+    const projectRoot = '/project'
+    const probe = createProbe({
+      '/project/.github/agents': 'directory',
+      '/project/.github/copilot-instructions.md': 'file',
+    })
+
+    const matches = await evaluateTargetMarkers(projectRoot, probe)
+    expect(matches).toEqual([
+      {
+        target: 'github-copilot',
+        markers: ['.github/agents', '.github/copilot-instructions.md'],
+      },
+    ])
+  })
 })

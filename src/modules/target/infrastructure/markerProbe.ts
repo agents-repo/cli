@@ -2,10 +2,7 @@ import type { Stats } from 'node:fs'
 import fs from 'node:fs/promises'
 
 import type { TargetMarkerProbe } from '../domain/markerProbe.js'
-
-const isNodeError = (error: unknown): error is NodeJS.ErrnoException => {
-  return typeof error === 'object' && error !== null && 'code' in error
-}
+import { isNodeError } from '../domain/nodeErrors.js'
 
 const statExists = async (
   absolutePath: string,

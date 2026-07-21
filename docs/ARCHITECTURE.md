@@ -120,13 +120,15 @@ for `init` suggestions per [`specs/target-detection.md`](../specs/target-detecti
 | Area | CLI path | Notes |
 | --- | --- | --- |
 | Detection result types | `target/domain/targetDetection.ts` | `none` / `single` / `ambiguous` |
-| Detection errors | `target/domain/targetDetectionErrors.ts` | `project_root_unavailable` |
+| Detection errors | `target/domain/targetDetectionErrors.ts` | Exit `3` on bad root |
 | Marker table + evaluation | `target/domain/installTargetMarkers.ts` | Marker table + OR eval |
 | Detector service | `target/application/projectTargetDetector.ts` | Caller-supplied `projectRoot` |
 | Filesystem probe | `target/infrastructure/markerProbe.ts` | File/dir `stat` checks |
 
 `init` (#7) consumes `ProjectTargetDetector`; install and `ConfigResolver` do not
-invoke detection implicitly.
+invoke detection implicitly. Unreadable marker paths are skipped silently; a
+`none` result may therefore hide present-but-inaccessible markers—`init` should
+warn in verbose mode when appropriate.
 
 ## Install module — webapp URL logic + CLI extensions
 

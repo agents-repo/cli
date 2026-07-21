@@ -32,12 +32,15 @@ defined in [registry install-targets](https://github.com/agents-repo/registry/bl
 
 ## Project Root Validation
 
-Before scanning markers, tooling MUST verify that `projectRoot` exists and is
-readable. When `projectRoot` is missing or unreadable (`ENOENT`, `EACCES`),
-tooling MUST throw `TargetDetectionError` with code `project_root_unavailable`.
+Before scanning markers, tooling MUST verify that `projectRoot` exists, is
+readable, and is a directory. When `projectRoot` is missing, unreadable
+(`ENOENT`, `EACCES`), or not a directory, tooling MUST throw
+`TargetDetectionError` with code `project_root_unavailable` and exit code `3`.
 
 Per-marker probe failures with `EACCES` MUST be treated as non-matching for that
-marker only; detection MUST continue for other markers.
+marker only; detection MUST continue for other markers. A resulting `none`
+status therefore MAY mean markers were present but unreadable. `init` SHOULD
+surface that ambiguity in verbose output when no other targets are detected.
 
 ## Detection Table
 
@@ -98,9 +101,9 @@ target. `init` MUST prompt or require `--target` in those cases.
 
 ## Errors
 
-| Code | When |
-| --- | --- |
-| `project_root_unavailable` | `projectRoot` missing or unreadable |
+| Code | When | Exit code |
+| --- | --- | --- |
+| `project_root_unavailable` | `projectRoot` missing, unreadable, or not a directory | `3` |
 
 ## Related Specs
 

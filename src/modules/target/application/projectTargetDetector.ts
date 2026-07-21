@@ -2,23 +2,35 @@ import fs from 'node:fs/promises'
 
 import { evaluateTargetMarkers } from '../domain/installTargetMarkers.js'
 import type { TargetMarkerProbe } from '../domain/markerProbe.js'
+import { isNodeError } from '../domain/nodeErrors.js'
 import type { TargetDetectionResult } from '../domain/targetDetection.js'
 import { TargetDetectionError } from '../domain/targetDetectionErrors.js'
 import { defaultMarkerProbe } from '../infrastructure/markerProbe.js'
 
-const isNodeError = (error: unknown): error is NodeJS.ErrnoException => {
-  return typeof error === 'object' && error !== null && 'code' in error
+const throwProjectRootUnavailable = (projectRoot: string): never => {
+  throw new TargetDetectionError(
+    `Project root is not available: ${projectRoot}`,
+    'project_root_unavailable',
+  )
 }
 
 const assertProjectRootAvailable = async (projectRoot: string): Promise<void> => {
   try {
-    await fs.access(projectRoot)
-  } catch (error) {
-    if (isNodeError(error) && (error.code === 'ENOENT' || error.code === 'EACCES')) {
+    const stats = await fs.stat(projectRoot)
+
+    if (!stats.isDirectory()) {
       throw new TargetDetectionError(
-        `Project root is not available: ${projectRoot}`,
+        `Project root is not a directory: ${projectRoot}`,
         'project_root_unavailable',
       )
+    }
+  } catch (error) {
+    if (error instanceof TargetDetectionError) {
+      throw error
+    }
+
+    if (isNodeError(error) && (error.code === 'ENOENT' || error.code === 'EACCES')) {
+      throwProjectRootUnavailable(projectRoot)
     }
 
     throw error
