@@ -66,8 +66,8 @@ Pre-commit hooks run `npm run lint:all`, `npm run test:sync`, and
 ```text
 src/
   bin/           # CLI entrypoint (compiled to dist/)
-  modules/       # DDD modules (scaffolded in issue #3)
-specs/           # Normative CLI contracts (issue #2)
+  modules/       # DDD modules (cli, config, registry, install, target)
+specs/           # Normative CLI contracts
 test/            # node:test tooling script tests
 tests/           # Vitest application tests
 scripts/         # Validation and sync scripts

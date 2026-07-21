@@ -28,6 +28,9 @@
     "release:dry-run": "semantic-release --dry-run",
     "prepare": "husky"
   },
+  "dependencies": {
+    "commander": "^15.0.0"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
