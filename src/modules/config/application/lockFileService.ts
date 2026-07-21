@@ -7,6 +7,7 @@ import {
   isQualifiedPackageId,
   isValidInstallTargetId,
   isValidLockIntegrity,
+  isValidRfc3339Timestamp,
 } from '../domain/validators.js'
 import { AgentsLockRepository } from '../infrastructure/agentsLockRepository.js'
 import { isPlainObject } from '../infrastructure/jsonDocument.js'
@@ -98,7 +99,7 @@ export class LockFileService {
     }
 
     if (entry.resolved !== undefined) {
-      if (typeof entry.resolved !== 'string') {
+      if (typeof entry.resolved !== 'string' || !isValidRfc3339Timestamp(entry.resolved)) {
         throw new LockValidationError(`Lock entry for ${packageId} has invalid resolved timestamp`)
       }
       return { ...result, resolved: entry.resolved }

@@ -11,6 +11,9 @@ export const MANIFEST_SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/
 
 export const EXACT_SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
 
+export const RFC3339_TIMESTAMP_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/
+
 export const isQualifiedPackageId = (value: string): boolean => {
   return QUALIFIED_PACKAGE_ID_PATTERN.test(value)
 }
@@ -33,4 +36,16 @@ export const isValidLockIntegrity = (value: string): boolean => {
 
 export const isManifestSha256Hex = (value: string): boolean => {
   return MANIFEST_SHA256_HEX_PATTERN.test(value)
+}
+
+export const isValidRfc3339Timestamp = (value: string): boolean => {
+  if (value.trim().length === 0) {
+    return false
+  }
+
+  if (!RFC3339_TIMESTAMP_PATTERN.test(value)) {
+    return false
+  }
+
+  return Number.isFinite(Date.parse(value))
 }
