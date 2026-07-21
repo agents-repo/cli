@@ -34,7 +34,7 @@ defined in [registry install-targets](https://github.com/agents-repo/registry/bl
 
 Before scanning markers, tooling MUST verify that `projectRoot` exists, is
 readable, and is a directory. When `projectRoot` is missing, unreadable
-(`ENOENT`, `EACCES`), or not a directory, tooling MUST throw
+(`ENOENT`, `EACCES`, `ENOTDIR`), or not a directory, tooling MUST throw
 `TargetDetectionError` with code `project_root_unavailable` and exit code `3`.
 
 Per-marker probe failures with `EACCES` MUST be treated as non-matching for that

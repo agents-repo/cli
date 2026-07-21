@@ -177,6 +177,18 @@ describe('ProjectTargetDetector', () => {
     })
   })
 
+  it('throws when project root path crosses a file segment', async () => {
+    const root = await createProjectRoot()
+    const filePath = path.join(root, 'blocking-file')
+    await writeFile(filePath, 'blocks traversal\n', 'utf8')
+    const invalidRoot = path.join(filePath, 'nested-project')
+
+    await expect(detector.detect(invalidRoot)).rejects.toMatchObject({
+      code: 'project_root_unavailable',
+      exitCode: 3,
+    })
+  })
+
   it('throws when project root is not readable', async () => {
     const root = await createProjectRoot()
     const accessError = Object.assign(new Error('permission denied'), { code: 'EACCES' })

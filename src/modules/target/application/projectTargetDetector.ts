@@ -29,7 +29,10 @@ const assertProjectRootAvailable = async (projectRoot: string): Promise<void> =>
       throw error
     }
 
-    if (isNodeError(error) && (error.code === 'ENOENT' || error.code === 'EACCES')) {
+    if (
+      isNodeError(error) &&
+      (error.code === 'ENOENT' || error.code === 'EACCES' || error.code === 'ENOTDIR')
+    ) {
       throwProjectRootUnavailable(projectRoot)
     }
 
