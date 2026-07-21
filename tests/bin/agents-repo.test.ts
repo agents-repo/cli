@@ -1,5 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import os from 'node:os';
+import { resolve, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const nodeExecutable = process.execPath;
@@ -48,12 +50,22 @@ describe('agents-repo bin', () => {
     expect(result.stderr).toContain('unknown option');
   });
 
-  it('prints placeholder and exits 1 for init', () => {
-    const result = spawnSync(nodeExecutable, [binPath, 'init'], { encoding: 'utf8' });
+  it('creates agents.json with init --target', () => {
+    const cwd = mkdtempSync(join(os.tmpdir(), 'agents-init-bin-'));
 
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('not implemented yet');
-    expect(result.stderr).toContain('issue #7');
+    try {
+      const result = spawnSync(
+        nodeExecutable,
+        [binPath, 'init', '--target', 'cursor'],
+        { cwd, encoding: 'utf8' },
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('agents.json');
+      expect(result.stdout).toContain('cursor');
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
   });
 
   it('runs install alias i as placeholder', () => {

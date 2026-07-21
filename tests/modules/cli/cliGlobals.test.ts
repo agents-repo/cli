@@ -21,6 +21,19 @@ describe('cli global options', () => {
     expect(getCliGlobals()).toEqual({
       json: true,
       verbose: true,
+      yes: false,
+    });
+  });
+
+  it('sets yes global from root options before subcommand actions', () => {
+    const program = createCliProgram();
+
+    program.parse(['-y', 'install'], { from: 'user' });
+
+    expect(getCliGlobals()).toEqual({
+      json: false,
+      verbose: false,
+      yes: true,
     });
   });
 
@@ -32,6 +45,7 @@ describe('cli global options', () => {
     expect(getCliGlobals()).toEqual({
       json: false,
       verbose: false,
+      yes: false,
     });
   });
 });

@@ -49,8 +49,8 @@ application and infrastructure APIs consumed by commands.
 The config module implements schema-gated `agents.json` resolution, merge
 semantics, conflict detection, environment overrides, and `agents-lock.json`
 I/O per [`specs/config-schema.md`](../specs/config-schema.md) and
-[`specs/lock-schema.md`](../specs/lock-schema.md). CLI commands (`init`,
-`install`) consume these APIs in later issues.
+[`specs/lock-schema.md`](../specs/lock-schema.md). The `init` command (#7)
+consumes these APIs; `install` follows in issue #8.
 
 ### Delivered in issue #5
 
@@ -64,6 +64,18 @@ I/O per [`specs/config-schema.md`](../specs/config-schema.md) and
 | Merge semantics | `config/application/configMerger.ts` | Gate-aware merge; foreign keys kept |
 | Lock file service | `config/application/lockFileService.ts` | Validate on read; stable writes |
 | File I/O | `config/infrastructure/` | `agents.json` and `agents-lock.json` repos |
+
+### Delivered in issue #7 (`init`)
+
+| Area | CLI path | Notes |
+| --- | --- | --- |
+| Init orchestration | `config/application/initService.ts` | Gate, conflicts, target, merge, write |
+| Init result type | `config/domain/initResult.ts` | Success payload for command output |
+| `init` command | `cli/presentation/initCommand.ts` | Commander wiring |
+| CLI error mapping | `cli/presentation/cliErrorHandling.ts` | Typed errors → exit codes |
+| Root `--yes` / `-y` | `cli/presentation/createCliProgram.ts` | Global conflict waiver |
+
+Product documentation: [commands/init.md](commands/init.md).
 
 Install commands (#8) pass `ResolvedAgentsConfig.registry` to
 `getRegistrySourceConfig()` from the registry module (replacing the deferred
@@ -125,10 +137,10 @@ for `init` suggestions per [`specs/target-detection.md`](../specs/target-detecti
 | Detector service | `target/application/projectTargetDetector.ts` | Caller-supplied `projectRoot` |
 | Filesystem probe | `target/infrastructure/markerProbe.ts` | File/dir `stat` checks |
 
-`init` (#7) consumes `ProjectTargetDetector`; install and `ConfigResolver` do not
-invoke detection implicitly. Unreadable marker paths are skipped silently; a
-`none` result may therefore hide present-but-inaccessible markers—`init` should
-warn in verbose mode when appropriate.
+`init` (#7) consumes `ProjectTargetDetector` via `InitService`; install and
+`ConfigResolver` do not invoke detection implicitly. Unreadable marker paths
+are skipped silently; a `none` result may therefore hide present-but-inaccessible
+markers—`init` adds marker detail in verbose mode when detection is ambiguous.
 
 ## Install module — webapp URL logic + CLI extensions
 
@@ -178,5 +190,6 @@ details.
 
 ## Related docs
 
+- [commands/init.md](commands/init.md) — `init` command usage
 - [architecture/ddd-decision.md](architecture/ddd-decision.md)
 - [development.md](development.md)

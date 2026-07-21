@@ -1,11 +1,13 @@
 export interface CliGlobals {
   json: boolean;
   verbose: boolean;
+  yes: boolean;
 }
 
 const defaultGlobals: CliGlobals = {
   json: false,
   verbose: false,
+  yes: false,
 };
 
 let currentGlobals: CliGlobals = { ...defaultGlobals };

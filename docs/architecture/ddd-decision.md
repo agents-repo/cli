@@ -69,12 +69,11 @@ See [ARCHITECTURE.md](../ARCHITECTURE.md) for the webapp-to-CLI file mapping.
 
 ## Global Flags (M0)
 
-Issue #3 registers root-level `--json` and `--verbose` with no-op hooks until
-command output and logging land in later issues.
+Issue #3 registers root-level `--json` and `--verbose`. Issue #7 adds `--yes` /
+`-y` for non-interactive conflict handling on `init` (and future `install`).
 
-Deferred to command issues:
+Deferred to later command issues:
 
-- `--yes` / `-y` — init and install conflict handling
 - `--dry-run` — install resolve-only mode
 - `--no-save` — skip config and lock writes
 
@@ -85,8 +84,9 @@ Deferred to command issues:
 
 Module directories and the Commander root program are scaffolded in issue #3.
 The registry module (issue #4) and config module (issue #5) are implemented.
-Install target detection (issue #6) is implemented in `target/`. Install
-pipeline and command wiring are tracked in downstream issues.
+Install target detection (issue #6) is implemented in `target/`. The `init`
+command (issue #7) wires config and target modules through `InitService`.
+Install pipeline and remaining command wiring are tracked in downstream issues.
 
 ## Why This Decision Exists
 

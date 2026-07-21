@@ -24,6 +24,7 @@ export type ConfigValidationCode =
   | 'invalid_enum'
   | 'invalid_semver_range'
   | 'missing_target'
+  | 'target_mismatch'
   | 'config_path_not_absolute'
   | 'config_path_not_agents_json'
   | 'invalid_merge_state'

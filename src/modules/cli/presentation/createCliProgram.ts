@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 
 import { setCliGlobals } from '../application/cliGlobals.js';
+import { registerInitCommand } from './initCommand.js';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -36,12 +37,13 @@ const registerPlaceholderCommand = (
 };
 
 const syncGlobalsFromCommand = (command: Command): void => {
-  const { json = false, verbose = false } = command.optsWithGlobals<{
+  const { json = false, verbose = false, yes = false } = command.optsWithGlobals<{
     json?: boolean;
     verbose?: boolean;
+    yes?: boolean;
   }>();
 
-  setCliGlobals({ json, verbose });
+  setCliGlobals({ json, verbose, yes });
 };
 
 export const createCliProgram = (): Command => {
@@ -53,13 +55,14 @@ export const createCliProgram = (): Command => {
     .version(readPackageVersion(), '-V, --version', 'Show CLI version')
     .option('--json', 'Machine-readable output')
     .option('--verbose', 'Detailed logging')
+    .option('-y, --yes', 'Non-interactive; waive conflicts with warnings')
     .showHelpAfterError()
     .hook('preAction', (thisCommand) => {
       syncGlobalsFromCommand(thisCommand);
     })
     .exitOverride();
 
-  registerPlaceholderCommand(program, 'init', 'Initialize agents.json in the current project', 7);
+  registerInitCommand(program);
   registerPlaceholderCommand(program, 'install', 'Install packages from the registry', 8, ['i']);
   registerPlaceholderCommand(program, 'search', 'Search the registry catalog', 10, ['find']);
   registerPlaceholderCommand(program, 'list', 'List installed packages', 11, ['ls']);
