@@ -28,9 +28,22 @@ export const isPlainObject = (value: unknown): value is Record<string, unknown> 
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+const serializeJsonPrimitive = (value: unknown): string => {
+  if (value === undefined) {
+    return 'undefined'
+  }
+
+  const valueType = typeof value
+  if (valueType === 'function' || valueType === 'symbol') {
+    throw new TypeError(`Cannot stable-serialize value of type ${valueType}`)
+  }
+
+  return JSON.stringify(value)
+}
+
 const stableSerialize = (value: unknown): string => {
   if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value)
+    return serializeJsonPrimitive(value)
   }
 
   if (Array.isArray(value)) {

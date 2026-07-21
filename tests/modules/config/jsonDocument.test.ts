@@ -11,4 +11,8 @@ describe('jsonDocument.valuesAreEqual', () => {
       ),
     ).toBe(true)
   })
+
+  it('treats matching undefined values as equal', () => {
+    expect(valuesAreEqual(undefined, undefined)).toBe(true)
+  })
 })
