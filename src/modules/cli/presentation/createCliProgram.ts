@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Command, CommanderError } from 'commander';
+import { Command } from 'commander';
 
 import { setCliGlobals } from '../application/cliGlobals.js';
 
@@ -25,8 +25,6 @@ const registerPlaceholderCommand = (
   const command = program
     .command(name)
     .description(description)
-    .allowUnknownOption()
-    .allowExcessArguments()
     .action(() => {
       console.error(`${name} is not implemented yet (see issue #${issueNumber})`);
       process.exit(1);
@@ -58,7 +56,8 @@ export const createCliProgram = (): Command => {
     .showHelpAfterError()
     .hook('preAction', (thisCommand) => {
       syncGlobalsFromCommand(thisCommand);
-    });
+    })
+    .exitOverride();
 
   registerPlaceholderCommand(program, 'init', 'Initialize agents.json in the current project', 7);
   registerPlaceholderCommand(program, 'install', 'Install packages from the registry', 8, ['i']);
@@ -66,8 +65,4 @@ export const createCliProgram = (): Command => {
   registerPlaceholderCommand(program, 'list', 'List installed packages', 11, ['ls']);
 
   return program;
-};
-
-export const isCommanderUsageError = (error: unknown): error is CommanderError => {
-  return error instanceof CommanderError && error.code === 'commander.unknownOption';
 };

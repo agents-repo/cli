@@ -1,40 +1,26 @@
 import { CommanderError } from 'commander';
 
 import { resetCliGlobals } from '../application/cliGlobals.js';
-import { createCliProgram, isCommanderUsageError } from './createCliProgram.js';
+import { createCliProgram } from './createCliProgram.js';
 
 const USAGE_EXIT_CODE = 2;
 
-const isRootHelpRequest = (argv: readonly string[]): boolean => {
-  return argv.slice(2).some((arg) => arg === '--help' || arg === '-h');
+const isUsageCommanderError = (error: CommanderError): boolean => {
+  return (
+    error.code === 'commander.unknownOption' ||
+    error.code === 'commander.unknownCommand' ||
+    error.code === 'commander.excessArguments' ||
+    error.code === 'commander.missingArgument' ||
+    error.code === 'commander.invalidArgument'
+  );
 };
 
-const isRootVersionRequest = (argv: readonly string[]): boolean => {
-  return argv.slice(2).some((arg) => arg === '--version' || arg === '-V');
-};
-
-const hasSubcommand = (argv: readonly string[]): boolean => {
-  const args = argv.slice(2);
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-
-    if (arg === '--') {
-      return args.slice(index + 1).some((value) => !value.startsWith('-'));
-    }
-
-    if (arg === '--help' || arg === '-h' || arg === '--version' || arg === '-V') {
-      continue;
-    }
-
-    if (arg.startsWith('-')) {
-      continue;
-    }
-
-    return true;
-  }
-
-  return false;
+const isSuccessfulCommanderError = (error: CommanderError): boolean => {
+  return (
+    error.code === 'commander.help' ||
+    error.code === 'commander.helpDisplayed' ||
+    error.code === 'commander.version'
+  );
 };
 
 export const runCli = (argv: readonly string[]): void => {
@@ -42,27 +28,21 @@ export const runCli = (argv: readonly string[]): void => {
 
   const program = createCliProgram();
 
-  if (isRootVersionRequest(argv) || isRootHelpRequest(argv)) {
-    program.parse(argv);
-    return;
-  }
-
-  if (!hasSubcommand(argv)) {
-    program.outputHelp();
-    process.exit(0);
-  }
-
   try {
     program.parse(argv);
   } catch (error) {
-    if (isCommanderUsageError(error)) {
+    if (!(error instanceof CommanderError)) {
+      throw error;
+    }
+
+    if (isSuccessfulCommanderError(error)) {
+      process.exit(0);
+    }
+
+    if (isUsageCommanderError(error)) {
       process.exit(USAGE_EXIT_CODE);
     }
 
-    if (error instanceof CommanderError) {
-      process.exit(error.exitCode);
-    }
-
-    throw error;
+    process.exit(error.exitCode);
   }
 };

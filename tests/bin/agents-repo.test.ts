@@ -24,7 +24,28 @@ describe('agents-repo bin', () => {
     const result = spawnSync(nodeExecutable, [binPath], { encoding: 'utf8' });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Usage: agents-repo');
+    expect(`${result.stdout}${result.stderr}`).toContain('Usage: agents-repo');
+  });
+
+  it('exits 2 for unknown root flags', () => {
+    const result = spawnSync(nodeExecutable, [binPath, '--unknown'], { encoding: 'utf8' });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('unknown option');
+  });
+
+  it('exits 2 for unknown commands', () => {
+    const result = spawnSync(nodeExecutable, [binPath, 'foo'], { encoding: 'utf8' });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("unknown command 'foo'");
+  });
+
+  it('exits 2 for unknown subcommand flags', () => {
+    const result = spawnSync(nodeExecutable, [binPath, 'install', '--unknown'], { encoding: 'utf8' });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('unknown option');
   });
 
   it('prints placeholder and exits 1 for init', () => {
@@ -33,5 +54,13 @@ describe('agents-repo bin', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('not implemented yet');
     expect(result.stderr).toContain('issue #7');
+  });
+
+  it('runs install alias i as placeholder', () => {
+    const result = spawnSync(nodeExecutable, [binPath, 'i'], { encoding: 'utf8' });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('install is not implemented yet');
+    expect(result.stderr).toContain('issue #8');
   });
 });
