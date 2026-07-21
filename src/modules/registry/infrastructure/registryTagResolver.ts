@@ -321,7 +321,7 @@ export const fetchRegistryRepositoryTagNames = async (
   }
 
   const fetchPromise = ((): Promise<string[]> => {
-    const promise = fetchRegistryRepositoryTagNamesFromNetwork(tagsUrl, repositoryKey, options.signal).catch(
+    const promise = fetchRegistryRepositoryTagNamesFromNetwork(tagsUrl, repositoryKey, undefined).catch(
       async (error: unknown) => {
         if (!options.bypassCache) {
           const cachedTagNames = readTagListCache(repositoryKey)

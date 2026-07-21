@@ -3,6 +3,7 @@ import {
   buildRegistryTagsUrl,
   clearRegistryTagListCache,
   fetchGitHubRepositoryTagNames,
+  fetchRegistryRepositoryTagNames,
   pickLatestStableTagForMajorVersion,
 } from '../../../src/modules/registry/infrastructure/registryTagResolver.js'
 
@@ -55,6 +56,40 @@ describe('registryTagResolver', () => {
 
     expect(firstFetch).toEqual(['v1.0.0', 'v1.2.0'])
     expect(secondFetch).toEqual(['v1.0.0', 'v1.2.0'])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not abort shared in-flight tag fetches when one caller aborts', async () => {
+    let resolveFetch!: (value: Response) => void
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve
+        }),
+    )
+
+    const abortController = new AbortController()
+    const tagsUrl = 'https://api.github.com/repos/agents-repo/registry/tags?per_page=100'
+    const abortedFetch = fetchRegistryRepositoryTagNames(tagsUrl, {
+      signal: abortController.signal,
+      repositoryKey: 'agents-repo/registry',
+    })
+    const sharedFetch = fetchRegistryRepositoryTagNames(tagsUrl, {
+      repositoryKey: 'agents-repo/registry',
+    })
+
+    abortController.abort()
+
+    await expect(abortedFetch).rejects.toMatchObject({ name: 'AbortError' })
+
+    resolveFetch(
+      new Response(JSON.stringify([{ name: 'v1.0.0' }, { name: 'v1.2.0' }]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(sharedFetch).resolves.toEqual(['v1.0.0', 'v1.2.0'])
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
