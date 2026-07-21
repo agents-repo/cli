@@ -5,6 +5,7 @@ import {
   isExactSemver,
   isManifestSha256Hex,
   isQualifiedPackageId,
+  isConcreteRegistryRef,
   isValidInstallTargetId,
   isValidLockIntegrity,
   isValidRfc3339Timestamp,
@@ -46,8 +47,10 @@ export class LockFileService {
       )
     }
 
-    if (typeof raw.resolvedRef !== 'string' || raw.resolvedRef.trim().length === 0) {
-      throw new LockValidationError('agents-lock.json resolvedRef must be a non-empty string')
+    if (typeof raw.resolvedRef !== 'string' || !isConcreteRegistryRef(raw.resolvedRef)) {
+      throw new LockValidationError(
+        'agents-lock.json resolvedRef must be a concrete registry git ref without surrounding whitespace',
+      )
     }
 
     if (!isPlainObject(raw.packages)) {

@@ -1,6 +1,7 @@
 import { validRange } from 'semver'
 
 import { INSTALL_TARGET_IDS, type InstallTargetId } from '../../registry/domain/package.js'
+import { parseMajorVersionLineAlias } from '../../registry/infrastructure/registryMajorVersionRef.js'
 
 export const QUALIFIED_PACKAGE_ID_PATTERN =
   /^[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -48,4 +49,12 @@ export const isValidRfc3339Timestamp = (value: string): boolean => {
   }
 
   return Number.isFinite(Date.parse(value))
+}
+
+export const isConcreteRegistryRef = (value: string): boolean => {
+  if (value.length === 0 || value !== value.trim()) {
+    return false
+  }
+
+  return parseMajorVersionLineAlias(value) === null
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isExactSemver, isValidRfc3339Timestamp } from '../../../src/modules/config/domain/validators.js'
+import { isExactSemver, isConcreteRegistryRef, isValidRfc3339Timestamp } from '../../../src/modules/config/domain/validators.js'
 
 describe('validators.isExactSemver', () => {
   it('accepts strict MAJOR.MINOR.PATCH versions', () => {
@@ -27,5 +27,18 @@ describe('validators.isValidRfc3339Timestamp', () => {
     expect(isValidRfc3339Timestamp('')).toBe(false)
     expect(isValidRfc3339Timestamp('not-a-date')).toBe(false)
     expect(isValidRfc3339Timestamp('2026-07-21')).toBe(false)
+  })
+})
+
+describe('validators.isConcreteRegistryRef', () => {
+  it('accepts concrete registry refs', () => {
+    expect(isConcreteRegistryRef('v2.3.1')).toBe(true)
+    expect(isConcreteRegistryRef('main')).toBe(true)
+  })
+
+  it('rejects major-line aliases and surrounding whitespace', () => {
+    expect(isConcreteRegistryRef('v2.x')).toBe(false)
+    expect(isConcreteRegistryRef(' v2.3.1 ')).toBe(false)
+    expect(isConcreteRegistryRef('')).toBe(false)
   })
 })

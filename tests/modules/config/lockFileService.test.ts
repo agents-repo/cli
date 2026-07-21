@@ -106,6 +106,22 @@ describe('LockFileService', () => {
     await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
 
+  it('rejects major-line alias resolvedRef values', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
+    const lockPath = path.join(cwd, 'agents-lock.json')
+    await writeFile(lockPath, stringifyJsonDocument({ ...validLock, resolvedRef: 'v2.x' }))
+
+    await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
+  })
+
+  it('rejects resolvedRef values with surrounding whitespace', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
+    const lockPath = path.join(cwd, 'agents-lock.json')
+    await writeFile(lockPath, stringifyJsonDocument({ ...validLock, resolvedRef: ' v2.3.1 ' }))
+
+    await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
+  })
+
   it('throws on invalid integrity format', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')
