@@ -3,7 +3,6 @@ import {
   ConfigError,
   ConfigParseError,
   ConfigValidationError,
-  LockValidationError,
 } from '../../config/domain/configErrors.js';
 import { TargetDetectionError } from '../../target/domain/targetDetectionErrors.js';
 
@@ -54,10 +53,6 @@ export const writeCliError = (error: unknown): void => {
 
 export const getCliExitCode = (error: unknown): number => {
   if (error instanceof ConfigError || error instanceof TargetDetectionError) {
-    return error.exitCode;
-  }
-
-  if (error instanceof LockValidationError) {
     return error.exitCode;
   }
 

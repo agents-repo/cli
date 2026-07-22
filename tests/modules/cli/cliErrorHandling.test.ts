@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { getCliExitCode, writeCliError } from '../../../src/modules/cli/presentation/cliErrorHandling.js';
-import { ConfigValidationError } from '../../../src/modules/config/domain/configErrors.js';
+import { ConfigValidationError, LockValidationError } from '../../../src/modules/config/domain/configErrors.js';
 
 describe('cliErrorHandling', () => {
   it('writes a fallback message for non-Error throwables', () => {
@@ -24,6 +24,12 @@ describe('cliErrorHandling', () => {
 
   it('maps config validation errors to exit code 3', () => {
     const error = new ConfigValidationError('invalid target', 'invalid_enum');
+
+    expect(getCliExitCode(error)).toBe(3);
+  });
+
+  it('maps lock validation errors to exit code 3 through ConfigError', () => {
+    const error = new LockValidationError('invalid lock file');
 
     expect(getCliExitCode(error)).toBe(3);
   });
