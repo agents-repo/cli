@@ -57,14 +57,16 @@ describe('cli global options', () => {
   });
 
   it('sets yes global from root options before subcommand actions', async () => {
-    const program = createCliProgram();
+    await withConfigOverride(async () => {
+      const program = createCliProgram();
 
-    await program.parseAsync(['-y', 'install'], { from: 'user' });
+      await program.parseAsync(['-y', 'init', '--target', 'cursor'], { from: 'user' });
 
-    expect(getCliGlobals()).toEqual({
-      json: false,
-      verbose: false,
-      yes: true,
+      expect(getCliGlobals()).toEqual({
+        json: false,
+        verbose: false,
+        yes: true,
+      });
     });
   });
 
