@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { assertInstallTargetSupported } from '../../../src/modules/install/application/validateInstallTarget.js'
-import { InstallTargetUnsupportedError } from '../../../src/modules/registry/domain/errors.js'
+import { InstallTargetUnsupportedError, MetadataSchemaError } from '../../../src/modules/registry/domain/errors.js'
 import type { RegistryPackage } from '../../../src/modules/registry/domain/package.js'
 import {
   makeInstallTestManifest,
@@ -48,6 +48,36 @@ describe('assertInstallTargetSupported', () => {
         'cursor',
       ),
     ).not.toThrow()
+  })
+
+  it('rejects missing metadata compatibility', () => {
+    const withoutCompatibility = { ...makeInstallTestMetadata() }
+    delete (withoutCompatibility as { compatibility?: unknown }).compatibility
+
+    expect(() =>
+      assertInstallTargetSupported(
+        basePackage,
+        withoutCompatibility,
+        makeInstallTestManifest(),
+        '1.0.0',
+        'cursor',
+      ),
+    ).toThrow(MetadataSchemaError)
+  })
+
+  it('rejects when target is absent from index installTargets', () => {
+    expect(() =>
+      assertInstallTargetSupported(
+        {
+          ...basePackage,
+          installTargets: [{ id: 'github-copilot', status: 'supported' }],
+        },
+        makeInstallTestMetadata(),
+        makeInstallTestManifest(),
+        '1.0.0',
+        'cursor',
+      ),
+    ).toThrow(InstallTargetUnsupportedError)
   })
 
   it('rejects planned metadata targets', () => {

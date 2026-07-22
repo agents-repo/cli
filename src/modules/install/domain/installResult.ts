@@ -8,5 +8,7 @@ export interface InstallResult {
   readonly artifactUrl: string
   readonly saved: boolean
   readonly dryRun: boolean
+  readonly global: boolean
+  readonly noSave: boolean
   readonly warnings: readonly string[]
 }

@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { InstallRuntimeError } from '../../../src/modules/install/domain/installErrors.js'
 import { InstallService } from '../../../src/modules/install/application/installService.js'
 import { PackageYankedError } from '../../../src/modules/registry/domain/errors.js'
 import * as registrySourceConfig from '../../../src/modules/registry/infrastructure/registrySourceConfig.js'
@@ -131,6 +132,11 @@ describe('InstallService', () => {
     expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
       'name: sample',
     )
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      packages: Record<string, string>
+    }
+    expect(config.packages['agents-repo/sample-agent']).toBe('^1.0.0')
 
     const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
       resolvedRef: string
@@ -266,5 +272,108 @@ describe('InstallService', () => {
     })
 
     expect(result.warnings.some((warning) => warning.includes('deprecated'))).toBe(true)
+  })
+
+  it('extracts without updating config or lock when --no-save is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-no-save-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        target: 'cursor',
+        packages: {},
+      }),
+    )
+
+    const zipBytes = buildCursorSkillZip()
+    const sha256 = createHash('sha256').update(zipBytes).digest('hex')
+    const manifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sha256)
+
+    mockRegistryFetch(manifest, { zipBytes })
+
+    vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
+      sourceUrl: 'https://registry-proxy.example.workers.dev/?ref=v2.0.0',
+      configuredBaseUrl: 'https://registry-proxy.example.workers.dev/?ref=v2.0.0',
+      baseUrl: 'https://registry-proxy.example.workers.dev/?ref=v2.0.0',
+      indexPath: 'packages/index.json',
+      indexUrl: 'https://registry-proxy.example.workers.dev/packages/index.json?ref=v2.0.0',
+      configuredGithubRepositoryUrl: 'https://github.com/agents-repo/registry/tree/v2.0.0',
+      baseUrlRefResolution: null,
+    })
+
+    const service = new InstallService()
+    const result = await service.run({
+      cwd,
+      packageId: 'agents-repo/sample-agent',
+      noSave: true,
+    })
+
+    expect(result.saved).toBe(false)
+    expect(result.noSave).toBe(true)
+    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
+      'name: sample',
+    )
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
+    expect(
+      JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as { packages: Record<string, string> },
+    ).toEqual({
+      schemaVersion: '1.0.0',
+      registry: {
+        url: 'https://registry-proxy.example.workers.dev',
+        ref: 'v2.0.0',
+      },
+      target: 'cursor',
+      packages: {},
+    })
+  })
+
+  it('rejects checksum mismatches before extract', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-checksum-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        target: 'cursor',
+        packages: {},
+      }),
+    )
+
+    const zipBytes = buildCursorSkillZip()
+    const manifest = withInstallTestArtifactSha256(makeInstallTestManifest(), 'f'.repeat(64))
+
+    mockRegistryFetch(manifest, { zipBytes })
+
+    vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
+      sourceUrl: 'https://registry-proxy.example.workers.dev/?ref=v2.0.0',
+      configuredBaseUrl: 'https://registry-proxy.example.workers.dev/?ref=v2.0.0',
+      baseUrl: 'https://registry-proxy.example.workers.dev/?ref=v2.0.0',
+      indexPath: 'packages/index.json',
+      indexUrl: 'https://registry-proxy.example.workers.dev/packages/index.json?ref=v2.0.0',
+      configuredGithubRepositoryUrl: 'https://github.com/agents-repo/registry/tree/v2.0.0',
+      baseUrlRefResolution: null,
+    })
+
+    const service = new InstallService()
+
+    await expect(
+      service.run({
+        cwd,
+        packageId: 'agents-repo/sample-agent',
+      }),
+    ).rejects.toBeInstanceOf(InstallRuntimeError)
+
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toThrow()
   })
 })

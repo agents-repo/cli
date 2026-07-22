@@ -19,7 +19,10 @@ import { resolveLockRef } from './resolveLockRef.js'
 import { InstallPersistence } from './installPersistence.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
 import { verifySha256 } from '../infrastructure/sha256Verifier.js'
-import { extractPackageArtifact } from '../infrastructure/packageExtractor.js'
+import {
+  extractPackageArtifact,
+  rollbackExtractedPaths,
+} from '../infrastructure/packageExtractor.js'
 import type { InstallResult } from '../domain/installResult.js'
 
 export interface InstallServiceOptions {
@@ -31,7 +34,6 @@ export interface InstallServiceOptions {
   readonly yes?: boolean
   readonly dryRun?: boolean
   readonly noSave?: boolean
-  readonly verbose?: boolean
 }
 
 export class InstallService {
@@ -66,6 +68,7 @@ export class InstallService {
     const target = effectiveTargetInput
     const scope = resolveInstallScope({
       cwd,
+      env,
       globalFlag: options.global,
       configGlobal: resolved.global,
     })
@@ -105,6 +108,8 @@ export class InstallService {
       artifact.file,
     )
 
+    const noSave = options.noSave === true
+
     const resultBase: InstallResult = {
       packageId: pkg.id,
       version,
@@ -113,6 +118,8 @@ export class InstallService {
       artifactUrl,
       saved: false,
       dryRun: options.dryRun ?? false,
+      global: scope.global,
+      noSave,
       warnings,
     }
 
@@ -122,24 +129,29 @@ export class InstallService {
 
     const zipBytes = await downloadArtifact(artifactUrl)
     verifySha256(zipBytes, artifact.sha256)
-    await extractPackageArtifact(zipBytes, target, version, scope.extractRoot)
+    const extractedPaths = await extractPackageArtifact(zipBytes, target, version, scope.extractRoot)
 
-    if (options.noSave !== true && scope.mutateProjectConfig) {
-      const resolvedRef = resolveLockRef(resolved, catalogResult)
-      await this.installPersistence.save({
-        resolved: { ...resolved, target },
-        packageId: pkg.id,
-        version,
-        target,
-        artifact,
-        resolvedRef,
-        adHocInstall,
-      })
+    if (!noSave && scope.mutateProjectConfig) {
+      try {
+        const resolvedRef = resolveLockRef(resolved, catalogResult)
+        await this.installPersistence.save({
+          resolved: { ...resolved, target },
+          packageId: pkg.id,
+          version,
+          target,
+          artifact,
+          resolvedRef,
+          adHocInstall,
+        })
+      } catch (error) {
+        await rollbackExtractedPaths(extractedPaths)
+        throw error
+      }
     }
 
     return {
       ...resultBase,
-      saved: options.noSave !== true && scope.mutateProjectConfig,
+      saved: !noSave && scope.mutateProjectConfig,
     }
   }
 }

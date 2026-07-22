@@ -14,7 +14,7 @@ export interface InstallCommandOptions {
 const formatInstallSuccess = (result: InstallResult): string => {
   const action = result.dryRun ? 'Would install' : 'Installed';
   let saveSuffix = '';
-  if (!result.saved && !result.dryRun) {
+  if (!result.saved && !result.dryRun && result.noSave) {
     saveSuffix = ' (not saved)';
   }
   return `${action} ${result.packageId}@${result.version} for target ${result.target} into ${result.extractRoot}${saveSuffix}`;
@@ -37,6 +37,8 @@ const writeInstallSuccess = (result: InstallResult, json: boolean): void => {
         artifactUrl: result.artifactUrl,
         saved: result.saved,
         dryRun: result.dryRun,
+        global: result.global,
+        noSave: result.noSave,
       })}\n`,
     );
     return;
@@ -66,7 +68,6 @@ export const registerInstallCommand = (program: Command): void => {
           yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
           dryRun: globals.dryRun,
           noSave: globals.noSave,
-          verbose: globals.verbose,
         });
 
         writeInstallWarnings(result.warnings);

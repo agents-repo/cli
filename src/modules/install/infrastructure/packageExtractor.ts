@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import AdmZip from 'adm-zip'
@@ -8,12 +8,22 @@ import { InstallRuntimeError, InstallZipSecurityError } from '../domain/installE
 import { hasTraversalPattern, mapZipEntryToExtractPath } from './targetExtractPaths.js'
 import { scanTargetArtifactZipBuffer } from './zipSecurityScanner.js'
 
+export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
+  for (const filePath of [...paths].reverse()) {
+    try {
+      await rm(filePath, { force: true })
+    } catch {
+      // Best-effort rollback when persistence fails after extract.
+    }
+  }
+}
+
 export const extractPackageArtifact = async (
   zipBytes: Buffer,
   targetId: InstallTargetId,
   version: string,
   extractRoot: string,
-): Promise<void> => {
+): Promise<readonly string[]> => {
   const issues = scanTargetArtifactZipBuffer(zipBytes, targetId, version)
   const blocking = issues.find((issue) => issue.severity === 'error')
   if (blocking !== undefined) {
@@ -31,24 +41,33 @@ export const extractPackageArtifact = async (
   }
 
   const resolvedRoot = path.resolve(extractRoot)
+  const writtenPaths: string[] = []
 
-  for (const entry of zip.getEntries()) {
-    const name = entry.entryName
-    if (name.endsWith('/')) {
-      continue
+  try {
+    for (const entry of zip.getEntries()) {
+      const name = entry.entryName
+      if (name.endsWith('/')) {
+        continue
+      }
+
+      const mappedName = mapZipEntryToExtractPath(targetId, name)
+      if (hasTraversalPattern(mappedName)) {
+        throw new InstallRuntimeError('path_traversal', `Refusing to extract unsafe path: ${mappedName}`)
+      }
+
+      const destination = path.resolve(resolvedRoot, mappedName)
+      if (!destination.startsWith(resolvedRoot + path.sep) && destination !== resolvedRoot) {
+        throw new InstallRuntimeError('path_traversal', `Refusing to extract outside root: ${mappedName}`)
+      }
+
+      await mkdir(path.dirname(destination), { recursive: true })
+      await writeFile(destination, entry.getData())
+      writtenPaths.push(destination)
     }
-
-    const mappedName = mapZipEntryToExtractPath(targetId, name)
-    if (hasTraversalPattern(mappedName)) {
-      throw new InstallRuntimeError('path_traversal', `Refusing to extract unsafe path: ${mappedName}`)
-    }
-
-    const destination = path.resolve(resolvedRoot, mappedName)
-    if (!destination.startsWith(resolvedRoot + path.sep) && destination !== resolvedRoot) {
-      throw new InstallRuntimeError('path_traversal', `Refusing to extract outside root: ${mappedName}`)
-    }
-
-    await mkdir(path.dirname(destination), { recursive: true })
-    await writeFile(destination, entry.getData())
+  } catch (error) {
+    await rollbackExtractedPaths(writtenPaths)
+    throw error
   }
+
+  return writtenPaths
 }

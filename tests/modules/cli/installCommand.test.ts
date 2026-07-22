@@ -4,8 +4,9 @@ import { createServer, type Server } from 'node:http';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+import type { PackageManifest } from '../../../src/modules/registry/domain/manifest.js';
 import {
   buildCursorSkillZip,
   makeInstallTestCatalog,
@@ -17,6 +18,10 @@ import { conflictingTopLevelConfig } from '../../fixtures/agentsJson/index.js';
 
 const nodeExecutable = process.execPath;
 const binPath = path.resolve(process.cwd(), 'dist/bin/agents-repo.js');
+
+const zipBytes = buildCursorSkillZip();
+const sha256 = createHash('sha256').update(zipBytes).digest('hex');
+const mockManifest: PackageManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sha256);
 
 interface CliRunResult {
   readonly status: number;
@@ -58,83 +63,22 @@ const runCliSubprocess = async (
   });
 };
 
-const startMockRegistry = async (): Promise<{ server: Server; baseUrl: string }> => {
-  const zipBytes = buildCursorSkillZip();
-  const sha256 = createHash('sha256').update(zipBytes).digest('hex');
-  const manifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sha256);
-
-  const server = createServer((request, response) => {
-    const url = request.url ?? '/';
-
-    if (url.includes('/packages/index.json')) {
-      response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(JSON.stringify(makeInstallTestCatalog()));
-      return;
-    }
-
-    if (url.includes('/versions/manifest.json')) {
-      response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(JSON.stringify(manifest));
-      return;
-    }
-
-    if (url.includes('/metadata.json')) {
-      response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(JSON.stringify(makeInstallTestMetadata()));
-      return;
-    }
-
-    if (url.includes('1.0.0-cursor.zip')) {
-      response.writeHead(200);
-      response.end(zipBytes);
-      return;
-    }
-
-    response.writeHead(404);
-    response.end('not found');
-  });
-
-  await new Promise<void>((resolve) => {
-    server.listen(0, '127.0.0.1', () => {
-      resolve();
-    });
-  });
-
-  const address = server.address();
-  if (address === null || typeof address === 'string') {
-    throw new Error('Failed to bind mock registry server');
-  }
-
-  return {
-    server,
-    baseUrl: `http://127.0.0.1:${address.port}/?ref=v2.0.0`,
-  };
-};
-
-const stopMockRegistry = async (server: Server): Promise<void> => {
-  server.closeAllConnections?.();
-
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve();
-    });
-  });
+const writeInstallConfig = (cwd: string, baseUrl: string): void => {
+  writeFileSync(
+    path.join(cwd, 'agents.json'),
+    JSON.stringify({
+      schemaVersion: '1.0.0',
+      registry: { url: baseUrl, ref: 'v2.0.0' },
+      target: 'cursor',
+      packages: {},
+    }),
+  );
 };
 
 describe('install command subprocess', () => {
   const tempDirs: string[] = [];
-  let mockServer: Server | undefined;
 
-  afterEach(async () => {
-    if (mockServer !== undefined) {
-      await stopMockRegistry(mockServer);
-      mockServer = undefined;
-    }
-
+  afterEach(() => {
     for (const dir of tempDirs.splice(0)) {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -174,22 +118,84 @@ describe('install command subprocess', () => {
     expect(result.status).toBe(4);
     expect(result.stderr).toContain('dual definition');
   });
+});
+
+describe('install command subprocess with mock registry', () => {
+  const tempDirs: string[] = [];
+  let mockServer: Server;
+  let mockBaseUrl: string;
+
+  beforeAll(async () => {
+    const server = createServer((request, response) => {
+      const url = request.url ?? '/';
+
+      if (url.includes('/packages/index.json')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(makeInstallTestCatalog()));
+        return;
+      }
+
+      if (url.includes('/versions/manifest.json')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(mockManifest));
+        return;
+      }
+
+      if (url.includes('/metadata.json')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(makeInstallTestMetadata()));
+        return;
+      }
+
+      if (url.includes('1.0.0-cursor.zip')) {
+        response.writeHead(200);
+        response.end(zipBytes);
+        return;
+      }
+
+      response.writeHead(404);
+      response.end('not found');
+    });
+
+    await new Promise<void>((resolve) => {
+      server.listen(0, '127.0.0.1', () => {
+        resolve();
+      });
+    });
+
+    const address = server.address();
+    if (address === null || typeof address === 'string') {
+      throw new Error('Failed to bind mock registry server');
+    }
+
+    mockServer = server;
+    mockBaseUrl = `http://127.0.0.1:${address.port}/?ref=v2.0.0`;
+  });
+
+  afterAll(async () => {
+    mockServer.closeAllConnections?.();
+
+    await new Promise<void>((resolve, reject) => {
+      mockServer.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
+  });
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 
   it('supports dry-run without writing lock files', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-dry-run-'));
     tempDirs.push(cwd);
-    const mock = await startMockRegistry();
-    mockServer = mock.server;
-
-    writeFileSync(
-      path.join(cwd, 'agents.json'),
-      JSON.stringify({
-        schemaVersion: '1.0.0',
-        registry: { url: mock.baseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
-        packages: {},
-      }),
-    );
+    writeInstallConfig(cwd, mockBaseUrl);
 
     const result = await runCliSubprocess(['--dry-run', 'install', 'agents-repo/sample-agent'], {
       cwd,
@@ -201,20 +207,9 @@ describe('install command subprocess', () => {
   });
 
   it('emits JSON output on success when --json is set', async () => {
-    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-json-'));
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-json-dry-run-'));
     tempDirs.push(cwd);
-    const mock = await startMockRegistry();
-    mockServer = mock.server;
-
-    writeFileSync(
-      path.join(cwd, 'agents.json'),
-      JSON.stringify({
-        schemaVersion: '1.0.0',
-        registry: { url: mock.baseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
-        packages: {},
-      }),
-    );
+    writeInstallConfig(cwd, mockBaseUrl);
 
     const result = await runCliSubprocess(
       ['--json', '--dry-run', 'install', 'agents-repo/sample-agent'],
@@ -222,14 +217,69 @@ describe('install command subprocess', () => {
     );
 
     expect(result.status).toBe(0);
+
     const payload = JSON.parse(result.stdout.trim()) as {
-      packageId: string
-      dryRun: boolean
-      saved: boolean
-    }
+      packageId: string;
+      dryRun: boolean;
+      saved: boolean;
+    };
     expect(payload.packageId).toBe('agents-repo/sample-agent');
     expect(payload.dryRun).toBe(true);
     expect(payload.saved).toBe(false);
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
+  });
+
+  it('installs into a project and updates config and lock files', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-project-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const result = await runCliSubprocess(
+      ['install', 'agents-repo/sample-agent', '--target', 'cursor'],
+      { cwd },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
+    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
+      'name: sample',
+    );
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      packages: Record<string, string>
+    };
+    expect(config.packages['agents-repo/sample-agent']).toBe('^1.0.0');
+
+    const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
+      packages: Record<string, { version: string }>
+    };
+    expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0');
+  });
+
+  it('extracts without saving when --no-save is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-no-save-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const result = await runCliSubprocess(
+      ['--no-save', 'install', 'agents-repo/sample-agent', '--target', 'cursor'],
+      { cwd },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('(not saved)');
+    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
+      'name: sample',
+    );
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
+    expect(
+      JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as { packages: Record<string, string> },
+    ).toEqual({
+      schemaVersion: '1.0.0',
+      registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+      target: 'cursor',
+      packages: {},
+    });
   });
 
   it('installs globally without writing project config or lock files', async () => {
@@ -237,19 +287,9 @@ describe('install command subprocess', () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-global-'));
     tempDirs.push(cwd);
     tempDirs.push(homeDir);
-    const mock = await startMockRegistry();
-    mockServer = mock.server;
 
     const configPath = path.join(cwd, 'agents.json');
-    writeFileSync(
-      configPath,
-      JSON.stringify({
-        schemaVersion: '1.0.0',
-        registry: { url: mock.baseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
-        packages: {},
-      }),
-    );
+    writeInstallConfig(cwd, mockBaseUrl);
 
     const result = await runCliSubprocess(
       ['install', '-g', 'agents-repo/sample-agent', '--target', 'cursor'],
@@ -267,40 +307,12 @@ describe('install command subprocess', () => {
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual({
       schemaVersion: '1.0.0',
-      registry: { url: mock.baseUrl, ref: 'v2.0.0' },
+      registry: { url: mockBaseUrl, ref: 'v2.0.0' },
       target: 'cursor',
       packages: {},
     });
     expect(
       readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
     ).toContain('name: sample');
-  });
-
-  it('installs with --target override in an empty directory', async () => {
-    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-target-'));
-    tempDirs.push(cwd);
-    const mock = await startMockRegistry();
-    mockServer = mock.server;
-
-    writeFileSync(
-      path.join(cwd, 'agents.json'),
-      JSON.stringify({
-        schemaVersion: '1.0.0',
-        registry: { url: mock.baseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
-        packages: {},
-      }),
-    );
-
-    const result = await runCliSubprocess(
-      ['install', 'agents-repo/sample-agent', '--target', 'cursor'],
-      { cwd },
-    );
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
-      'name: sample',
-    );
   });
 });

@@ -4,15 +4,7 @@ import {
   ConfigParseError,
   ConfigValidationError,
 } from '../../config/domain/configErrors.js';
-import {
-  InstallTargetUnsupportedError,
-  ManifestArtifactNotFoundError,
-  MetadataSchemaError,
-  NoMatchingVersionError,
-  PackageNotFoundError,
-  PackageYankedError,
-  RegistryRefResolutionError,
-} from '../../registry/domain/errors.js';
+import { RegistryError, RegistryFetchError } from '../../registry/domain/errors.js';
 import { TargetDetectionError } from '../../target/domain/targetDetectionErrors.js';
 import { InstallRuntimeError, InstallZipSecurityError } from '../../install/domain/installErrors.js';
 import { getCliGlobals } from '../application/cliGlobals.js';
@@ -52,15 +44,11 @@ const getErrorCode = (error: unknown): string | undefined => {
     return error.code;
   }
 
-  if (
-    error instanceof PackageYankedError ||
-    error instanceof PackageNotFoundError ||
-    error instanceof ManifestArtifactNotFoundError ||
-    error instanceof InstallTargetUnsupportedError ||
-    error instanceof NoMatchingVersionError ||
-    error instanceof MetadataSchemaError ||
-    error instanceof RegistryRefResolutionError
-  ) {
+  if (error instanceof RegistryError) {
+    if ('code' in error && typeof error.code === 'string') {
+      return error.code;
+    }
+
     return error.name;
   }
 
@@ -101,15 +89,11 @@ export const getCliExitCode = (error: unknown): number => {
     return error.exitCode;
   }
 
-  if (
-    error instanceof PackageYankedError ||
-    error instanceof PackageNotFoundError ||
-    error instanceof ManifestArtifactNotFoundError ||
-    error instanceof InstallTargetUnsupportedError ||
-    error instanceof NoMatchingVersionError ||
-    error instanceof MetadataSchemaError ||
-    error instanceof RegistryRefResolutionError
-  ) {
+  if (error instanceof RegistryFetchError) {
+    return 1;
+  }
+
+  if (error instanceof RegistryError) {
     return 3;
   }
 
