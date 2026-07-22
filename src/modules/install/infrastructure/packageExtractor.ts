@@ -54,25 +54,24 @@ export const extractPackageArtifact = async (
         continue
       }
 
-      try {
-        assertZipEntryPathSafe(entryName)
-      } catch (error) {
+      if (entryName.indexOf('..') !== -1) {
         throw new InstallRuntimeError(
           'path_traversal',
-          error instanceof Error ? error.message : `Refusing to extract unsafe archive entry: ${entryName}`,
+          `Refusing to extract unsafe archive entry: ${entryName}`,
         )
       }
 
+      assertZipEntryPathSafe(entryName)
+
       const mappedName = mapZipEntryToExtractPath(targetId, entryName)
-      let destination: string
-      try {
-        destination = resolveContainedExtractPath(resolvedRoot, mappedName)
-      } catch (error) {
+      if (mappedName.indexOf('..') !== -1) {
         throw new InstallRuntimeError(
           'path_traversal',
-          error instanceof Error ? error.message : `Refusing to extract outside root: ${mappedName}`,
+          `Refusing to extract unsafe mapped path: ${mappedName}`,
         )
       }
+
+      const destination = resolveContainedExtractPath(resolvedRoot, mappedName)
 
       await mkdir(path.dirname(destination), { recursive: true })
       await writeFile(destination, entry.getData())
