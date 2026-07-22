@@ -168,7 +168,8 @@ describe('InitService', () => {
 
     const result = await service.run({ cwd, target: 'cursor', yes: true })
 
-    expect(result.warnings.length).toBeGreaterThan(0)
+    expect(result.warnings).toHaveLength(1)
+    expect(result.warnings[0]?.code).toBe('dual_definition_mismatch')
     expect(result.target).toBe('cursor')
   })
 

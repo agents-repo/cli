@@ -45,10 +45,16 @@ export class InitService {
       rawDocument === null ||
       (gateMode === 'greenfield' && Object.keys(rawDocument).length === 0)
 
-    const warnings =
-      rawDocument === null
-        ? []
-        : this.conflictDetector.detectOrThrow(rawDocument, gateMode, { waiveConflicts: yes })
+    let warnings: InitResult['warnings'] = []
+    if (rawDocument !== null) {
+      if (gateMode === 'top-level-ours') {
+        this.conflictDetector.detectOrThrow(rawDocument, gateMode, { waiveConflicts: yes })
+      } else {
+        warnings = this.conflictDetector.detectOrThrow(rawDocument, gateMode, {
+          waiveConflicts: yes,
+        })
+      }
+    }
 
     const activeTarget =
       rawDocument === null ? {} : getActiveGateTarget(rawDocument, gateMode)
@@ -80,10 +86,10 @@ export class InitService {
 
     const merged = this.configMerger.merge(rawDocument, patch, { gateMode, force })
 
-    const postMergeWarnings =
+    const finalWarnings =
       rawDocument !== null && gateMode === 'top-level-ours'
         ? this.conflictDetector.detectOrThrow(merged, gateMode, { waiveConflicts: yes })
-        : []
+        : warnings
 
     await this.agentsJsonRepository.write(configPath, merged)
 
@@ -93,7 +99,7 @@ export class InitService {
       configPath,
       gateMode,
       target: finalTarget,
-      warnings: [...warnings, ...postMergeWarnings],
+      warnings: finalWarnings,
       created,
     }
   }
