@@ -26,7 +26,8 @@ const formatUnknownThrowable = (error: unknown): string => {
   }
 
   try {
-    return JSON.stringify(error);
+    const serialized = JSON.stringify(error);
+    return typeof serialized === 'string' ? serialized : 'Unknown error';
   } catch {
     return 'Unknown error';
   }

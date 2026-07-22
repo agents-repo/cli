@@ -13,6 +13,15 @@ describe('cliErrorHandling', () => {
     stderr.mockRestore();
   });
 
+  it('writes a deterministic fallback for non-serializable throwables', () => {
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    writeCliError(() => undefined);
+
+    expect(stderr).toHaveBeenCalledWith('Unknown error\n');
+    stderr.mockRestore();
+  });
+
   it('maps config validation errors to exit code 3', () => {
     const error = new ConfigValidationError('invalid target', 'invalid_enum');
 
