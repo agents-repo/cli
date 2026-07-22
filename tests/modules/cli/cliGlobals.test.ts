@@ -9,16 +9,21 @@ import { createCliProgram } from '../../../src/modules/cli/presentation/createCl
 
 const tempDirs: string[] = [];
 
-const withTempProjectDir = async (run: () => Promise<void>): Promise<void> => {
+const withConfigOverride = async (run: () => Promise<void>): Promise<void> => {
   const tempDir = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-globals-'));
   tempDirs.push(tempDir);
-  const originalCwd = process.cwd();
+  const configPath = path.join(tempDir, 'agents.json');
+  const previousConfigOverride = process.env.AGENTS_REPO_CONFIG;
 
-  process.chdir(tempDir);
+  process.env.AGENTS_REPO_CONFIG = configPath;
   try {
     await run();
   } finally {
-    process.chdir(originalCwd);
+    if (previousConfigOverride === undefined) {
+      delete process.env.AGENTS_REPO_CONFIG;
+    } else {
+      process.env.AGENTS_REPO_CONFIG = previousConfigOverride;
+    }
   }
 };
 
@@ -36,7 +41,7 @@ describe('cli global options', () => {
   });
 
   it('sets json and verbose globals from root options before subcommand actions', async () => {
-    await withTempProjectDir(async () => {
+    await withConfigOverride(async () => {
       const program = createCliProgram();
 
       await program.parseAsync(['--json', '--verbose', 'init', '--target', 'cursor'], {
@@ -64,7 +69,7 @@ describe('cli global options', () => {
   });
 
   it('keeps globals false when options are not provided', async () => {
-    await withTempProjectDir(async () => {
+    await withConfigOverride(async () => {
       const program = createCliProgram();
 
       await program.parseAsync(['init', '--target', 'cursor'], { from: 'user' });
