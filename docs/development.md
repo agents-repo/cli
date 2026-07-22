@@ -39,6 +39,10 @@ npm install-scripts approve <name>@<version>
 
 Commit the resulting `allowScripts` update with your dependency change.
 
+Install support adds runtime dependencies `adm-zip` and `gray-matter` (plus
+`@types/adm-zip` for development). Neither package requires install-script
+approval in the current npm 12 lockfile (`allowScripts` remains empty).
+
 ## Local Validation
 
 Run these checks before marking the pull request ready for review:
@@ -69,7 +73,7 @@ src/
   modules/       # DDD modules (cli, config, registry, install, target)
 specs/           # Normative CLI contracts
 test/            # node:test tooling script tests
-tests/           # Vitest application tests
+tests/           # Vitest tests (async spawn when subprocess tests use local HTTP)
 scripts/         # Validation and sync scripts
 docs/            # Contributor and architecture docs
 ```

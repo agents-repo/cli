@@ -2,12 +2,16 @@ export interface CliGlobals {
   json: boolean;
   verbose: boolean;
   yes: boolean;
+  dryRun: boolean;
+  noSave: boolean;
 }
 
 const defaultGlobals: CliGlobals = {
   json: false,
   verbose: false,
   yes: false,
+  dryRun: false,
+  noSave: false,
 };
 
 let currentGlobals: CliGlobals = { ...defaultGlobals };

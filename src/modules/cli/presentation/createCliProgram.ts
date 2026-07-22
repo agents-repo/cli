@@ -5,6 +5,7 @@ import { Command } from 'commander';
 
 import { setCliGlobals } from '../application/cliGlobals.js';
 import { registerInitCommand } from './initCommand.js';
+import { registerInstallCommand } from './installCommand.js';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -37,13 +38,21 @@ const registerPlaceholderCommand = (
 };
 
 const syncGlobalsFromCommand = (command: Command): void => {
-  const { json = false, verbose = false, yes = false } = command.optsWithGlobals<{
+  const {
+    json = false,
+    verbose = false,
+    yes = false,
+    dryRun = false,
+    save,
+  } = command.optsWithGlobals<{
     json?: boolean;
     verbose?: boolean;
     yes?: boolean;
+    dryRun?: boolean;
+    save?: boolean;
   }>();
 
-  setCliGlobals({ json, verbose, yes });
+  setCliGlobals({ json, verbose, yes, dryRun, noSave: save === false });
 };
 
 export const createCliProgram = (): Command => {
@@ -56,6 +65,8 @@ export const createCliProgram = (): Command => {
     .option('--json', 'Machine-readable output')
     .option('--verbose', 'Detailed logging')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
+    .option('--dry-run', 'Resolve install through artifact selection without download or save')
+    .option('--no-save', 'Skip agents.json and lock writes')
     .showHelpAfterError()
     .hook('preAction', (thisCommand) => {
       syncGlobalsFromCommand(thisCommand);
@@ -63,7 +74,7 @@ export const createCliProgram = (): Command => {
     .exitOverride();
 
   registerInitCommand(program);
-  registerPlaceholderCommand(program, 'install', 'Install packages from the registry', 8, ['i']);
+  registerInstallCommand(program);
   registerPlaceholderCommand(program, 'search', 'Search the registry catalog', 10, ['find']);
   registerPlaceholderCommand(program, 'list', 'List installed packages', 11, ['ls']);
 

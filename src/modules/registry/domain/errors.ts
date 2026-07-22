@@ -96,3 +96,40 @@ export class ManifestArtifactNotFoundError extends RegistryError {
     this.version = version
   }
 }
+
+export class MetadataSchemaError extends RegistryError {
+  readonly code = 'metadata_schema_error'
+
+  constructor(message: string) {
+    super(message)
+    this.name = 'MetadataSchemaError'
+  }
+}
+
+export class InstallTargetUnsupportedError extends RegistryError {
+  readonly code = 'unsupported_install_target'
+  readonly targetId: string
+  readonly packageId: string
+
+  constructor(packageId: string, targetId: string, reason: string) {
+    super(`Install target "${targetId}" is not supported for ${packageId}: ${reason}`)
+    this.name = 'InstallTargetUnsupportedError'
+    this.packageId = packageId
+    this.targetId = targetId
+  }
+}
+
+export class NoMatchingVersionError extends RegistryError {
+  readonly code = 'no_matching_version'
+  readonly packageId: string
+
+  constructor(packageId: string, range?: string) {
+    super(
+      range
+        ? `No manifest version satisfies range "${range}" for ${packageId}`
+        : `No installable manifest version found for ${packageId}`,
+    )
+    this.name = 'NoMatchingVersionError'
+    this.packageId = packageId
+  }
+}
