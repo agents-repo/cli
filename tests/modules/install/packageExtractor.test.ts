@@ -4,8 +4,16 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { extractPackageArtifact } from '../../../src/modules/install/infrastructure/packageExtractor.js'
-import { mapZipEntryToExtractPath } from '../../../src/modules/install/infrastructure/targetExtractPaths.js'
-import { buildCursorSkillZip, buildGithubCopilotZip } from '../../fixtures/installFixtures.js'
+import {
+  assertZipEntryPathSafe,
+  mapZipEntryToExtractPath,
+  resolveContainedExtractPath,
+} from '../../../src/modules/install/infrastructure/targetExtractPaths.js'
+import {
+  buildCursorSkillZip,
+  buildGithubCopilotZip,
+  buildTraversalZip,
+} from '../../fixtures/installFixtures.js'
 
 describe('targetExtractPaths', () => {
   it('remaps github-copilot agents paths under .github/agents', () => {
@@ -18,6 +26,18 @@ describe('targetExtractPaths', () => {
     expect(mapZipEntryToExtractPath('cursor', '.cursor/skills/sample/SKILL.md')).toBe(
       '.cursor/skills/sample/SKILL.md',
     )
+  })
+
+  it('rejects traversal segments in archive paths', () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'agents-extract-safe-root-'))
+    try {
+      expect(() => assertZipEntryPathSafe('../evil.txt')).toThrow(/Unsafe archive entry path/)
+      expect(resolveContainedExtractPath(root, 'safe/nested/file.txt')).toBe(
+        path.resolve(root, 'safe/nested/file.txt'),
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })
 
@@ -41,6 +61,19 @@ describe('packageExtractor', () => {
       await extractPackageArtifact(buildGithubCopilotZip(), 'github-copilot', '1.0.0', cwd)
       const content = readFileSync(path.join(cwd, '.github/agents/sample.agent.md'), 'utf8')
       expect(content).toContain('name: sample')
+    } finally {
+      rmSync(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects traversal entries before writing files', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-traversal-'))
+
+    try {
+      await expect(
+        extractPackageArtifact(buildTraversalZip(), 'cursor', '1.0.0', cwd),
+      ).rejects.toThrow()
+      expect(() => readFileSync(path.join(cwd, 'evil.agent.md'), 'utf8')).toThrow()
     } finally {
       rmSync(cwd, { recursive: true, force: true })
     }

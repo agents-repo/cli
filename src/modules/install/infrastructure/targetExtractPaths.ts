@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import type { InstallTargetId } from '../../registry/domain/package.js'
 
 const AGENTS_DIR = 'agents'
@@ -27,4 +29,22 @@ export const hasTraversalPattern = (name: string): boolean => {
   }
 
   return name.split('/').includes('..')
+}
+
+export const assertZipEntryPathSafe = (name: string): void => {
+  if (name.indexOf('..') !== -1 || hasTraversalPattern(name)) {
+    throw new Error(`Unsafe archive entry path: ${name}`)
+  }
+}
+
+export const resolveContainedExtractPath = (extractRoot: string, relativePath: string): string => {
+  assertZipEntryPathSafe(relativePath)
+
+  const resolvedRoot = path.resolve(extractRoot)
+  const destination = path.resolve(resolvedRoot, relativePath)
+  if (destination !== resolvedRoot && !destination.startsWith(resolvedRoot + path.sep)) {
+    throw new Error(`Archive entry escapes extract root: ${relativePath}`)
+  }
+
+  return destination
 }

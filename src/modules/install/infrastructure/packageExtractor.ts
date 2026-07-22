@@ -5,7 +5,11 @@ import AdmZip from 'adm-zip'
 
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import { InstallRuntimeError, InstallZipSecurityError } from '../domain/installErrors.js'
-import { hasTraversalPattern, mapZipEntryToExtractPath } from './targetExtractPaths.js'
+import {
+  assertZipEntryPathSafe,
+  mapZipEntryToExtractPath,
+  resolveContainedExtractPath,
+} from './targetExtractPaths.js'
 import { scanTargetArtifactZipBuffer } from './zipSecurityScanner.js'
 
 export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
@@ -45,19 +49,29 @@ export const extractPackageArtifact = async (
 
   try {
     for (const entry of zip.getEntries()) {
-      const name = entry.entryName
-      if (name.endsWith('/')) {
+      const entryName = entry.entryName
+      if (entryName.endsWith('/')) {
         continue
       }
 
-      const mappedName = mapZipEntryToExtractPath(targetId, name)
-      if (hasTraversalPattern(mappedName)) {
-        throw new InstallRuntimeError('path_traversal', `Refusing to extract unsafe path: ${mappedName}`)
+      try {
+        assertZipEntryPathSafe(entryName)
+      } catch (error) {
+        throw new InstallRuntimeError(
+          'path_traversal',
+          error instanceof Error ? error.message : `Refusing to extract unsafe archive entry: ${entryName}`,
+        )
       }
 
-      const destination = path.resolve(resolvedRoot, mappedName)
-      if (!destination.startsWith(resolvedRoot + path.sep) && destination !== resolvedRoot) {
-        throw new InstallRuntimeError('path_traversal', `Refusing to extract outside root: ${mappedName}`)
+      const mappedName = mapZipEntryToExtractPath(targetId, entryName)
+      let destination: string
+      try {
+        destination = resolveContainedExtractPath(resolvedRoot, mappedName)
+      } catch (error) {
+        throw new InstallRuntimeError(
+          'path_traversal',
+          error instanceof Error ? error.message : `Refusing to extract outside root: ${mappedName}`,
+        )
       }
 
       await mkdir(path.dirname(destination), { recursive: true })
