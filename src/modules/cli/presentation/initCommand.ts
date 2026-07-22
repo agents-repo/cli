@@ -8,6 +8,7 @@ import { handleCliError } from './cliErrorHandling.js';
 export interface InitCommandOptions {
   readonly force?: boolean;
   readonly target?: string;
+  readonly yes?: boolean;
 }
 
 const formatInitSuccess = (result: InitResult): string => {
@@ -30,6 +31,7 @@ export const registerInitCommand = (program: Command): void => {
     .description('Initialize agents.json in the current project')
     .option('--force', 'Overwrite agents-repo-managed keys in the active schema gate target')
     .option('--target <id>', 'Set install target id')
+    .option('-y, --yes', 'Non-interactive; waive conflicts with warnings')
     .action(async function initAction(this: Command, options: InitCommandOptions) {
       const globals = getCliGlobals();
       const rootOpts = this.optsWithGlobals<{ yes?: boolean }>();
@@ -39,7 +41,7 @@ export const registerInitCommand = (program: Command): void => {
         const result = await service.run({
           force: options.force ?? false,
           target: options.target,
-          yes: rootOpts.yes ?? globals.yes ?? false,
+          yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
           verbose: globals.verbose,
         });
 

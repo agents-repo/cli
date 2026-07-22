@@ -51,6 +51,25 @@ describe('init command subprocess', () => {
     }
   });
 
+  it('accepts init -y flag after subcommand', () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-init-cli-init-yes-'));
+
+    try {
+      writeFileSync(path.join(cwd, 'agents.json'), JSON.stringify(conflictingTopLevelConfig));
+
+      const stdout = execFileSync(
+        nodeExecutable,
+        [binPath, 'init', '-y', '--target', 'cursor'],
+        { cwd, encoding: 'utf8' },
+      );
+
+      expect(stdout).toContain('agents.json');
+      expect(stdout).toContain('warning(s)');
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('exits 3 when target cannot be resolved', () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-init-cli-missing-target-'));
 

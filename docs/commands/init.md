@@ -16,11 +16,11 @@ agents-repo init [options]
 | --- | --- | --- |
 | `--target <id>` | init | Set install target id (for example `cursor`, `github-copilot`) |
 | `--force` | init | Overwrite agents-repo-managed keys in the active schema gate target |
-| `--yes` / `-y` | global | Waive dual-definition conflicts with warnings instead of failing |
+| `--yes` / `-y` | init / global | Waive dual-definition conflicts with warnings |
 | `--verbose` | global | Include marker paths when target detection is ambiguous |
 
-`--yes` is registered on the root program so it can be passed before the
-subcommand: `agents-repo -y init`.
+`--yes` is available on the root program (`agents-repo -y init`) and on
+`init` (`agents-repo init -y`).
 
 ## Behavior
 
