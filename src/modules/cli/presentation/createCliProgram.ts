@@ -55,7 +55,7 @@ export const createCliProgram = (): Command => {
     .version(readPackageVersion(), '-V, --version', 'Show CLI version')
     .option('--json', 'Machine-readable output')
     .option('--verbose', 'Detailed logging')
-    .option('-y, --yes', 'Non-interactive; waive conflicts with warnings')
+    .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
     .showHelpAfterError()
     .hook('preAction', (thisCommand) => {
       syncGlobalsFromCommand(thisCommand);

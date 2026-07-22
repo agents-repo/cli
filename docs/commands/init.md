@@ -16,7 +16,7 @@ agents-repo init [options]
 | --- | --- | --- |
 | `--target <id>` | init | Set install target id (for example `cursor`, `github-copilot`) |
 | `--force` | init | Overwrite agents-repo-managed keys in the active schema gate target |
-| `--yes` / `-y` | init / global | Waive dual-definition conflicts with warnings |
+| `--yes` / `-y` | init / global | Waive dual-definition mismatches with warnings |
 | `--verbose` | global | Include marker paths when target detection is ambiguous |
 
 `--yes` is available on the root program (`agents-repo -y init`) and on
@@ -63,9 +63,11 @@ requires `--target`.
 
 ### Conflicts and `--yes`
 
-When an existing file has dual-definition conflicts (for example `target` at
-both top level and under `@agents-repo`), init exits with code `4` unless
-`--yes` is set. With `--yes`, init continues and prints warnings to stderr.
+In `top-level-ours` gate mode (supported top-level `schemaVersion`), init exits
+with code `4` when `target` (or other managed keys) differ at the top level and
+under `@agents-repo`, unless `--yes` is set. In `namespace` mode, top-level
+homonyms are foreign keys and dual-definition checks do not apply. With
+`--yes`, init continues and prints warnings to stderr.
 
 ### Environment overrides
 
@@ -81,7 +83,7 @@ both top level and under `@agents-repo`), init exits with code `4` unless
 | `1` | Unexpected runtime failure (for example config file permission or I/O errors) |
 | `2` | Usage error (unknown flags or arguments) |
 | `3` | Validation, parse, or target resolution failure |
-| `4` | Unresolved config conflicts (without `--yes`) |
+| `4` | Dual-definition mismatch in top-level-ours mode (without `--yes`) |
 
 ## Examples
 
