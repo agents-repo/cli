@@ -5,6 +5,9 @@ repository. It is not documentation for the `agents-repo` product CLI commands.
 
 See `.github/CONTRIBUTING.md` **Required Workflow** for normative rules.
 
+User-facing `agents-repo` command documentation lives under `docs/commands/`.
+See [commands/init.md](commands/init.md) for the `init` command.
+
 ## 0. Bootstrap Local Runtime
 
 ```bash

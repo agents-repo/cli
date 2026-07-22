@@ -8,8 +8,9 @@ npm run build
 node dist/bin/agents-repo.js <command>
 ```
 
-Commands (`init`, `install`, `search`, and more) land in later milestones.
-This repository currently provides contributor scaffolding and CI.
+Commands (`install`, `search`, and more) land in later milestones. The `init`
+command is available to bootstrap `agents.json`. See
+[docs/commands/init.md](docs/commands/init.md).
 
 ## Stack
 
@@ -45,6 +46,12 @@ Run the full PR baseline locally:
 ```bash
 npm run env:check && npm run lint:all && npm run typecheck && npm test && npm run check:secrets
 ```
+
+## CLI Commands
+
+| Command | Documentation |
+| --- | --- |
+| `init` | [docs/commands/init.md](docs/commands/init.md) |
 
 ## IDE Agent Instructions
 

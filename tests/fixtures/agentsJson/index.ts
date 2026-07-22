@@ -31,3 +31,48 @@ export const namespaceConfig = {
     },
   },
 } as const
+
+export const partialNamespaceConfig = {
+  customTool: {
+    agents: ['planner'],
+  },
+  '@agents-repo': {
+    target: 'cursor',
+    packages: {},
+  },
+} as const
+
+export const partialNamespaceNoTargetConfig = {
+  customTool: {
+    agents: ['planner'],
+  },
+  '@agents-repo': {
+    packages: {},
+  },
+} as const
+
+export const namespaceOnlyTargetConfig = {
+  schemaVersion: '1.0.0',
+  packages: {},
+  registry: {
+    url: 'https://registry-proxy.maiconfz.workers.dev',
+    ref: 'v2.x',
+  },
+  '@agents-repo': {
+    target: 'claude-code',
+    packages: {},
+  },
+} as const
+
+export const conflictingTopLevelConfig = {
+  schemaVersion: '1.0.0',
+  target: 'cursor',
+  packages: {},
+  registry: {
+    url: 'https://registry-proxy.maiconfz.workers.dev',
+    ref: 'v2.x',
+  },
+  '@agents-repo': {
+    target: 'claude-code',
+  },
+} as const

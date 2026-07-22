@@ -23,13 +23,13 @@ const isSuccessfulCommanderError = (error: CommanderError): boolean => {
   );
 };
 
-export const runCli = (argv: readonly string[]): void => {
+export const runCli = async (argv: readonly string[]): Promise<void> => {
   resetCliGlobals();
 
   const program = createCliProgram();
 
   try {
-    program.parse(argv);
+    await program.parseAsync(argv);
   } catch (error) {
     if (!(error instanceof CommanderError)) {
       throw error;
