@@ -30,7 +30,6 @@ export const runCli = async (argv: readonly string[]): Promise<void> => {
 
   try {
     await program.parseAsync(argv);
-    process.exit(0);
   } catch (error) {
     if (!(error instanceof CommanderError)) {
       throw error;

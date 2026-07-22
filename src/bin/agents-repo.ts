@@ -3,6 +3,7 @@ import { runCli } from '../modules/cli/presentation/runCli.js';
 
 try {
   await runCli(process.argv);
+  process.exit(0);
 } catch (error) {
   if (error instanceof Error) {
     console.error(error.message);

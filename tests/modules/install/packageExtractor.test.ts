@@ -32,6 +32,7 @@ describe('targetExtractPaths', () => {
     const root = mkdtempSync(path.join(os.tmpdir(), 'agents-extract-safe-root-'))
     try {
       expect(() => assertZipEntryPathSafe('../evil.txt')).toThrow(/Unsafe archive entry path/)
+      expect(() => assertZipEntryPathSafe('safe/foo..bar/file.txt')).not.toThrow()
       expect(resolveContainedExtractPath(root, 'safe/nested/file.txt')).toBe(
         path.resolve(root, 'safe/nested/file.txt'),
       )

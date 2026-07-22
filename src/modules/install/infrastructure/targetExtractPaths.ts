@@ -32,7 +32,7 @@ export const hasTraversalPattern = (name: string): boolean => {
 }
 
 export const assertZipEntryPathSafe = (name: string): void => {
-  if (name.indexOf('..') !== -1 || hasTraversalPattern(name)) {
+  if (hasTraversalPattern(name)) {
     throw new Error(`Unsafe archive entry path: ${name}`)
   }
 }
