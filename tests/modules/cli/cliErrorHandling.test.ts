@@ -22,6 +22,16 @@ describe('cliErrorHandling', () => {
     stderr.mockRestore();
   });
 
+  it('writes nothing for null or undefined throwables', () => {
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    writeCliError(null);
+    writeCliError(undefined);
+
+    expect(stderr).not.toHaveBeenCalled();
+    stderr.mockRestore();
+  });
+
   it('maps config validation errors to exit code 3', () => {
     const error = new ConfigValidationError('invalid target', 'invalid_enum');
 
