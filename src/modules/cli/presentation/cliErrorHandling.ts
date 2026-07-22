@@ -11,6 +11,27 @@ const formatConflictWarnings = (error: ConfigConflictError): string => {
   return error.conflicts.map((conflict) => conflict.message).join('\n');
 };
 
+const formatUnknownThrowable = (error: unknown): string => {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (
+    typeof error === 'number' ||
+    typeof error === 'boolean' ||
+    typeof error === 'bigint' ||
+    typeof error === 'symbol'
+  ) {
+    return String(error);
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'Unknown error';
+  }
+};
+
 export const writeCliError = (error: unknown): void => {
   if (error instanceof ConfigConflictError) {
     process.stderr.write(`${error.message}\n`);
@@ -22,6 +43,11 @@ export const writeCliError = (error: unknown): void => {
 
   if (error instanceof Error) {
     process.stderr.write(`${error.message}\n`);
+    return;
+  }
+
+  if (error !== undefined && error !== null) {
+    process.stderr.write(`${formatUnknownThrowable(error)}\n`);
   }
 };
 
