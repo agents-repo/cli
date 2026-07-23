@@ -82,23 +82,9 @@ export const extractPackageArtifact = async (
         continue
       }
 
-      if (entryName.indexOf('..') !== -1) {
-        throw new InstallRuntimeError(
-          'path_traversal',
-          `Refusing to extract unsafe archive entry: ${entryName}`,
-        )
-      }
-
       assertZipEntryPathSafe(entryName)
 
       const mappedName = mapZipEntryToExtractPath(targetId, entryName)
-      if (mappedName.indexOf('..') !== -1) {
-        throw new InstallRuntimeError(
-          'path_traversal',
-          `Refusing to extract unsafe mapped path: ${mappedName}`,
-        )
-      }
-
       const destination = resolveContainedExtractPath(resolvedRoot, mappedName)
 
       await assertNoSymlinksAlongPath(resolvedRoot, destination)

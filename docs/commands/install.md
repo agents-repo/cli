@@ -134,7 +134,9 @@ With `--json`, successful installs print one JSON object on stdout:
   "extractRoot": "/path/to/project",
   "artifactUrl": "https://registry.example/.../1.0.0-cursor.zip",
   "saved": true,
-  "dryRun": false
+  "dryRun": false,
+  "global": false,
+  "noSave": false
 }
 ```
 
