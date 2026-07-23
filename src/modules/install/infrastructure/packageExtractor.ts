@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import AdmZip from 'adm-zip'
@@ -11,6 +11,34 @@ import {
   resolveContainedExtractPath,
 } from './targetExtractPaths.js'
 import { scanTargetArtifactZipBuffer } from './zipSecurityScanner.js'
+
+const isEnoentError = (error: unknown): error is NodeJS.ErrnoException => {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
+}
+
+const assertNoSymlinksAlongPath = async (
+  resolvedRoot: string,
+  destination: string,
+): Promise<void> => {
+  const relativeParts = path.relative(resolvedRoot, path.resolve(destination)).split(path.sep).filter(Boolean)
+  let current = resolvedRoot
+
+  for (const part of relativeParts) {
+    current = path.join(current, part)
+    try {
+      const stats = await lstat(current)
+      if (stats.isSymbolicLink()) {
+        throw new InstallRuntimeError('path_traversal', `Refusing to extract through symlink: ${current}`)
+      }
+    } catch (error) {
+      if (isEnoentError(error)) {
+        return
+      }
+
+      throw error
+    }
+  }
+}
 
 export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
   for (const filePath of [...paths].reverse()) {
@@ -73,6 +101,7 @@ export const extractPackageArtifact = async (
 
       const destination = resolveContainedExtractPath(resolvedRoot, mappedName)
 
+      await assertNoSymlinksAlongPath(resolvedRoot, destination)
       await mkdir(path.dirname(destination), { recursive: true })
       await writeFile(destination, entry.getData())
       writtenPaths.push(destination)

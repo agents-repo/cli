@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -77,6 +77,24 @@ describe('packageExtractor', () => {
       expect(() => readFileSync(path.join(cwd, 'evil.agent.md'), 'utf8')).toThrow()
     } finally {
       rmSync(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects extraction through existing symlinks under the extract root', async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-symlink-root-'))
+    const outside = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-symlink-outside-'))
+
+    try {
+      mkdirSync(path.join(root, '.cursor'), { recursive: true })
+      symlinkSync(outside, path.join(root, '.cursor', 'skills'))
+
+      await expect(
+        extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', root),
+      ).rejects.toMatchObject({ code: 'path_traversal' })
+      expect(() => readFileSync(path.join(outside, 'sample', 'SKILL.md'), 'utf8')).toThrow()
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+      rmSync(outside, { recursive: true, force: true })
     }
   })
 })

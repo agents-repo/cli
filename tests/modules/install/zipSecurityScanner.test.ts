@@ -31,6 +31,33 @@ describe('zipSecurityScanner', () => {
     ).toBe(true)
   })
 
+  it('rejects disallowed payloads under constrained skill paths', async () => {
+    vi.resetModules()
+    vi.doMock('adm-zip', () => ({
+      default: class MockAdmZip {
+        getEntries() {
+          return [
+            {
+              entryName: '.cursor/skills/sample/evil.exe',
+              attr: 0,
+              getData: () => Buffer.from('bad'),
+            },
+          ]
+        }
+      },
+    }))
+
+    const { scanTargetArtifactZipBuffer: scanWithMockedZip } = await import(
+      '../../../src/modules/install/infrastructure/zipSecurityScanner.js'
+    )
+
+    const issues = scanWithMockedZip(Buffer.from('zip'), 'cursor', '1.0.0')
+    expect(issues.some((issue) => issue.code === 'ERR_ZIP_DISALLOWED_PAYLOAD')).toBe(true)
+
+    vi.doUnmock('adm-zip')
+    vi.resetModules()
+  })
+
   it('rejects symlink entries', async () => {
     vi.resetModules()
     vi.doMock('adm-zip', () => ({

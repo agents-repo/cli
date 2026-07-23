@@ -12,6 +12,7 @@ const DEPLOYMENT_ZIP_ENTRY_PATTERN = /^agents\/[a-z0-9]+(?:-[a-z0-9]+)*\.agent\.
 const CLAUDE_AGENT_ENTRY_PATTERN = /^\.claude\/agents\/[a-z0-9]+(?:-[a-z0-9]+)*\.md$/
 const SKILL_ENTRY_PATTERN =
   /^(?:\.cursor\/skills|\.agents\/skills)\/[a-z0-9]+(?:-[a-z0-9]+)*\/SKILL\.md$/
+const ALLOWED_CONSTRAINED_EXTENSIONS = ['.agent.md', '.metadata.json'] as const
 
 export interface ZipValidationIssue {
   readonly code: string
@@ -82,6 +83,49 @@ const validateEntryPath = (name: string, issues: ZipValidationIssue[]): boolean 
 
   if (hasTraversalPattern(name)) {
     issues.push(err('ERR_ZIP_TRAVERSAL', `Path traversal detected in ZIP entry: "${name}"`))
+    return false
+  }
+
+  return true
+}
+
+const hasAllowedConstrainedExtension = (name: string): boolean => {
+  return ALLOWED_CONSTRAINED_EXTENSIONS.some((suffix) => name.endsWith(suffix))
+}
+
+const validateDisallowedPayload = (name: string, issues: ZipValidationIssue[]): boolean => {
+  const lowerName = name.toLowerCase()
+
+  if (lowerName.startsWith('agents/') && !hasAllowedConstrainedExtension(name)) {
+    issues.push(
+      err(
+        'ERR_ZIP_DISALLOWED_PAYLOAD',
+        `Disallowed file type in deployment ZIP: "${name}" — entries under agents/ must end with one of: ${ALLOWED_CONSTRAINED_EXTENSIONS.join(', ')}`,
+      ),
+    )
+    return false
+  }
+
+  if (
+    (lowerName.startsWith('.cursor/skills/') || lowerName.startsWith('.agents/skills/')) &&
+    !name.endsWith('/SKILL.md')
+  ) {
+    issues.push(
+      err(
+        'ERR_ZIP_DISALLOWED_PAYLOAD',
+        `Disallowed file type in skill ZIP: "${name}" — entries under skill directories must end with /SKILL.md`,
+      ),
+    )
+    return false
+  }
+
+  if (lowerName.startsWith('.claude/agents/') && !name.endsWith('.md')) {
+    issues.push(
+      err(
+        'ERR_ZIP_DISALLOWED_PAYLOAD',
+        `Disallowed file type in Claude target ZIP: "${name}" — entries under .claude/agents/ must end with .md`,
+      ),
+    )
     return false
   }
 
@@ -267,6 +311,10 @@ const scanSnapshotZipBuffer = (
 
     trackEntryCollisions(name, issues, seenExact, seenLower)
 
+    if (!validateDisallowedPayload(name, issues)) {
+      continue
+    }
+
     if (opts.type === 'deployment') {
       validateDeploymentEntry(entry, name, opts.expectedVersion, issues)
     }
@@ -310,6 +358,10 @@ export const scanTargetArtifactZipBuffer = (
     }
 
     trackEntryCollisions(name, issues, seenExact, seenLower)
+
+    if (!validateDisallowedPayload(name, issues)) {
+      continue
+    }
 
     if (targetId === 'claude-code') {
       validateClaudeEntry(entry, name, expectedVersion, issues)
