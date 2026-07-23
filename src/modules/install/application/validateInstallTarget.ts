@@ -1,7 +1,5 @@
 import type { InstallTargetId, RegistryPackage } from '../../registry/domain/package.js'
-import {
-  findManifestArtifact,
-} from '../../registry/application/resolveArtifact.js'
+import { findManifestArtifact } from '../../registry/application/resolveArtifact.js'
 import { InstallTargetUnsupportedError, MetadataSchemaError } from '../../registry/domain/errors.js'
 import type { PackageManifest } from '../../registry/domain/manifest.js'
 import type { PackageMetadata } from '../../registry/domain/packageMetadata.js'

@@ -9,7 +9,10 @@ import {
   type PackageMetadata,
 } from '../domain/packageMetadata.js'
 import { MetadataSchemaError } from '../domain/errors.js'
-import { isPlainObject } from '../../config/infrastructure/jsonDocument.js'
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
 
 const DEFAULT_CANONICAL_FORMAT = 'agents-repo.agent-instruction@1.0.0'
 

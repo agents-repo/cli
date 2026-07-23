@@ -97,4 +97,17 @@ describe('packageExtractor', () => {
       rmSync(outside, { recursive: true, force: true })
     }
   })
+
+  it('rejects extraction when a destination file already exists', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-existing-'))
+
+    try {
+      await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
+      await expect(
+        extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd),
+      ).rejects.toMatchObject({ code: 'extract_conflict' })
+    } finally {
+      rmSync(cwd, { recursive: true, force: true })
+    }
+  })
 })

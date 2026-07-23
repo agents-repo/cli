@@ -16,6 +16,10 @@ const isEnoentError = (error: unknown): error is NodeJS.ErrnoException => {
   return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
 
+const isExistError = (error: unknown): error is NodeJS.ErrnoException => {
+  return error instanceof Error && 'code' in error && error.code === 'EEXIST'
+}
+
 const assertNoSymlinksAlongPath = async (
   resolvedRoot: string,
   destination: string,
@@ -109,7 +113,18 @@ export const extractPackageArtifact = async (
 
       await assertNoSymlinksAlongPath(resolvedRoot, destination)
       await mkdir(path.dirname(destination), { recursive: true })
-      await writeFile(destination, entry.getData())
+      try {
+        await writeFile(destination, entry.getData(), { flag: 'wx' })
+      } catch (error) {
+        if (isExistError(error)) {
+          throw new InstallRuntimeError(
+            'extract_conflict',
+            `Refusing to overwrite existing file: ${destination}`,
+          )
+        }
+
+        throw error
+      }
       writtenPaths.push(destination)
     }
   } catch (error) {
