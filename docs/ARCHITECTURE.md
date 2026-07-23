@@ -49,8 +49,8 @@ application and infrastructure APIs consumed by commands.
 The config module implements schema-gated `agents.json` resolution, merge
 semantics, conflict detection, environment overrides, and `agents-lock.json`
 I/O per [`specs/config-schema.md`](../specs/config-schema.md) and
-[`specs/lock-schema.md`](../specs/lock-schema.md). The `init` command (#7)
-consumes these APIs; `install` follows in issue #8.
+[`specs/lock-schema.md`](../specs/lock-schema.md). The `init` command (#7) and
+`install` command (#8) consume these APIs.
 
 ### Delivered in issue #5
 
@@ -77,8 +77,25 @@ consumes these APIs; `install` follows in issue #8.
 
 Product documentation: [commands/init.md](commands/init.md).
 
-Install commands (#8) pass `ResolvedAgentsConfig.registry` to
-`getRegistrySourceConfig()` from the registry module (replacing the deferred
+### Delivered in issue #8 (`install`)
+
+| Area | CLI path | Notes |
+| --- | --- | --- |
+| Install orchestration | `install/application/installService.ts` | Full pipeline per protocol |
+| Version pick | `install/application/resolveInstallVersion.ts` | Semver range + ad-hoc pick |
+| Target validation | `install/application/validateInstallTarget.ts` | Index, metadata, manifest |
+| Lock ref resolution | `install/application/resolveLockRef.ts` | Concrete ref for lock writes |
+| Extract scope | `install/application/installScope.ts` | Project vs global paths |
+| Persistence | `install/application/installPersistence.ts` | Config + lock updates |
+| Download / verify / scan / extract | `install/infrastructure/` | ZIP pipeline + path remap |
+| Version metadata fetch | `registry/infrastructure/registryRepository.ts` | `loadPackageMetadata` |
+| `install` command | `cli/presentation/installCommand.ts` | Commander wiring |
+| Global `--dry-run` / `--no-save` | `cli/presentation/createCliProgram.ts` | Root install flags |
+
+Product documentation: [commands/install.md](commands/install.md).
+
+Install commands pass `ResolvedAgentsConfig.registry` to
+`resolveRegistryFetchSourceConfig()` from the registry module (replacing the deferred
 `registrySourceSettings.ts` webapp port).
 
 ## Registry module — webapp parity (issue #4)
@@ -142,23 +159,26 @@ for `init` suggestions per [`specs/target-detection.md`](../specs/target-detecti
 are skipped silently; a `none` result may therefore hide present-but-inaccessible
 markers—`init` adds marker detail in verbose mode when detection is ambiguous.
 
-## Install module — webapp URL logic + CLI extensions
+## Install module — download, verify, extract (issue #8)
 
 The webapp does not HTTP-download ZIP artifacts. It builds download URLs via
 `getPackageDownloadTargets` in `homePageCatalogState.ts` and
 `buildRegistryArtifactUrl` in `registrySourceUrl.ts`. The CLI reuses those
-registry helpers (see `application/resolveArtifact.ts`) and will add download,
+registry helpers (see `application/resolveArtifact.ts`) and adds download,
 verification, and extraction per [`specs/cli-protocol.md`](../specs/cli-protocol.md).
 
 | Concern | Webapp reference | CLI responsibility |
 | --- | --- | --- |
 | Artifact URL resolution | `homePageCatalogState.ts` | `registry/application/resolveArtifact.ts` |
-| Manifest fetch + validation | — | `registry/infrastructure/registryRepository.ts` (issue #4) |
-| Semver version pick | — | `install/application/` (issue #8) |
-| SHA-256 verify | — | `install/infrastructure/` (protocol step 9) |
-| ZIP security scan | — | `install/infrastructure/` (protocol step 10) |
-| Extract to target paths | — | `install/infrastructure/` per [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md) |
-| Config and lock writes | — | Delegates to `config/` (protocol step 12) |
+| Manifest + metadata fetch | — | `registry/infrastructure/registryRepository.ts` |
+| Semver version pick | — | `install/application/resolveInstallVersion.ts` |
+| SHA-256 verify | — | `install/infrastructure/sha256Verifier.ts` |
+| ZIP security scan | — | `install/infrastructure/zipSecurityScanner.ts` |
+| Extract to target paths | — | `install/infrastructure/packageExtractor.ts` |
+| Config and lock writes | — | `install/application/installPersistence.ts` |
+
+**Dependencies:** `adm-zip` (extract), `gray-matter` (agent frontmatter scan), `semver`
+(version pick and registry ref resolution).
 
 ### Install pipeline overview
 
@@ -168,13 +188,13 @@ verification, and extraction per [`specs/cli-protocol.md`](../specs/cli-protocol
 3. Fetch packages/index.json              -> registry/
 4. Resolve package id                     -> registry/
 5. Fetch versions/manifest.json           -> registry/ (issue #4)
-6. Pick version (semver)                  -> install/application/ (issue #8)
+6. Pick version (semver)                  -> install/application/
 7. Pick artifact for install target       -> registry/application/ + install/
 8. Download ZIP                           -> install/infrastructure/
 9. Verify SHA-256                         -> install/infrastructure/
 10. ZIP security scan                     -> install/infrastructure/
 11. Extract package                       -> install/infrastructure/
-12. Update agents.json + lock             -> config/
+12. Update agents.json + lock             -> config/ + install/application/
 ```
 
 See [`specs/cli-protocol.md`](../specs/cli-protocol.md) for normative step
@@ -191,5 +211,6 @@ details.
 ## Related docs
 
 - [commands/init.md](commands/init.md) — `init` command usage
+- [commands/install.md](commands/install.md) — `install` command usage
 - [architecture/ddd-decision.md](architecture/ddd-decision.md)
 - [development.md](development.md)

@@ -8,9 +8,10 @@ npm run build
 node dist/bin/agents-repo.js <command>
 ```
 
-Commands (`install`, `search`, and more) land in later milestones. The `init`
-command is available to bootstrap `agents.json`. See
-[docs/commands/init.md](docs/commands/init.md).
+Commands (`search`, `list`, and more) land in later milestones. The `init` and
+`install` commands are available today. See
+[docs/commands/init.md](docs/commands/init.md) and
+[docs/commands/install.md](docs/commands/install.md).
 
 ## Stack
 
@@ -52,6 +53,7 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 | Command | Documentation |
 | --- | --- |
 | `init` | [docs/commands/init.md](docs/commands/init.md) |
+| `install` / `i` | [docs/commands/install.md](docs/commands/install.md) |
 
 ## IDE Agent Instructions
 

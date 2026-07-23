@@ -68,11 +68,19 @@ describe('agents-repo bin', () => {
     }
   });
 
-  it('runs install alias i as placeholder', () => {
-    const result = spawnSync(nodeExecutable, [binPath, 'i'], { encoding: 'utf8' });
+  it('runs install alias i', () => {
+    const cwd = mkdtempSync(join(os.tmpdir(), 'agents-install-alias-'));
 
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('install is not implemented yet');
-    expect(result.stderr).toContain('issue #8');
+    try {
+      const result = spawnSync(nodeExecutable, [binPath, 'i', 'agents-repo/sample-agent'], {
+        cwd,
+        encoding: 'utf8',
+      });
+
+      expect(result.status).toBe(3);
+      expect(result.stderr).toContain('Install target is required');
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
   });
 });

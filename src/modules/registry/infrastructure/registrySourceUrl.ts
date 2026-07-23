@@ -5,6 +5,7 @@ export const DEFAULT_REGISTRY_GITHUB_REPOSITORY_URL =
   `https://github.com/agents-repo/registry/tree/${DEFAULT_REGISTRY_REF}`
 export const DEFAULT_REGISTRY_INDEX_PATH = 'packages/index.json'
 export const DEFAULT_REGISTRY_MANIFEST_SEGMENT = 'versions/manifest.json'
+export const DEFAULT_REGISTRY_METADATA_FILENAME = 'metadata.json'
 
 const GITHUB_HOSTNAME = 'github.com'
 const GITHUB_WWW_HOSTNAME = 'www.github.com'
@@ -176,6 +177,31 @@ export const buildRegistryManifestUrl = (
   namespace: string,
   packageId: string,
 ): string => buildRegistryIndexUrl(baseUrl, buildRegistryManifestPath(namespace, packageId))
+
+export const buildRegistryVersionMetadataPath = (
+  namespace: string,
+  packageId: string,
+  version: string,
+): string => {
+  const encodedVersion = encodePathSegment(version)
+
+  return [
+    'packages',
+    encodePathSegment(namespace),
+    encodePathSegment(packageId),
+    'versions',
+    encodedVersion,
+    DEFAULT_REGISTRY_METADATA_FILENAME,
+  ].join('/')
+}
+
+export const buildRegistryVersionMetadataUrl = (
+  baseUrl: string,
+  namespace: string,
+  packageId: string,
+  version: string,
+): string =>
+  buildRegistryIndexUrl(baseUrl, buildRegistryVersionMetadataPath(namespace, packageId, version))
 
 export const buildRegistryArtifactPath = (
   namespace: string,

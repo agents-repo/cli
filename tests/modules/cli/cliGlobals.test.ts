@@ -52,6 +52,8 @@ describe('cli global options', () => {
         json: true,
         verbose: true,
         yes: false,
+        dryRun: false,
+        noSave: false,
       });
     });
   });
@@ -66,6 +68,8 @@ describe('cli global options', () => {
         json: false,
         verbose: false,
         yes: true,
+        dryRun: false,
+        noSave: false,
       });
     });
   });
@@ -80,6 +84,26 @@ describe('cli global options', () => {
         json: false,
         verbose: false,
         yes: false,
+        dryRun: false,
+        noSave: false,
+      });
+    });
+  });
+
+  it('sets dry-run and no-save globals from root options', async () => {
+    await withConfigOverride(async () => {
+      const program = createCliProgram();
+
+      await program.parseAsync(['--dry-run', '--no-save', 'init', '--target', 'cursor'], {
+        from: 'user',
+      });
+
+      expect(getCliGlobals()).toEqual({
+        json: false,
+        verbose: false,
+        yes: false,
+        dryRun: true,
+        noSave: true,
       });
     });
   });

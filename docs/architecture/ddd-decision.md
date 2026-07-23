@@ -20,8 +20,8 @@ registration, and global option hooks.
 - `src/modules/registry/` — Registry index, manifest, and artifact URL
   resolution; copy-adapted from the webapp registry module (implemented in
   issue #4).
-- `src/modules/install/` — Planned download, SHA-256 verification, ZIP security
-  scan, and extract packages per install target.
+- `src/modules/install/` — Download, SHA-256 verification, ZIP security scan, and
+  extract packages per install target (implemented in issue #8).
 - `src/modules/target/` — Detection of IDE/project install targets from filesystem
   markers (implemented in issue #6; consumed by `init` in issue #7).
 
@@ -70,12 +70,9 @@ See [ARCHITECTURE.md](../ARCHITECTURE.md) for the webapp-to-CLI file mapping.
 ## Global Flags (M0)
 
 Issue #3 registers root-level `--json` and `--verbose`. Issue #7 adds `--yes` /
-`-y` for non-interactive conflict handling on `init` (and future `install`).
-
-Deferred to later command issues:
-
-- `--dry-run` — install resolve-only mode
-- `--no-save` — skip config and lock writes
+`-y` for non-interactive conflict handling on `init` and `install`. Issue #8
+adds `--dry-run` and `--no-save` for install resolve-only mode and skipped
+config/lock writes.
 
 `DEBUG` env override for verbose logging is documented in
 `specs/command-contracts.md` and will be wired when logging is implemented.
@@ -85,8 +82,9 @@ Deferred to later command issues:
 Module directories and the Commander root program are scaffolded in issue #3.
 The registry module (issue #4) and config module (issue #5) are implemented.
 Install target detection (issue #6) is implemented in `target/`. The `init`
-command (issue #7) wires config and target modules through `InitService`.
-Install pipeline and remaining command wiring are tracked in downstream issues.
+command (issue #7) wires config and target modules through `InitService`. The
+`install` command (issue #8) wires config, registry, and install modules through
+`InstallService`. Remaining command wiring is tracked in downstream issues.
 
 ## Why This Decision Exists
 
