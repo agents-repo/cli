@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { assertInstallTargetSupported } from '../../../src/modules/install/application/validateInstallTarget.js'
-import { InstallTargetUnsupportedError, MetadataSchemaError } from '../../../src/modules/registry/domain/errors.js'
+import { InstallTargetUnsupportedError } from '../../../src/modules/registry/domain/errors.js'
 import type { RegistryPackage } from '../../../src/modules/registry/domain/package.js'
 import {
   makeInstallTestManifest,
@@ -50,7 +50,7 @@ describe('assertInstallTargetSupported', () => {
     ).not.toThrow()
   })
 
-  it('rejects missing metadata compatibility', () => {
+  it('allows install when metadata compatibility is absent', () => {
     const withoutCompatibility = { ...makeInstallTestMetadata() }
     delete (withoutCompatibility as { compatibility?: unknown }).compatibility
 
@@ -62,7 +62,7 @@ describe('assertInstallTargetSupported', () => {
         '1.0.0',
         'cursor',
       ),
-    ).toThrow(MetadataSchemaError)
+    ).not.toThrow()
   })
 
   it('rejects when target is absent from index installTargets', () => {

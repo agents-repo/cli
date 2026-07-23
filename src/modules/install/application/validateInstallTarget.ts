@@ -1,8 +1,9 @@
 import type { InstallTargetId, RegistryPackage } from '../../registry/domain/package.js'
 import { findManifestArtifact } from '../../registry/application/resolveArtifact.js'
-import { InstallTargetUnsupportedError, MetadataSchemaError } from '../../registry/domain/errors.js'
+import { InstallTargetUnsupportedError } from '../../registry/domain/errors.js'
 import type { PackageManifest } from '../../registry/domain/manifest.js'
 import type { PackageMetadata } from '../../registry/domain/packageMetadata.js'
+import { resolvePackageCompatibility } from '../../registry/infrastructure/registryMetadataValidation.js'
 const isActiveIndexTarget = (
   installTargets: RegistryPackage['installTargets'],
   targetId: InstallTargetId,
@@ -23,11 +24,8 @@ const isActiveMetadataTarget = (
   metadata: PackageMetadata,
   targetId: InstallTargetId,
 ): boolean => {
-  if (metadata.compatibility === undefined) {
-    throw new MetadataSchemaError('metadata.json compatibility is required for install target validation')
-  }
-
-  const entry = metadata.compatibility.targets.find((target) => target.id === targetId)
+  const compatibility = resolvePackageCompatibility(metadata)
+  const entry = compatibility.targets.find((target) => target.id === targetId)
 
   if (entry === undefined) {
     return false
