@@ -12,7 +12,7 @@ const DEPLOYMENT_ZIP_ENTRY_PATTERN = /^agents\/[a-z0-9]+(?:-[a-z0-9]+)*\.agent\.
 const CLAUDE_AGENT_ENTRY_PATTERN = /^\.claude\/agents\/[a-z0-9]+(?:-[a-z0-9]+)*\.md$/
 const SKILL_ENTRY_PATTERN =
   /^(?:\.cursor\/skills|\.agents\/skills)\/[a-z0-9]+(?:-[a-z0-9]+)*\/SKILL\.md$/
-const ALLOWED_CONSTRAINED_EXTENSIONS = ['.agent.md', '.metadata.json'] as const
+const DEPLOYMENT_ALLOWED_EXTENSION = '.agent.md'
 
 export interface ZipValidationIssue {
   readonly code: string
@@ -89,18 +89,18 @@ const validateEntryPath = (name: string, issues: ZipValidationIssue[]): boolean 
   return true
 }
 
-const hasAllowedConstrainedExtension = (name: string): boolean => {
-  return ALLOWED_CONSTRAINED_EXTENSIONS.some((suffix) => name.endsWith(suffix))
+const hasDeploymentAllowedExtension = (name: string): boolean => {
+  return name.endsWith(DEPLOYMENT_ALLOWED_EXTENSION)
 }
 
 const validateDisallowedPayload = (name: string, issues: ZipValidationIssue[]): boolean => {
   const lowerName = name.toLowerCase()
 
-  if (lowerName.startsWith('agents/') && !hasAllowedConstrainedExtension(name)) {
+  if (lowerName.startsWith('agents/') && !hasDeploymentAllowedExtension(name)) {
     issues.push(
       err(
         'ERR_ZIP_DISALLOWED_PAYLOAD',
-        `Disallowed file type in deployment ZIP: "${name}" — entries under agents/ must end with one of: ${ALLOWED_CONSTRAINED_EXTENSIONS.join(', ')}`,
+        `Disallowed file type in deployment ZIP: "${name}" — entries under agents/ must end with ${DEPLOYMENT_ALLOWED_EXTENSION}`,
       ),
     )
     return false

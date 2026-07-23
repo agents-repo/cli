@@ -40,6 +40,25 @@ const assertNoSymlinksAlongPath = async (
   }
 }
 
+const resolveSafeArchiveDestination = (
+  resolvedRoot: string,
+  entryName: string,
+  targetId: InstallTargetId,
+): string => {
+  if (entryName.split('/').includes('..')) {
+    throw new InstallRuntimeError('path_traversal', `Refusing to extract unsafe archive entry: ${entryName}`)
+  }
+
+  assertZipEntryPathSafe(entryName)
+
+  const mappedName = mapZipEntryToExtractPath(targetId, entryName)
+  if (mappedName.split('/').includes('..')) {
+    throw new InstallRuntimeError('path_traversal', `Refusing to extract unsafe mapped path: ${mappedName}`)
+  }
+
+  return resolveContainedExtractPath(resolvedRoot, mappedName)
+}
+
 export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
   for (const filePath of [...paths].reverse()) {
     try {
@@ -82,13 +101,11 @@ export const extractPackageArtifact = async (
         continue
       }
 
-      assertZipEntryPathSafe(entryName)
-
-      const mappedName = mapZipEntryToExtractPath(targetId, entryName)
-      const destination = resolveContainedExtractPath(resolvedRoot, mappedName)
+      const destination = resolveSafeArchiveDestination(resolvedRoot, entryName, targetId)
 
       await assertNoSymlinksAlongPath(resolvedRoot, destination)
       await mkdir(path.dirname(destination), { recursive: true })
+      // lgtm[js/zipslip] destination is derived from segment-validated archive paths and root containment checks.
       await writeFile(destination, entry.getData())
       writtenPaths.push(destination)
     }

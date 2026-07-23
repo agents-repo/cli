@@ -125,7 +125,7 @@ describe('InstallPersistence', () => {
         schemaVersion: '1.0.0',
         registry: DEFAULT_REGISTRY_CONFIG,
         target: 'cursor',
-        packages: { 'agents-repo/sample-agent': '^0.9.0' },
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     )
 
@@ -135,7 +135,7 @@ describe('InstallPersistence', () => {
       lockPath,
       registry: DEFAULT_REGISTRY_CONFIG,
       target: 'cursor',
-      packages: { 'agents-repo/sample-agent': '^0.9.0' },
+      packages: { 'agents-repo/sample-agent': '^1.0.0' },
       global: false,
       warnings: [],
       rawDocument: JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>,
