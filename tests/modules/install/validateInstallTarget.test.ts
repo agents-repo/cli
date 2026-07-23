@@ -50,7 +50,7 @@ describe('assertInstallTargetSupported', () => {
     ).not.toThrow()
   })
 
-  it('allows install when metadata compatibility is absent', () => {
+  it('rejects install when metadata compatibility is absent', () => {
     const withoutCompatibility = { ...makeInstallTestMetadata() }
     delete (withoutCompatibility as { compatibility?: unknown }).compatibility
 
@@ -62,7 +62,7 @@ describe('assertInstallTargetSupported', () => {
         '1.0.0',
         'cursor',
       ),
-    ).not.toThrow()
+    ).toThrow(InstallTargetUnsupportedError)
   })
 
   it('rejects when target is absent from index installTargets', () => {

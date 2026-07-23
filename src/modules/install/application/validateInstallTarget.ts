@@ -3,7 +3,6 @@ import { findManifestArtifact } from '../../registry/application/resolveArtifact
 import { InstallTargetUnsupportedError } from '../../registry/domain/errors.js'
 import type { PackageManifest } from '../../registry/domain/manifest.js'
 import type { PackageMetadata } from '../../registry/domain/packageMetadata.js'
-import { resolvePackageCompatibility } from '../../registry/infrastructure/registryMetadataValidation.js'
 const isActiveIndexTarget = (
   installTargets: RegistryPackage['installTargets'],
   targetId: InstallTargetId,
@@ -24,8 +23,11 @@ const isActiveMetadataTarget = (
   metadata: PackageMetadata,
   targetId: InstallTargetId,
 ): boolean => {
-  const compatibility = resolvePackageCompatibility(metadata)
-  const entry = compatibility.targets.find((target) => target.id === targetId)
+  if (metadata.compatibility === undefined) {
+    return false
+  }
+
+  const entry = metadata.compatibility.targets.find((target) => target.id === targetId)
 
   if (entry === undefined) {
     return false
