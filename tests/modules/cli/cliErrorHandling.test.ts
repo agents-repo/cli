@@ -1,11 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getCliExitCode, writeCliError } from '../../../src/modules/cli/presentation/cliErrorHandling.js';
 import { ConfigValidationError, LockValidationError } from '../../../src/modules/config/domain/configErrors.js';
 import { NoMatchingVersionError, RegistryFetchError } from '../../../src/modules/registry/domain/errors.js';
-import { setCliGlobals } from '../../../src/modules/cli/application/cliGlobals.js';
+import { resetCliGlobals, setCliGlobals } from '../../../src/modules/cli/application/cliGlobals.js';
 
 describe('cliErrorHandling', () => {
+  afterEach(() => {
+    resetCliGlobals();
+  });
   it('writes a fallback message for non-Error throwables', () => {
     const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 

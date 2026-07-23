@@ -20,7 +20,11 @@ const formatInstallSuccess = (result: InstallResult): string => {
   return `${action} ${result.packageId}@${result.version} for target ${result.target} into ${result.extractRoot}${saveSuffix}`;
 };
 
-const writeInstallWarnings = (warnings: InstallResult['warnings']): void => {
+const writeInstallWarnings = (warnings: InstallResult['warnings'], json: boolean): void => {
+  if (json) {
+    return;
+  }
+
   for (const warning of warnings) {
     process.stderr.write(`warning: ${warning}\n`);
   }
@@ -39,6 +43,7 @@ const writeInstallSuccess = (result: InstallResult, json: boolean): void => {
         dryRun: result.dryRun,
         global: result.global,
         noSave: result.noSave,
+        warnings: result.warnings,
       })}\n`,
     );
     return;
@@ -70,7 +75,7 @@ export const registerInstallCommand = (program: Command): void => {
           noSave: globals.noSave,
         });
 
-        writeInstallWarnings(result.warnings);
+        writeInstallWarnings(result.warnings, globals.json);
         writeInstallSuccess(result, globals.json);
       } catch (error) {
         handleCliError(error);

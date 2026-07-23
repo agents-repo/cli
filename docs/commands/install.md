@@ -136,7 +136,8 @@ With `--json`, successful installs print one JSON object on stdout:
   "saved": true,
   "dryRun": false,
   "global": false,
-  "noSave": false
+  "noSave": false,
+  "warnings": []
 }
 ```
 
