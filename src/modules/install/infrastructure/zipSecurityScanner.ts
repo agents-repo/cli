@@ -175,12 +175,27 @@ const trackEntryCollisions = (
   }
 }
 
+const formatFrontmatterScopeLabel = (
+  scope: 'deployment' | 'source' | 'claude',
+  capitalize: boolean,
+): string => {
+  if (scope === 'claude') {
+    return 'Claude target'
+  }
+
+  if (scope === 'deployment') {
+    return capitalize ? 'Deployment' : 'deployment'
+  }
+
+  return capitalize ? 'Source' : 'source'
+}
+
 const validateFrontmatterVersion = (
   entry: AdmZip.IZipEntry,
   name: string,
   expectedVersion: string,
   issues: ZipValidationIssue[],
-  scope: 'deployment' | 'source',
+  scope: 'deployment' | 'source' | 'claude',
 ): void => {
   try {
     const content = entry.getData().toString('utf-8')
@@ -195,7 +210,7 @@ const validateFrontmatterVersion = (
     const frontmatterVersionDisplay =
       frontmatterVersion === undefined ? '(missing)' : JSON.stringify(frontmatterVersion)
 
-    const prefix = scope === 'deployment' ? 'Deployment' : 'Source'
+    const prefix = formatFrontmatterScopeLabel(scope, true)
     issues.push(
       err(
         'ERR_FRONTMATTER_VERSION_MISMATCH',
@@ -203,7 +218,7 @@ const validateFrontmatterVersion = (
       ),
     )
   } catch {
-    const prefix = scope === 'deployment' ? 'deployment' : 'source'
+    const prefix = formatFrontmatterScopeLabel(scope, false)
     issues.push(
       err('ERR_ZIP_MALFORMED_ENTRY', `Cannot read content of ${prefix} ZIP entry: "${name}"`),
     )
@@ -275,7 +290,7 @@ const validateClaudeEntry = (
     return
   }
 
-  validateFrontmatterVersion(entry, name, expectedVersion, issues, 'deployment')
+  validateFrontmatterVersion(entry, name, expectedVersion, issues, 'claude')
 }
 
 const scanSnapshotZipBuffer = (
