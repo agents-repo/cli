@@ -77,4 +77,33 @@ describe('cliErrorHandling', () => {
 
     stderr.mockRestore();
   });
+
+  it('writes stable registry fetch error codes in json mode', () => {
+    setCliGlobals({ json: true, verbose: false, yes: false, dryRun: false, noSave: false });
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    writeCliError(new RegistryFetchError('Registry request failed with status 503', 503));
+
+    expect(stderr).toHaveBeenCalledWith(
+      `${JSON.stringify({
+        error: {
+          code: 'registry_fetch_error',
+          message: 'Registry request failed with status 503',
+        },
+      })}\n`,
+    );
+
+    stderr.mockRestore();
+  });
+
+  it('prefixes registry fetch errors with stable codes in text mode', () => {
+    setCliGlobals({ json: false, verbose: false, yes: false, dryRun: false, noSave: false });
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    writeCliError(new RegistryFetchError('Registry request failed with status 503', 503));
+
+    expect(stderr).toHaveBeenCalledWith('[registry_fetch_error] Registry request failed with status 503\n');
+
+    stderr.mockRestore();
+  });
 });

@@ -45,11 +45,7 @@ const getErrorCode = (error: unknown): string | undefined => {
   }
 
   if (error instanceof RegistryError) {
-    if ('code' in error && typeof error.code === 'string') {
-      return error.code;
-    }
-
-    return error.name;
+    return error.code;
   }
 
   return undefined;
