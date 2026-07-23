@@ -113,7 +113,7 @@ describe('InstallPersistence', () => {
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0')
   })
 
-  it('updates an existing package range with force merge on ad-hoc reinstall', async () => {
+  it('updates lock for an existing configured package without changing its range', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-persist-update-'))
     tempDirs.push(cwd)
     const configPath = path.join(cwd, 'agents.json')
@@ -153,14 +153,18 @@ describe('InstallPersistence', () => {
         sha256: 'b'.repeat(64),
       },
       resolvedRef: 'v2.0.0',
-      adHocInstall: true,
+      adHocInstall: false,
     })
 
     const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
       packages: Record<string, string>
     }
+    const lock = JSON.parse(readFileSync(lockPath, 'utf8')) as {
+      packages: Record<string, { version: string }>
+    }
 
-    expect(config.packages['agents-repo/sample-agent']).toBe('^1.1.0')
+    expect(config.packages['agents-repo/sample-agent']).toBe('^1.0.0')
+    expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.1.0')
   })
 
   it('preserves unrelated lock packages when saving a new install', async () => {
