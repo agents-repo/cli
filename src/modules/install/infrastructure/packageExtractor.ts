@@ -44,27 +44,11 @@ const assertNoSymlinksAlongPath = async (
   }
 }
 
-const hasTraversalSegment = (name: string): boolean => {
-  return name.indexOf('..') !== -1 && name.split('/').includes('..')
-}
-
-const resolveSafeArchiveDestination = (
-  resolvedRoot: string,
-  entryName: string,
-  targetId: InstallTargetId,
-): string => {
-  if (hasTraversalSegment(entryName)) {
-    throw new InstallRuntimeError('path_traversal', `Refusing to extract unsafe archive entry: ${entryName}`)
+const assertDestinationWithinRoot = (resolvedRoot: string, destination: string): void => {
+  const rootPrefix = resolvedRoot.endsWith(path.sep) ? resolvedRoot : `${resolvedRoot}${path.sep}`
+  if (destination !== resolvedRoot && !destination.startsWith(rootPrefix)) {
+    throw new InstallRuntimeError('path_traversal', `Refusing to extract outside root: ${destination}`)
   }
-
-  assertZipEntryPathSafe(entryName)
-
-  const mappedName = mapZipEntryToExtractPath(targetId, entryName)
-  if (hasTraversalSegment(mappedName)) {
-    throw new InstallRuntimeError('path_traversal', `Refusing to extract unsafe mapped path: ${mappedName}`)
-  }
-
-  return resolveContainedExtractPath(resolvedRoot, mappedName)
 }
 
 export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
@@ -109,7 +93,25 @@ export const extractPackageArtifact = async (
         continue
       }
 
-      const destination = resolveSafeArchiveDestination(resolvedRoot, entryName, targetId)
+      if (entryName.indexOf('..') !== -1) {
+        throw new InstallRuntimeError(
+          'path_traversal',
+          `Refusing to extract unsafe archive entry: ${entryName}`,
+        )
+      }
+
+      assertZipEntryPathSafe(entryName)
+
+      const mappedName = mapZipEntryToExtractPath(targetId, entryName)
+      if (mappedName.indexOf('..') !== -1) {
+        throw new InstallRuntimeError(
+          'path_traversal',
+          `Refusing to extract unsafe mapped path: ${mappedName}`,
+        )
+      }
+
+      const destination = resolveContainedExtractPath(resolvedRoot, mappedName)
+      assertDestinationWithinRoot(resolvedRoot, destination)
 
       await assertNoSymlinksAlongPath(resolvedRoot, destination)
       await mkdir(path.dirname(destination), { recursive: true })
