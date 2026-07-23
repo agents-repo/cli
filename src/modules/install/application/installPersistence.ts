@@ -51,8 +51,6 @@ export class InstallPersistence {
       force: true,
     })
 
-    await this.agentsJsonRepository.write(input.resolved.configPath, merged)
-
     const existingLock = await this.lockFileService.read(input.resolved.lockPath)
     const lockEntry: PackageLockEntry = {
       version: input.version,
@@ -70,6 +68,7 @@ export class InstallPersistence {
       },
     }
 
+    await this.agentsJsonRepository.write(input.resolved.configPath, merged)
     await this.lockFileService.write(input.resolved.lockPath, lockDocument)
   }
 }

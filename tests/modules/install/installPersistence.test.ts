@@ -233,4 +233,55 @@ describe('InstallPersistence', () => {
     expect(lock.packages['agents-repo/other-agent'].version).toBe('2.0.0')
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0')
   })
+
+  it('does not write agents.json when the existing lock file is invalid', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-persist-lock-invalid-'))
+    tempDirs.push(cwd)
+    const configPath = path.join(cwd, 'agents.json')
+    const lockPath = path.join(cwd, 'agents-lock.json')
+
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: DEFAULT_REGISTRY_CONFIG,
+        target: 'cursor',
+        packages: {},
+      }),
+    )
+    writeFileSync(lockPath, '{ invalid json')
+
+    const resolved: ResolvedAgentsConfig = {
+      gateMode: 'top-level-ours',
+      configPath,
+      lockPath,
+      registry: DEFAULT_REGISTRY_CONFIG,
+      target: 'cursor',
+      packages: {},
+      global: false,
+      warnings: [],
+      rawDocument: JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>,
+    }
+
+    const persistence = new InstallPersistence()
+    const originalConfig = readFileSync(configPath, 'utf8')
+
+    await expect(
+      persistence.save({
+        resolved,
+        packageId: 'agents-repo/sample-agent',
+        version: '1.0.0',
+        target: 'cursor',
+        artifact: {
+          target: 'cursor',
+          file: '1.0.0-cursor.zip',
+          sha256: 'a'.repeat(64),
+        },
+        resolvedRef: 'v2.0.0',
+        adHocInstall: true,
+      }),
+    ).rejects.toThrow()
+
+    expect(readFileSync(configPath, 'utf8')).toBe(originalConfig)
+  })
 })
