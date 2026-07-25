@@ -24,7 +24,7 @@ export class SearchCatalogService {
   async run(options: SearchCatalogServiceOptions = {}): Promise<SearchCatalogResult> {
     const cwd = options.cwd ?? process.cwd()
     const env = options.env ?? process.env
-    const query = options.query ?? ''
+    const query = (options.query ?? '').trim()
 
     const resolved = await this.configResolver.resolve({
       cwd,

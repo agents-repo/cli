@@ -195,6 +195,7 @@ export const registerSearchCommand = (program: Command): void => {
           });
           if (selected === null) {
             process.exit(1);
+            return;
           }
 
           writeSelectedPackage(selected, globals.json);
