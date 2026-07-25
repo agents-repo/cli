@@ -1,18 +1,20 @@
 # `install` command
 
-Install a single package from the registry: resolve version and artifact for the
-active install target, download the ZIP, verify integrity, scan for unsafe paths,
+Install packages from the registry: resolve version and artifact for the active
+install target, download the ZIP, verify integrity, scan for unsafe paths,
 extract into the project (or global directory), and update `agents.json` and
 `agents-lock.json` unless disabled.
-
-Bulk `install` (sync all `packages` entries) is tracked in issue #9.
 
 ## Usage
 
 ```bash
-agents-repo install <package-id> [options]
-agents-repo i <package-id> [options]
+agents-repo install [package-id] [options]
+agents-repo i [package-id] [options]
 ```
+
+With **no** `package-id`, the command syncs every entry in the resolved
+`agents.json` `packages` map (npm-style bulk install). With a `package-id`, only
+that package is installed.
 
 `<package-id>` is a qualified id (for example `agents-repo/sample-agent`) or an
 index alias defined in `packages/index.json`.
@@ -43,6 +45,7 @@ index alias defined in `packages/index.json`.
 
 | Condition | Version pick |
 | --- | --- |
+| Bulk `install` (no `package-id`) | Highest matching manifest version per `packages[<id>]` range |
 | Existing `packages[<id>]` range in config | Highest matching manifest version (no prereleases) |
 | Ad-hoc install (no `packages` entry) | Highest stable manifest version (no prereleases) |
 
@@ -103,6 +106,14 @@ agents-repo install agents-repo/sample-agent
 # Installed agents-repo/sample-agent@1.0.0 for target cursor into /path/to/project
 ```
 
+Sync all declared packages:
+
+```bash
+agents-repo install
+# Installed agents-repo/foo@1.0.0 ...
+# Installed agents-repo/bar@2.0.0 ...
+```
+
 Resolve only:
 
 ```bash
@@ -124,7 +135,11 @@ agents-repo install -g agents-repo/sample-agent --target cursor
 
 ### JSON output
 
-With `--json`, successful installs print one JSON object on stdout:
+With `--json`, successful installs print JSON on stdout:
+
+- Single package: one object (fields below).
+- Bulk (no `package-id`): an object with top-level `warnings` (deduped) and
+  `packages` (array of per-package objects with empty `warnings`).
 
 ```json
 {

@@ -30,6 +30,30 @@ export const makeInstallTestCatalog = (
   ],
 })
 
+export const makeDualPackageInstallCatalog = (
+  options: { readonly status?: 'active' | 'deprecated' | 'yanked' } = {},
+): RegistryCatalog => ({
+  schemaVersion: '1.3.0',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+  packages: [
+    ...(makeInstallTestCatalog(options).packages),
+    {
+      id: 'agents-repo/other-agent',
+      namespace: 'agents-repo',
+      package: 'other-agent',
+      name: 'other-agent',
+      description: 'Second package for bulk install tests.',
+      owner: 'agents-repo',
+      latest: '1.0.0',
+      tags: ['sample'],
+      status: options.status ?? 'active',
+      category: 'agent',
+      estimateOverallCost: { band: 'low' },
+      installTargets: [{ id: 'cursor', status: 'supported' }],
+    },
+  ],
+})
+
 export const makeInstallTestManifest = (): PackageManifest => ({
   schemaVersion: '1.1.0',
   name: 'sample-agent',
@@ -46,6 +70,27 @@ export const makeInstallTestManifest = (): PackageManifest => ({
       ],
       srcArtifact: '1.0.0-src.zip',
       srcSha256: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+  ],
+})
+
+export const makeInstallTestOtherManifest = (): PackageManifest => ({
+  schemaVersion: '1.1.0',
+  name: 'other-agent',
+  latest: '1.0.0',
+  versions: [
+    {
+      version: '1.0.0',
+      artifacts: [
+        {
+          target: 'cursor',
+          file: '1.0.0-cursor.zip',
+          sha256: INSTALL_TEST_SHA256,
+        },
+      ],
+      srcArtifact: '1.0.0-src.zip',
+      srcSha256: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
       createdAt: '2026-01-01T00:00:00.000Z',
     },
   ],
@@ -99,6 +144,21 @@ export const buildCursorSkillZip = (): Buffer => {
     Buffer.from(`---
 name: sample
 description: Sample skill for install tests.
+version: 1.0.0
+---
+Body
+`),
+  )
+  return zip.toBuffer()
+}
+
+export const buildOtherCursorSkillZip = (): Buffer => {
+  const zip = new AdmZip()
+  zip.addFile(
+    '.cursor/skills/other/SKILL.md',
+    Buffer.from(`---
+name: other
+description: Other skill for bulk install tests.
 version: 1.0.0
 ---
 Body

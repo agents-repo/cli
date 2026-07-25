@@ -9,9 +9,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { PackageManifest } from '../../../src/modules/registry/domain/manifest.js';
 import {
   buildCursorSkillZip,
-  makeInstallTestCatalog,
+  buildOtherCursorSkillZip,
+  makeDualPackageInstallCatalog,
   makeInstallTestManifest,
   makeInstallTestMetadata,
+  makeInstallTestOtherManifest,
   withInstallTestArtifactSha256,
 } from '../../fixtures/installFixtures.js';
 import { conflictingTopLevelConfig } from '../../fixtures/agentsJson/index.js';
@@ -20,8 +22,14 @@ const nodeExecutable = process.execPath;
 const binPath = path.resolve(process.cwd(), 'dist/bin/agents-repo.js');
 
 const zipBytes = buildCursorSkillZip();
+const otherZipBytes = buildOtherCursorSkillZip();
 const sha256 = createHash('sha256').update(zipBytes).digest('hex');
+const otherSha256 = createHash('sha256').update(otherZipBytes).digest('hex');
 const mockManifest: PackageManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sha256);
+const mockOtherManifest: PackageManifest = withInstallTestArtifactSha256(
+  makeInstallTestOtherManifest(),
+  otherSha256,
+);
 
 interface CliRunResult {
   readonly status: number;
@@ -84,8 +92,27 @@ describe('install command subprocess', () => {
     }
   });
 
-  it('exits 3 when install target is missing', async () => {
+  it('exits 3 when install target is missing on bulk install', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-missing-target-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+    );
+
+    const result = await runCliSubprocess(['install'], { cwd });
+
+    expect(result.status).toBe(3);
+    expect(result.stderr).toContain('Install target is required');
+  });
+
+  it('exits 3 when install target is missing for single package install', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-missing-target-single-'));
     tempDirs.push(cwd);
 
     const result = await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
@@ -94,14 +121,24 @@ describe('install command subprocess', () => {
     expect(result.stderr).toContain('Install target is required');
   });
 
-  it('exits 2 when package id is missing', async () => {
-    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-missing-package-'));
+  it('exits 0 when bulk install has an empty packages map', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-empty-'));
     tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        target: 'cursor',
+        packages: {},
+      }),
+    );
 
     const result = await runCliSubprocess(['install'], { cwd });
 
-    expect(result.status).toBe(2);
-    expect(`${result.stdout}${result.stderr}`).toMatch(/missing required argument|not enough arguments/i);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('');
   });
 
   it('exits 4 for dual-definition conflicts without --yes', async () => {
@@ -131,7 +168,48 @@ describe('install command subprocess with mock registry', () => {
 
       if (url.includes('/packages/index.json')) {
         response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify(makeInstallTestCatalog()));
+        response.end(JSON.stringify(makeDualPackageInstallCatalog()));
+        return;
+      }
+
+      if (url.includes('/agents-repo/sample-agent/versions/manifest.json')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(mockManifest));
+        return;
+      }
+
+      if (url.includes('/agents-repo/other-agent/versions/manifest.json')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(mockOtherManifest));
+        return;
+      }
+
+      if (url.includes('/agents-repo/sample-agent/') && url.includes('/metadata.json')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(makeInstallTestMetadata()));
+        return;
+      }
+
+      if (url.includes('/agents-repo/other-agent/') && url.includes('/metadata.json')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(
+          JSON.stringify({
+            ...makeInstallTestMetadata(),
+            name: 'other-agent',
+          }),
+        );
+        return;
+      }
+
+      if (url.includes('/agents-repo/sample-agent/') && url.includes('1.0.0-cursor.zip')) {
+        response.writeHead(200);
+        response.end(zipBytes);
+        return;
+      }
+
+      if (url.includes('/agents-repo/other-agent/') && url.includes('1.0.0-cursor.zip')) {
+        response.writeHead(200);
+        response.end(otherZipBytes);
         return;
       }
 
@@ -190,6 +268,71 @@ describe('install command subprocess with mock registry', () => {
     for (const dir of tempDirs.splice(0)) {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it('installs all configured packages on bulk install', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        target: 'cursor',
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+          'agents-repo/other-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const result = await runCliSubprocess(['install'], { cwd });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Installed agents-repo/other-agent@1.0.0');
+    expect(result.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
+
+    const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
+      packages: Record<string, { version: string }>
+    };
+    expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0');
+    expect(lock.packages['agents-repo/other-agent'].version).toBe('1.0.0');
+  });
+
+  it('emits deduped bulk JSON when --json is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-json-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        target: 'cursor',
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+          'agents-repo/other-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const result = await runCliSubprocess(['--json', '--dry-run', 'install'], { cwd });
+
+    expect(result.status).toBe(0);
+
+    const payload = JSON.parse(result.stdout.trim()) as {
+      warnings: string[];
+      packages: Array<{ packageId: string; dryRun: boolean; warnings: string[] }>;
+    };
+    expect(payload.packages).toHaveLength(2);
+    expect(payload.packages.map((entry) => entry.packageId).sort((left, right) => left.localeCompare(right))).toEqual([
+      'agents-repo/other-agent',
+      'agents-repo/sample-agent',
+    ]);
+    expect(payload.packages.every((entry) => entry.dryRun)).toBe(true);
+    expect(payload.packages.every((entry) => entry.warnings.length === 0)).toBe(true);
+    expect(payload.warnings).toEqual([]);
   });
 
   it('supports dry-run without writing lock files', async () => {
@@ -317,5 +460,48 @@ describe('install command subprocess with mock registry', () => {
     expect(
       readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
     ).toContain('name: sample');
+  });
+
+  it('bulk install globally without writing project config or lock files', async () => {
+    const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-global-home-'));
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-global-'));
+    tempDirs.push(cwd);
+    tempDirs.push(homeDir);
+
+    const configPath = path.join(cwd, 'agents.json');
+    const configBefore = {
+      schemaVersion: '1.0.0',
+      registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+      target: 'cursor',
+      packages: {
+        'agents-repo/sample-agent': '^1.0.0',
+        'agents-repo/other-agent': '^1.0.0',
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(configBefore));
+
+    const result = await runCliSubprocess(['--json', 'install', '-g'], {
+      cwd,
+      env: {
+        ...process.env,
+        HOME: homeDir,
+      },
+    });
+
+    expect(result.status).toBe(0);
+
+    const payload = JSON.parse(result.stdout.trim()) as {
+      packages: Array<{ saved: boolean; global: boolean }>;
+    };
+    expect(payload.packages).toHaveLength(2);
+    expect(payload.packages.every((entry) => entry.saved === false && entry.global === true)).toBe(true);
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
+    expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore);
+    expect(
+      readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
+    ).toContain('name: sample');
+    expect(
+      readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/other/SKILL.md'), 'utf8'),
+    ).toContain('name: other');
   });
 });
