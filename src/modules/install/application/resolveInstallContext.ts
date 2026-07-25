@@ -17,26 +17,16 @@ export interface ResolvedInstallContext {
   readonly catalogResult: RegistryCatalogLoadResult
 }
 
-export const resolveInstallContext = async (options: {
-  readonly cwd?: string
-  readonly env?: NodeJS.ProcessEnv
+export const buildInstallContext = async (options: {
+  readonly resolved: ResolvedAgentsConfig
+  readonly cwd: string
+  readonly env: NodeJS.ProcessEnv
   readonly targetOverride?: string
   readonly globalFlag?: boolean
-  readonly yes?: boolean
 }): Promise<ResolvedInstallContext> => {
-  const cwd = options.cwd ?? process.cwd()
-  const env = options.env ?? process.env
-  const warnings: string[] = []
+  const warnings = options.resolved.warnings.map((warning) => warning.message)
 
-  const resolved = await new ConfigResolver().resolve({
-    cwd,
-    env,
-    waiveConflicts: options.yes ?? false,
-  })
-
-  warnings.push(...resolved.warnings.map((warning) => warning.message))
-
-  const effectiveTargetInput = options.targetOverride ?? resolved.target
+  const effectiveTargetInput = options.targetOverride ?? options.resolved.target
   if (effectiveTargetInput === undefined) {
     throw new ConfigValidationError('Install target is required but missing from config', 'missing_target')
   }
@@ -50,22 +40,47 @@ export const resolveInstallContext = async (options: {
 
   const target = effectiveTargetInput
   const scope = resolveInstallScope({
-    cwd,
-    env,
+    cwd: options.cwd,
+    env: options.env,
     globalFlag: options.globalFlag,
-    configGlobal: resolved.global,
+    configGlobal: options.resolved.global,
   })
 
-  const catalogResult = await loadRegistryCatalog(resolved.registry)
+  const catalogResult = await loadRegistryCatalog(options.resolved.registry)
   warnings.push(...catalogResult.warnings)
 
   return {
-    cwd,
-    env,
-    resolved,
+    cwd: options.cwd,
+    env: options.env,
+    resolved: options.resolved,
     target,
     scope,
     warnings,
     catalogResult,
   }
+}
+
+export const resolveInstallContext = async (options: {
+  readonly cwd?: string
+  readonly env?: NodeJS.ProcessEnv
+  readonly targetOverride?: string
+  readonly globalFlag?: boolean
+  readonly yes?: boolean
+}): Promise<ResolvedInstallContext> => {
+  const cwd = options.cwd ?? process.cwd()
+  const env = options.env ?? process.env
+
+  const resolved = await new ConfigResolver().resolve({
+    cwd,
+    env,
+    waiveConflicts: options.yes ?? false,
+  })
+
+  return buildInstallContext({
+    resolved,
+    cwd,
+    env,
+    targetOverride: options.targetOverride,
+    globalFlag: options.globalFlag,
+  })
 }

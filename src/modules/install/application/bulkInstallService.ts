@@ -1,12 +1,9 @@
 import { ConfigResolver } from '../../config/application/configResolver.js'
-import { ConfigValidationError } from '../../config/domain/configErrors.js'
-import { isValidInstallTargetId } from '../../config/domain/validators.js'
 import type { BulkInstallPersistenceEntry } from './installPersistence.js'
 import { InstallPersistence } from './installPersistence.js'
 import { planPackageInstall } from './installPackagePlan.js'
-import { resolveInstallScope } from './installScope.js'
+import { buildInstallContext } from './resolveInstallContext.js'
 import { resolveLockRef } from './resolveLockRef.js'
-import { loadRegistryCatalog } from '../../registry/infrastructure/registryRepository.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
 import { verifySha256 } from '../infrastructure/sha256Verifier.js'
 import {
@@ -32,7 +29,6 @@ export class BulkInstallService {
   async runAll(options: BulkInstallServiceOptions): Promise<InstallResult[]> {
     const cwd = options.cwd ?? process.cwd()
     const env = options.env ?? process.env
-    const warnings: string[] = []
 
     const resolved = await this.configResolver.resolve({
       cwd,
@@ -40,37 +36,21 @@ export class BulkInstallService {
       waiveConflicts: options.yes ?? false,
     })
 
-    warnings.push(...resolved.warnings.map((warning) => warning.message))
-
-    const effectiveTargetInput = options.target ?? resolved.target
-    if (effectiveTargetInput === undefined) {
-      throw new ConfigValidationError('Install target is required but missing from config', 'missing_target')
-    }
-
-    if (!isValidInstallTargetId(effectiveTargetInput)) {
-      throw new ConfigValidationError(
-        `Invalid install target id: ${effectiveTargetInput}`,
-        'invalid_enum',
-      )
-    }
-
-    const target = effectiveTargetInput
     const packageIds = Object.keys(resolved.packages).sort((left, right) => left.localeCompare(right))
 
     if (packageIds.length === 0) {
       return []
     }
 
-    const scope = resolveInstallScope({
+    const context = await buildInstallContext({
+      resolved,
       cwd,
       env,
+      targetOverride: options.target,
       globalFlag: options.global,
-      configGlobal: resolved.global,
     })
 
-    const catalogResult = await loadRegistryCatalog(resolved.registry)
-    warnings.push(...catalogResult.warnings)
-
+    const { target, scope, catalogResult, warnings } = context
     const noSave = options.noSave === true
     const dryRun = options.dryRun === true
 
@@ -78,52 +58,57 @@ export class BulkInstallService {
     const persistenceEntries: BulkInstallPersistenceEntry[] = []
     const extractedPathsAll: string[] = []
 
-    for (const packageId of packageIds) {
-      const packageWarnings = [...warnings]
-      const plan = await planPackageInstall({
-        catalogResult,
-        resolved,
-        packageId,
-        target,
-        warnings: packageWarnings,
-      })
+    try {
+      for (const packageId of packageIds) {
+        const packageWarnings = [...warnings]
+        const plan = await planPackageInstall({
+          catalogResult,
+          resolved,
+          packageId,
+          target,
+          warnings: packageWarnings,
+        })
 
-      const resultBase: InstallResult = {
-        packageId: plan.pkg.id,
-        version: plan.version,
-        target,
-        extractRoot: scope.extractRoot,
-        artifactUrl: plan.artifactUrl,
-        saved: false,
-        dryRun,
-        global: scope.global,
-        noSave,
-        warnings: packageWarnings,
-      }
+        const resultBase: InstallResult = {
+          packageId: plan.pkg.id,
+          version: plan.version,
+          target,
+          extractRoot: scope.extractRoot,
+          artifactUrl: plan.artifactUrl,
+          saved: false,
+          dryRun,
+          global: scope.global,
+          noSave,
+          warnings: packageWarnings,
+        }
 
-      if (dryRun) {
+        if (dryRun) {
+          results.push(resultBase)
+          continue
+        }
+
+        const zipBytes = await downloadArtifact(plan.artifactUrl)
+        verifySha256(zipBytes, plan.artifact.sha256)
+        const extractedPaths = await extractPackageArtifact(
+          zipBytes,
+          target,
+          plan.version,
+          scope.extractRoot,
+        )
+        extractedPathsAll.push(...extractedPaths)
+
+        persistenceEntries.push({
+          packageId: plan.pkg.id,
+          version: plan.version,
+          target,
+          artifact: plan.artifact,
+        })
+
         results.push(resultBase)
-        continue
       }
-
-      const zipBytes = await downloadArtifact(plan.artifactUrl)
-      verifySha256(zipBytes, plan.artifact.sha256)
-      const extractedPaths = await extractPackageArtifact(
-        zipBytes,
-        target,
-        plan.version,
-        scope.extractRoot,
-      )
-      extractedPathsAll.push(...extractedPaths)
-
-      persistenceEntries.push({
-        packageId: plan.pkg.id,
-        version: plan.version,
-        target,
-        artifact: plan.artifact,
-      })
-
-      results.push(resultBase)
+    } catch (error) {
+      await rollbackExtractedPaths(extractedPathsAll)
+      throw error
     }
 
     const shouldPersist = !noSave && !dryRun && persistenceEntries.length > 0

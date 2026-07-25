@@ -187,7 +187,7 @@ describe('BulkInstallService', () => {
     expect(lock.packages['agents-repo/other-agent'].integrity).toBe(`sha256-${otherSha256}`)
   })
 
-  it('is idempotent when re-run without registry changes', async () => {
+  it('writes a stable lock file when reinstalling after clearing extracted files', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-idempotent-'))
     tempDirs.push(cwd)
 
@@ -345,5 +345,46 @@ describe('BulkInstallService', () => {
     expect(results.every((result) => result.saved === false && result.global === true)).toBe(true)
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore)
+  })
+
+  it('rolls back earlier extracts when a later package fails in the loop', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-rollback-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        target: 'cursor',
+        packages: {
+          'agents-repo/other-agent': '^1.0.0',
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    )
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const otherZipBytes = buildOtherCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), 'f'.repeat(64))
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+
+    mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
+      sampleZipBytes,
+      otherZipBytes,
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+
+    await expect(service.runAll({ cwd })).rejects.toThrow()
+
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/other/SKILL.md'), 'utf8')).toThrow()
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toThrow()
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
   })
 })
