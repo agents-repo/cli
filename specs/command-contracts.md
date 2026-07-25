@@ -92,7 +92,8 @@ global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bul
 
 `search` loads the registry catalog using resolved `registry` from config (or defaults)
 and `AGENTS_REPO_REGISTRY_URL`. Matching is substring-based over package id, name,
-description, owner, namespace, and tags (`@owner` queries strip the leading `@`).
+description, owner, namespace, tags, and catalog index alias keys for each package
+(`@owner` queries strip the leading `@`).
 
 Root `--json` emits a JSON object with `query`, `indexUrl`, `updatedAt`, `warnings`,
 and `packages` (summary fields per entry). Interactive mode prints the selected

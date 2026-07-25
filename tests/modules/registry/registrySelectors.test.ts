@@ -35,6 +35,16 @@ describe('filterRegistryPackages', () => {
   it('returns no matches for unrelated queries', () => {
     expect(filterRegistryPackages(sampleRegistryCatalog, 'nonexistent-package')).toHaveLength(0)
   })
+
+  it('matches catalog index alias keys for the resolved package', () => {
+    const catalog = {
+      ...sampleRegistryCatalog,
+      aliases: {
+        'short-alias': 'agents-repo/sample-agent',
+      },
+    }
+    expect(filterRegistryPackages(catalog, 'short-alias')).toHaveLength(1)
+  })
 })
 
 describe('formatCatalogUpdatedAt', () => {

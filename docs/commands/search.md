@@ -39,8 +39,7 @@ Queries are case-insensitive substring matches across:
 - Description
 - Owner (`@owner` strips the `@` prefix)
 - Tags
-
-Index `aliases` are not expanded for search (install resolves aliases separately).
+- Catalog index `aliases` whose value resolves to the package id (leaf alias keys)
 
 ### Output
 

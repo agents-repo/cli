@@ -209,7 +209,7 @@ export const registerSearchCommand = (program: Command): void => {
         writeSearchTextResults(result.packages);
       } catch (error) {
         if (error instanceof Error && error.name === 'InvalidUsageError') {
-          handleInvalidUsageError(error, globals.json);
+          return handleInvalidUsageError(error, globals.json);
         }
 
         handleCliError(error);

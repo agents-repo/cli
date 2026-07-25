@@ -1,6 +1,10 @@
 import type { RegistryCatalog, RegistryPackage } from '../domain/package.js'
 
-const createSearchIndex = (pkg: RegistryPackage): string => {
+const createSearchIndex = (pkg: RegistryPackage, catalog: RegistryCatalog): string => {
+  const aliasKeys = Object.entries(catalog.aliases ?? {})
+    .filter(([, qualifiedId]) => qualifiedId === pkg.id)
+    .map(([alias]) => alias)
+
   return [
     pkg.id,
     pkg.namespace,
@@ -11,6 +15,7 @@ const createSearchIndex = (pkg: RegistryPackage): string => {
     pkg.owner,
     `@${pkg.owner}`,
     pkg.tags.join(' '),
+    aliasKeys.join(' '),
   ]
     .join(' ')
     .toLowerCase()
@@ -30,7 +35,7 @@ export const filterRegistryPackages = (
   }
 
   return catalog.packages.filter((pkg) => {
-    const searchIndex = createSearchIndex(pkg)
+    const searchIndex = createSearchIndex(pkg, catalog)
 
     if (searchIndex.includes(normalizedQuery)) {
       return true
@@ -45,5 +50,6 @@ export const formatCatalogUpdatedAt = (value: string): string => {
     month: 'short',
     day: '2-digit',
     year: 'numeric',
+    timeZone: 'UTC',
   }).format(new Date(value))
 }
