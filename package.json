@@ -29,6 +29,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@clack/prompts": "^1.7.0",
     "adm-zip": "^0.6.0",
     "commander": "^15.0.0",
     "gray-matter": "^4.0.3",

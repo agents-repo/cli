@@ -6,6 +6,7 @@ import { Command } from 'commander';
 import { setCliGlobals } from '../application/cliGlobals.js';
 import { registerInitCommand } from './initCommand.js';
 import { registerInstallCommand } from './installCommand.js';
+import { registerSearchCommand } from './searchCommand.js';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -75,7 +76,7 @@ export const createCliProgram = (): Command => {
 
   registerInitCommand(program);
   registerInstallCommand(program);
-  registerPlaceholderCommand(program, 'search', 'Search the registry catalog', 10, ['find']);
+  registerSearchCommand(program);
   registerPlaceholderCommand(program, 'list', 'List installed packages', 11, ['ls']);
 
   return program;

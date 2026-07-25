@@ -84,7 +84,9 @@ The registry module (issue #4) and config module (issue #5) are implemented.
 Install target detection (issue #6) is implemented in `target/`. The `init`
 command (issue #7) wires config and target modules through `InitService`. The
 `install` command (issue #8) wires config, registry, and install modules through
-`InstallService`. Remaining command wiring is tracked in downstream issues.
+`InstallService`. The `search` command (issue #10) wires config and registry
+through `SearchCatalogService`. Remaining command wiring is tracked in downstream
+issues.
 
 ## Why This Decision Exists
 

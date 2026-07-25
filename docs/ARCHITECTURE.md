@@ -132,9 +132,12 @@ There is no shared package in M0.
 | Manifest validation | `infrastructure/registryManifestValidation.ts` | |
 | Package status policy | `application/packageStatusPolicy.ts` | yanked reject; warn deprecated |
 | Catalog package resolve | `application/resolvePackageInCatalog.ts` | Qualified id + aliases |
+| Catalog search selectors | `application/registrySelectors.ts` | Keyword filter (webapp port) |
+| Catalog search service | `application/searchCatalogService.ts` | Config + fetch + filter |
 | Artifact resolve + URLs | `application/resolveArtifact.ts` | Catalog parity + manifest URLs |
 
-**Dependency:** `semver` (tag resolution and major-line alias handling).
+**Dependencies:** `semver` (tag resolution and major-line alias handling).
+Interactive `search --interactive` uses `@clack/prompts` (presentation layer only).
 
 ### Deferred (later issues)
 
@@ -142,7 +145,6 @@ There is no shared package in M0.
 | --- | --- |
 | `registryCatalogCache.ts` | Deferred — no catalog cache v1 |
 | `registrySourceSettings.ts` | Superseded by `config/` resolver output (#8) |
-| `registrySelectors.ts` | Deferred — search command #10 |
 | `application/installTargets.ts` | Deferred — presentation labels only |
 | `presentation/*` | Not ported — web UI only |
 
