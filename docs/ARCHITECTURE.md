@@ -77,6 +77,16 @@ I/O per [`specs/config-schema.md`](../specs/config-schema.md) and
 
 Product documentation: [commands/init.md](commands/init.md).
 
+### Delivered in issue #9 (bulk `install`)
+
+| Area | CLI path | Notes |
+| --- | --- | --- |
+| Bulk orchestration | `install/application/bulkInstallService.ts` | Sorted `packages` sync |
+| Shared plan step | `install/application/installPackagePlan.ts` | Version/artifact resolution |
+| Shared context | `install/application/resolveInstallContext.ts` | Config + catalog (single) |
+| Batched persistence | `install/application/installPersistence.ts` | `saveBulk` lock merge |
+| `install` command | `cli/presentation/installCommand.ts` | Optional id; bulk JSON array |
+
 ### Delivered in issue #8 (`install`)
 
 | Area | CLI path | Notes |

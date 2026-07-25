@@ -18,6 +18,20 @@ export interface InstallPersistenceInput {
   readonly adHocInstall: boolean
 }
 
+export interface BulkInstallPersistenceEntry {
+  readonly packageId: string
+  readonly version: string
+  readonly target: InstallTargetId
+  readonly artifact: ManifestArtifact
+}
+
+export interface BulkInstallPersistenceInput {
+  readonly resolved: ResolvedAgentsConfig
+  readonly resolvedRef: string
+  readonly entries: readonly BulkInstallPersistenceEntry[]
+  readonly writeLock: boolean
+}
+
 export class InstallPersistence {
   private readonly configMerger = new ConfigMerger()
   private readonly agentsJsonRepository = new AgentsJsonRepository()
@@ -69,6 +83,63 @@ export class InstallPersistence {
     }
 
     await this.agentsJsonRepository.write(input.resolved.configPath, merged)
+    await this.lockFileService.write(input.resolved.lockPath, lockDocument)
+  }
+
+  async saveBulk(input: BulkInstallPersistenceInput): Promise<void> {
+    assertResolvableLockRef(input.resolvedRef)
+
+    const targetFromEntries = input.entries[0]?.target
+    const hasTargetFromEntries = input.entries.length > 0
+    const shouldWriteConfig =
+      input.resolved.rawDocument === null ||
+      (input.resolved.target === undefined && hasTargetFromEntries)
+
+    if (shouldWriteConfig) {
+      const patch: {
+        target?: InstallTargetId
+        registry?: ResolvedAgentsConfig['registry']
+        packages?: Record<string, string>
+      } = {}
+
+      if (input.resolved.rawDocument === null) {
+        patch.registry = input.resolved.registry
+        patch.target = input.resolved.target ?? targetFromEntries
+        patch.packages = input.resolved.packages
+      } else if (input.resolved.target === undefined && hasTargetFromEntries) {
+        patch.target = targetFromEntries
+      }
+
+      const merged = this.configMerger.merge(input.resolved.rawDocument, patch, {
+        gateMode: input.resolved.gateMode,
+        force: true,
+      })
+
+      await this.agentsJsonRepository.write(input.resolved.configPath, merged)
+    }
+
+    if (!input.writeLock) {
+      return
+    }
+
+    const existingLock = await this.lockFileService.read(input.resolved.lockPath)
+    const packages: AgentsLockDocument['packages'] = { ...(existingLock?.packages ?? {}) }
+
+    for (const entry of input.entries) {
+      packages[entry.packageId] = {
+        version: entry.version,
+        target: entry.target,
+        integrity: this.lockFileService.formatIntegrity(entry.artifact.sha256),
+        artifact: entry.artifact.file,
+      }
+    }
+
+    const lockDocument: AgentsLockDocument = {
+      lockfileVersion: LOCKFILE_VERSION,
+      resolvedRef: input.resolvedRef,
+      packages,
+    }
+
     await this.lockFileService.write(input.resolved.lockPath, lockDocument)
   }
 }
