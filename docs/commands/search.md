@@ -77,7 +77,8 @@ Registry and config warnings appear in the `warnings` array (JSON) or on stderr
 
 ### Interactive mode
 
-`--interactive` requires stdin and stdout to be TTYs. The CLI prompts with an
+`--interactive` requires stdin to be a TTY (stdout must also be a TTY unless
+`--json` is set, so selected-id JSON can be piped). The CLI prompts with an
 autocomplete list (`id — name`). On selection:
 
 ```text

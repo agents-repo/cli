@@ -102,7 +102,8 @@ When both `--interactive` and `--json` are set, prompts render on stderr so stdo
 stays a single JSON document; registry and config warnings also go to stderr (not
 in the `{ "selected": "<id>" }` stdout payload).
 
-`--interactive` without a TTY MUST exit `2` with an invalid-usage message.
+`--interactive` without an interactive stdin TTY MUST exit `2` with an invalid-usage
+message. With `--json`, stdout MAY be piped; stdin MUST still be a TTY.
 
 ### Global install directory
 

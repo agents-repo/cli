@@ -16,6 +16,10 @@ export interface SearchCommandOptions {
 
 const DESCRIPTION_MAX_LENGTH = 72;
 
+const ESCAPE = String.fromCharCode(0x1b);
+const CSI = String.fromCharCode(0x9b);
+const ANSI_ESCAPE_SEQUENCE = new RegExp(`(?:${ESCAPE}|${CSI})\\[[0-9;]*[ -/]*[@-~]`, 'g');
+
 const isPrintableTerminalChar = (code: number): boolean => {
   if (code < 0x20 || code === 0x7f) {
     return false;
@@ -28,12 +32,8 @@ const isPrintableTerminalChar = (code: number): boolean => {
   return true;
 };
 
-const stripAnsiEscapeSequences = (value: string): string => {
-  const escape = String.fromCharCode(0x1b);
-  const csi = String.fromCharCode(0x9b);
-  const ansiSequence = new RegExp(`(?:${escape}|${csi})\\[[0-9;]*[ -/]*[@-~]`, 'g');
-  return value.replace(ansiSequence, '');
-};
+const stripAnsiEscapeSequences = (value: string): string =>
+  value.replace(ANSI_ESCAPE_SEQUENCE, '');
 
 const sanitizeTerminalText = (value: string): string => {
   const withoutAnsi = stripAnsiEscapeSequences(value);
@@ -43,11 +43,12 @@ const sanitizeTerminalText = (value: string): string => {
 };
 
 const truncateDescription = (value: string): string => {
-  if (value.length <= DESCRIPTION_MAX_LENGTH) {
+  const codePoints = [...value];
+  if (codePoints.length <= DESCRIPTION_MAX_LENGTH) {
     return value;
   }
 
-  return `${value.slice(0, DESCRIPTION_MAX_LENGTH - 1)}…`;
+  return `${codePoints.slice(0, DESCRIPTION_MAX_LENGTH - 1).join('')}…`;
 };
 
 const packageToJsonFields = (pkg: RegistryPackage): Record<string, unknown> => ({
@@ -167,8 +168,11 @@ export const pickPackageInteractively = async (
   return typeof selection === 'string' ? selection : null;
 };
 
-const assertInteractiveTty = (): void => {
-  if (process.stdin.isTTY && process.stdout.isTTY) {
+const assertInteractiveTty = (options: { readonly jsonStdout: boolean }): void => {
+  const stdinOk = process.stdin.isTTY === true;
+  const stdoutOk = options.jsonStdout || process.stdout.isTTY === true;
+
+  if (stdinOk && stdoutOk) {
     return;
   }
 
@@ -212,7 +216,7 @@ export const registerSearchCommand = (program: Command): void => {
 
       try {
         if (interactive) {
-          assertInteractiveTty();
+          assertInteractiveTty({ jsonStdout: globals.json });
         }
 
         const service = new SearchCatalogService();
