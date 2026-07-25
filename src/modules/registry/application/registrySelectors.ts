@@ -66,5 +66,5 @@ export const formatCatalogUpdatedAt = (value: string): string => {
     day: '2-digit',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(new Date(value))
+  }).format(date)
 }
