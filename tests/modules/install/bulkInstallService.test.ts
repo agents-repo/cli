@@ -369,9 +369,9 @@ describe('BulkInstallService', () => {
 
     const sampleZipBytes = buildCursorSkillZip()
     const otherZipBytes = buildOtherCursorSkillZip()
-    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
-    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), 'f'.repeat(64))
-    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+    const otherSha256 = createHash('sha256').update(otherZipBytes).digest('hex')
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), otherSha256)
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), 'f'.repeat(64))
 
     mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
       sampleZipBytes,
