@@ -22,7 +22,7 @@ vi.mock('../../../src/modules/registry/application/searchCatalogService.js', () 
 
 describe('search command', () => {
   const tempDirs: string[] = [];
-  let exitSpy: ReturnType<typeof vi.spyOn<typeof process, 'exit'>>;
+  let exitSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     resetCliGlobals();
