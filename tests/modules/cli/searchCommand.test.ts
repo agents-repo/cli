@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetCliGlobals } from '../../../src/modules/cli/application/cliGlobals.js';
 import { createCliProgram } from '../../../src/modules/cli/presentation/createCliProgram.js';
-import { pickPackageInteractively } from '../../../src/modules/cli/presentation/searchCommand.js';
+import { pickPackageInteractively, type InteractivePackagePickerDeps } from '../../../src/modules/cli/presentation/searchCommand.js';
 import { sampleRegistryCatalog } from '../../fixtures/sampleRegistryCatalog.js';
 
 const { runMock } = vi.hoisted(() => ({
@@ -171,14 +171,17 @@ describe('pickPackageInteractively', () => {
   });
 
   it('returns null when the prompt is cancelled', async () => {
+    const cancel = vi.fn();
+    const isCancelStub = vi.fn().mockReturnValue(true) as InteractivePackagePickerDeps['isCancel'];
     const selected = await pickPackageInteractively(sampleRegistryCatalog.packages, {
       deps: {
-        autocomplete: vi.fn().mockResolvedValue(Symbol('cancel')),
-        isCancel,
-        cancel: vi.fn(),
+        autocomplete: vi.fn().mockResolvedValue('ignored'),
+        isCancel: isCancelStub,
+        cancel,
       },
     });
 
     expect(selected).toBeNull();
+    expect(cancel).toHaveBeenCalledWith('Search cancelled.', undefined);
   });
 });

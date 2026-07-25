@@ -50,7 +50,7 @@ Index `aliases` are not expanded for search (install resolves aliases separately
 agents-repo/sample-agent@1.0.0  A sample agent package for accessibility testing.
 ```
 
-Long descriptions are truncated for terminal width.
+Long descriptions are truncated to 72 characters in text output.
 
 **JSON (`--json`):**
 

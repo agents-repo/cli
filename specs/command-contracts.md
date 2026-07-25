@@ -98,7 +98,8 @@ Root `--json` emits a JSON object with `query`, `indexUrl`, `updatedAt`, `warnin
 and `packages` (summary fields per entry). Interactive mode prints the selected
 package id (or `{ "selected": "<id>" }` with `--json`) and does not run `install`.
 When both `--interactive` and `--json` are set, prompts render on stderr so stdout
-stays a single JSON document.
+stays a single JSON document; registry and config warnings also go to stderr (not
+in the `{ "selected": "<id>" }` stdout payload).
 
 `--interactive` without a TTY MUST exit `2` with an invalid-usage message.
 

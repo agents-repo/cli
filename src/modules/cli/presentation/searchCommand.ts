@@ -33,8 +33,11 @@ const packageToJsonFields = (pkg: RegistryPackage): Record<string, unknown> => (
   owner: pkg.owner,
 });
 
-const writeSearchWarnings = (warnings: readonly string[], json: boolean): void => {
-  if (json) {
+const writeSearchWarnings = (
+  warnings: readonly string[],
+  options: { readonly json: boolean; readonly interactive: boolean },
+): void => {
+  if (options.json && !options.interactive) {
     return;
   }
 
@@ -183,7 +186,7 @@ export const registerSearchCommand = (program: Command): void => {
         const service = new SearchCatalogService();
         const result = await service.run(runOptions);
 
-        writeSearchWarnings(result.warnings, globals.json);
+        writeSearchWarnings(result.warnings, { json: globals.json, interactive });
         writeSearchVerboseMeta(result, globals.verbose);
 
         if (interactive) {
