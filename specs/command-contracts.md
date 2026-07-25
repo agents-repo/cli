@@ -44,7 +44,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | Command | Alias | Status |
 | --- | --- | --- |
 | `install` | `i` | MVP |
-| `search` | `find` | Reserved (issue #10) |
+| `search` | `find` | MVP |
 | `list` | `ls` | Reserved (issue #11) |
 
 ## Command-Specific Flags
@@ -82,6 +82,23 @@ global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bul
 `global: true` MAY update `agents.json` `packages` but MUST NOT update the project lock.
 
 `-g` forces global extract scope even when config has `global: false`.
+
+### `search`
+
+| Flag | Description |
+| --- | --- |
+| `[query]` | Optional keyword query; empty or whitespace returns all catalog packages |
+| `--interactive` | Browse and select a package in the terminal (requires TTY) |
+
+`search` loads the registry catalog using resolved `registry` from config (or defaults)
+and `AGENTS_REPO_REGISTRY_URL`. Matching is substring-based over package id, name,
+description, owner, namespace, and tags (`@owner` queries strip the leading `@`).
+
+Root `--json` emits a JSON object with `query`, `indexUrl`, `updatedAt`, `warnings`,
+and `packages` (summary fields per entry). Interactive mode prints the selected
+package id (or `{ "selected": "<id>" }` with `--json`) and does not run `install`.
+
+`--interactive` without a TTY MUST exit `2` with an invalid-usage message.
 
 ### Global install directory
 
