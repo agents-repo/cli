@@ -16,6 +16,19 @@ export interface SearchCommandOptions {
 
 const DESCRIPTION_MAX_LENGTH = 72;
 
+const sanitizeTerminalText = (value: string): string => {
+  const withoutControls = [...value]
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return code >= 0x20 && code !== 0x7f;
+    })
+    .join('');
+
+  const escape = String.fromCharCode(0x1b);
+  const ansiSequence = new RegExp(`${escape}\\[[0-9;]*[ -/]*[@-~]`, 'g');
+  return withoutControls.replace(ansiSequence, '');
+};
+
 const truncateDescription = (value: string): string => {
   if (value.length <= DESCRIPTION_MAX_LENGTH) {
     return value;
@@ -42,7 +55,7 @@ const writeSearchWarnings = (
   }
 
   for (const warning of warnings) {
-    process.stderr.write(`warning: ${warning}\n`);
+    process.stderr.write(`warning: ${sanitizeTerminalText(warning)}\n`);
   }
 };
 
@@ -63,8 +76,10 @@ const writeSearchTextResults = (packages: readonly RegistryPackage[]): void => {
   }
 
   for (const pkg of packages) {
-    const description = truncateDescription(pkg.description);
-    process.stdout.write(`${pkg.id}@${pkg.latest}  ${description}\n`);
+    const id = sanitizeTerminalText(pkg.id);
+    const latest = sanitizeTerminalText(pkg.latest);
+    const description = truncateDescription(sanitizeTerminalText(pkg.description));
+    process.stdout.write(`${id}@${latest}  ${description}\n`);
   }
 };
 
@@ -86,8 +101,10 @@ const writeSelectedPackage = (packageId: string, json: boolean): void => {
     return;
   }
 
-  process.stdout.write(`Selected ${packageId}\n`);
-  process.stdout.write(`Install with: agents-repo install ${packageId}\n`);
+  process.stdout.write(`Selected ${sanitizeTerminalText(packageId)}\n`);
+  process.stdout.write(
+    `Install with: agents-repo install ${sanitizeTerminalText(packageId)}\n`,
+  );
 };
 
 export interface InteractivePackagePickerDeps {
@@ -123,7 +140,7 @@ export const pickPackageInteractively = async (
     output: promptOutput,
     options: packages.map((pkg) => ({
       value: pkg.id,
-      label: `${pkg.id} — ${pkg.name}`,
+      label: `${sanitizeTerminalText(pkg.id)} — ${sanitizeTerminalText(pkg.name)}`,
     })),
   });
 

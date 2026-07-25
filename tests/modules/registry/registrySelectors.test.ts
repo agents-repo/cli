@@ -59,4 +59,8 @@ describe('formatCatalogUpdatedAt', () => {
   it('formats an ISO timestamp in en-US short date style', () => {
     expect(formatCatalogUpdatedAt('2026-01-01T00:00:00.000Z')).toBe('Jan 01, 2026')
   })
+
+  it('returns the raw value when the timestamp is invalid', () => {
+    expect(formatCatalogUpdatedAt('not-a-date')).toBe('not-a-date')
+  })
 })
