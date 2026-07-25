@@ -16,17 +16,30 @@ export interface SearchCommandOptions {
 
 const DESCRIPTION_MAX_LENGTH = 72;
 
-const sanitizeTerminalText = (value: string): string => {
-  const withoutControls = [...value]
-    .filter((char) => {
-      const code = char.charCodeAt(0);
-      return code >= 0x20 && code !== 0x7f;
-    })
-    .join('');
+const isPrintableTerminalChar = (code: number): boolean => {
+  if (code < 0x20 || code === 0x7f) {
+    return false;
+  }
 
+  if (code >= 0x80 && code <= 0x9f) {
+    return false;
+  }
+
+  return true;
+};
+
+const stripAnsiEscapeSequences = (value: string): string => {
   const escape = String.fromCharCode(0x1b);
-  const ansiSequence = new RegExp(`${escape}\\[[0-9;]*[ -/]*[@-~]`, 'g');
-  return withoutControls.replace(ansiSequence, '');
+  const csi = String.fromCharCode(0x9b);
+  const ansiSequence = new RegExp(`(?:${escape}|${csi})\\[[0-9;]*[ -/]*[@-~]`, 'g');
+  return value.replace(ansiSequence, '');
+};
+
+const sanitizeTerminalText = (value: string): string => {
+  const withoutAnsi = stripAnsiEscapeSequences(value);
+  return [...withoutAnsi]
+    .filter((char) => isPrintableTerminalChar(char.charCodeAt(0)))
+    .join('');
 };
 
 const truncateDescription = (value: string): string => {
@@ -64,8 +77,10 @@ const writeSearchVerboseMeta = (result: SearchCatalogResult, verbose: boolean): 
     return;
   }
 
-  process.stderr.write(`index: ${result.indexUrl}\n`);
-  process.stderr.write(`catalog updated: ${formatCatalogUpdatedAt(result.updatedAt)}\n`);
+  process.stderr.write(`index: ${sanitizeTerminalText(result.indexUrl)}\n`);
+  process.stderr.write(
+    `catalog updated: ${sanitizeTerminalText(formatCatalogUpdatedAt(result.updatedAt))}\n`,
+  );
   process.stderr.write(`matches: ${result.packages.length}\n`);
 };
 
