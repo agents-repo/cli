@@ -456,4 +456,45 @@ describe('install command subprocess with mock registry', () => {
       readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
     ).toContain('name: sample');
   });
+
+  it('bulk install globally without writing project config or lock files', async () => {
+    const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-global-home-'));
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-global-'));
+    tempDirs.push(cwd);
+    tempDirs.push(homeDir);
+
+    const configPath = path.join(cwd, 'agents.json');
+    const configBefore = {
+      schemaVersion: '1.0.0',
+      registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+      target: 'cursor',
+      packages: {
+        'agents-repo/sample-agent': '^1.0.0',
+        'agents-repo/other-agent': '^1.0.0',
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(configBefore));
+
+    const result = await runCliSubprocess(['--json', 'install', '-g'], {
+      cwd,
+      env: {
+        ...process.env,
+        HOME: homeDir,
+      },
+    });
+
+    expect(result.status).toBe(0);
+
+    const payload = JSON.parse(result.stdout.trim()) as Array<{ saved: boolean; global: boolean }>;
+    expect(payload).toHaveLength(2);
+    expect(payload.every((entry) => entry.saved === false && entry.global === true)).toBe(true);
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
+    expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore);
+    expect(
+      readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
+    ).toContain('name: sample');
+    expect(
+      readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/other/SKILL.md'), 'utf8'),
+    ).toContain('name: other');
+  });
 });

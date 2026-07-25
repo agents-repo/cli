@@ -299,4 +299,51 @@ describe('BulkInstallService', () => {
     expect(fetchSpy.mock.calls.some(([url]) => toFetchUrl(url).includes('.zip'))).toBe(false)
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
   })
+
+  it('does not write project config or lock on global bulk install', async () => {
+    const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-global-home-'))
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-global-'))
+    tempDirs.push(cwd)
+    tempDirs.push(homeDir)
+
+    const configPath = path.join(cwd, 'agents.json')
+    const configBefore = {
+      schemaVersion: '1.0.0',
+      registry: {
+        url: 'https://registry-proxy.example.workers.dev',
+        ref: 'v2.0.0',
+      },
+      target: 'cursor',
+      packages: {
+        'agents-repo/sample-agent': '^1.0.0',
+        'agents-repo/other-agent': '^1.0.0',
+      },
+    }
+    writeFileSync(configPath, JSON.stringify(configBefore))
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const otherZipBytes = buildOtherCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const otherSha256 = createHash('sha256').update(otherZipBytes).digest('hex')
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), otherSha256)
+
+    mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
+      sampleZipBytes,
+      otherZipBytes,
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+    const results = await service.runAll({
+      cwd,
+      global: true,
+      env: { ...process.env, HOME: homeDir },
+    })
+
+    expect(results).toHaveLength(2)
+    expect(results.every((result) => result.saved === false && result.global === true)).toBe(true)
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
+    expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore)
+  })
 })

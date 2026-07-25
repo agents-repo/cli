@@ -128,16 +128,15 @@ export class BulkInstallService {
 
     const shouldPersist = !noSave && !dryRun && persistenceEntries.length > 0
     const writeLock = shouldPersist && scope.mutateProjectConfig
-    const writeConfigOnly = shouldPersist && scope.global
 
-    if (shouldPersist && (writeLock || writeConfigOnly)) {
+    if (shouldPersist && writeLock) {
       try {
         const resolvedRef = resolveLockRef(resolved, catalogResult)
         await this.installPersistence.saveBulk({
           resolved: { ...resolved, target },
           resolvedRef,
           entries: persistenceEntries,
-          writeLock,
+          writeLock: true,
         })
       } catch (error) {
         await rollbackExtractedPaths(extractedPathsAll)
@@ -145,7 +144,7 @@ export class BulkInstallService {
       }
     }
 
-    const saved = writeLock || writeConfigOnly
+    const saved = writeLock
 
     return results.map((result) => ({
       ...result,
