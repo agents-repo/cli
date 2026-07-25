@@ -87,8 +87,6 @@ export class InstallPersistence {
   }
 
   async saveBulk(input: BulkInstallPersistenceInput): Promise<void> {
-    assertResolvableLockRef(input.resolvedRef)
-
     const targetFromEntries = input.entries[0]?.target
     const hasTargetFromEntries = input.entries.length > 0
     const shouldWriteConfig =
@@ -121,6 +119,8 @@ export class InstallPersistence {
     if (!input.writeLock) {
       return
     }
+
+    assertResolvableLockRef(input.resolvedRef)
 
     const existingLock = await this.lockFileService.read(input.resolved.lockPath)
     const packages: AgentsLockDocument['packages'] = { ...(existingLock?.packages ?? {}) }

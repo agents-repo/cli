@@ -300,7 +300,7 @@ describe('install command subprocess with mock registry', () => {
     expect(lock.packages['agents-repo/other-agent'].version).toBe('1.0.0');
   });
 
-  it('emits a JSON array for bulk install when --json is set', async () => {
+  it('emits deduped bulk JSON when --json is set', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-json-'));
     tempDirs.push(cwd);
 
@@ -321,13 +321,18 @@ describe('install command subprocess with mock registry', () => {
 
     expect(result.status).toBe(0);
 
-    const payload = JSON.parse(result.stdout.trim()) as Array<{ packageId: string; dryRun: boolean }>;
-    expect(payload).toHaveLength(2);
-    expect(payload.map((entry) => entry.packageId).sort((left, right) => left.localeCompare(right))).toEqual([
+    const payload = JSON.parse(result.stdout.trim()) as {
+      warnings: string[];
+      packages: Array<{ packageId: string; dryRun: boolean; warnings: string[] }>;
+    };
+    expect(payload.packages).toHaveLength(2);
+    expect(payload.packages.map((entry) => entry.packageId).sort((left, right) => left.localeCompare(right))).toEqual([
       'agents-repo/other-agent',
       'agents-repo/sample-agent',
     ]);
-    expect(payload.every((entry) => entry.dryRun)).toBe(true);
+    expect(payload.packages.every((entry) => entry.dryRun)).toBe(true);
+    expect(payload.packages.every((entry) => entry.warnings.length === 0)).toBe(true);
+    expect(payload.warnings).toEqual([]);
   });
 
   it('supports dry-run without writing lock files', async () => {
@@ -485,9 +490,11 @@ describe('install command subprocess with mock registry', () => {
 
     expect(result.status).toBe(0);
 
-    const payload = JSON.parse(result.stdout.trim()) as Array<{ saved: boolean; global: boolean }>;
-    expect(payload).toHaveLength(2);
-    expect(payload.every((entry) => entry.saved === false && entry.global === true)).toBe(true);
+    const payload = JSON.parse(result.stdout.trim()) as {
+      packages: Array<{ saved: boolean; global: boolean }>;
+    };
+    expect(payload.packages).toHaveLength(2);
+    expect(payload.packages.every((entry) => entry.saved === false && entry.global === true)).toBe(true);
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore);
     expect(

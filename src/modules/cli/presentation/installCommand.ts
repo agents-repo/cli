@@ -55,7 +55,12 @@ const writeInstallSuccess = (result: InstallResult, json: boolean): void => {
 
 const writeBulkInstallSuccess = (results: readonly InstallResult[], json: boolean): void => {
   if (json) {
-    process.stdout.write(`${JSON.stringify(results.map((result) => installResultToJson(result)))}\n`);
+    const warnings = collectWarnings(results);
+    const packages = results.map((result) => ({
+      ...installResultToJson(result),
+      warnings: [],
+    }));
+    process.stdout.write(`${JSON.stringify({ warnings, packages })}\n`);
     return;
   }
 

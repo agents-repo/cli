@@ -138,7 +138,8 @@ agents-repo install -g agents-repo/sample-agent --target cursor
 With `--json`, successful installs print JSON on stdout:
 
 - Single package: one object (fields below).
-- Bulk (no `package-id`): a JSON **array** of the same per-package objects.
+- Bulk (no `package-id`): an object with top-level `warnings` (deduped) and
+  `packages` (array of per-package objects with empty `warnings`).
 
 ```json
 {
