@@ -1,10 +1,18 @@
 import type { RegistryCatalog, RegistryPackage } from '../domain/package.js'
 
-const createSearchIndex = (pkg: RegistryPackage, catalog: RegistryCatalog): string => {
-  const aliasKeys = Object.entries(catalog.aliases ?? {})
-    .filter(([, qualifiedId]) => qualifiedId === pkg.id)
-    .map(([alias]) => alias)
+const buildAliasKeysByPackageId = (catalog: RegistryCatalog): ReadonlyMap<string, readonly string[]> => {
+  const aliasKeysByPackageId = new Map<string, string[]>()
 
+  for (const [alias, qualifiedId] of Object.entries(catalog.aliases ?? {})) {
+    const keys = aliasKeysByPackageId.get(qualifiedId) ?? []
+    keys.push(alias)
+    aliasKeysByPackageId.set(qualifiedId, keys)
+  }
+
+  return aliasKeysByPackageId
+}
+
+const createSearchIndex = (pkg: RegistryPackage, aliasKeys: readonly string[]): string => {
   return [
     pkg.id,
     pkg.namespace,
@@ -34,8 +42,10 @@ export const filterRegistryPackages = (
     return catalog.packages
   }
 
+  const aliasKeysByPackageId = buildAliasKeysByPackageId(catalog)
+
   return catalog.packages.filter((pkg) => {
-    const searchIndex = createSearchIndex(pkg, catalog)
+    const searchIndex = createSearchIndex(pkg, aliasKeysByPackageId.get(pkg.id) ?? [])
 
     if (searchIndex.includes(normalizedQuery)) {
       return true
