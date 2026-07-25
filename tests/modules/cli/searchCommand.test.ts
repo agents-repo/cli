@@ -172,7 +172,9 @@ describe('pickPackageInteractively', () => {
 
   it('returns null when the prompt is cancelled', async () => {
     const cancel = vi.fn();
-    const isCancelStub = vi.fn().mockReturnValue(true) as InteractivePackagePickerDeps['isCancel'];
+    const isCancelStub = vi
+      .fn()
+      .mockReturnValue(true) as unknown as InteractivePackagePickerDeps['isCancel'];
     const selected = await pickPackageInteractively(sampleRegistryCatalog.packages, {
       deps: {
         autocomplete: vi.fn().mockResolvedValue('ignored'),
