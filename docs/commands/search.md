@@ -88,6 +88,9 @@ Install with: agents-repo install agents-repo/sample-agent
 
 With `--json`, stdout is `{ "selected": "agents-repo/sample-agent" }`.
 
+Interactive prompts and cancel messages are written to **stderr** when `--json` is
+set so stdout remains a single JSON document.
+
 Installing from interactive search is not implemented in MVP (see issue #10).
 
 ## Exit codes

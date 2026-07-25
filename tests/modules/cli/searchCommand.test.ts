@@ -139,20 +139,44 @@ describe('search command', () => {
 
 describe('pickPackageInteractively', () => {
   it('returns the selected package id', async () => {
+    const autocomplete = vi.fn().mockResolvedValue('agents-repo/sample-agent');
     const selected = await pickPackageInteractively(sampleRegistryCatalog.packages, {
-      autocomplete: vi.fn().mockResolvedValue('agents-repo/sample-agent'),
-      isCancel,
-      cancel: vi.fn(),
+      deps: {
+        autocomplete,
+        isCancel,
+        cancel: vi.fn(),
+      },
     });
 
     expect(selected).toBe('agents-repo/sample-agent');
+    expect(autocomplete).toHaveBeenCalledWith(
+      expect.objectContaining({ output: undefined }),
+    );
+  });
+
+  it('routes clack prompts to stderr when jsonStdout is set', async () => {
+    const autocomplete = vi.fn().mockResolvedValue('agents-repo/sample-agent');
+    await pickPackageInteractively(sampleRegistryCatalog.packages, {
+      jsonStdout: true,
+      deps: {
+        autocomplete,
+        isCancel,
+        cancel: vi.fn(),
+      },
+    });
+
+    expect(autocomplete).toHaveBeenCalledWith(
+      expect.objectContaining({ output: process.stderr }),
+    );
   });
 
   it('returns null when the prompt is cancelled', async () => {
     const selected = await pickPackageInteractively(sampleRegistryCatalog.packages, {
-      autocomplete: vi.fn().mockResolvedValue(Symbol('cancel')),
-      isCancel,
-      cancel: vi.fn(),
+      deps: {
+        autocomplete: vi.fn().mockResolvedValue(Symbol('cancel')),
+        isCancel,
+        cancel: vi.fn(),
+      },
     });
 
     expect(selected).toBeNull();

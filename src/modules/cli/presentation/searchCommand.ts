@@ -101,15 +101,23 @@ const defaultInteractiveDeps = (): InteractivePackagePickerDeps => ({
 
 export const pickPackageInteractively = async (
   packages: readonly RegistryPackage[],
-  deps: InteractivePackagePickerDeps = defaultInteractiveDeps(),
+  options: {
+    readonly deps?: InteractivePackagePickerDeps;
+    readonly jsonStdout?: boolean;
+  } = {},
 ): Promise<string | null> => {
+  const deps = options.deps ?? defaultInteractiveDeps();
+  const promptOutput = options.jsonStdout ? process.stderr : undefined;
+  const cancelOptions = promptOutput ? { output: promptOutput } : undefined;
+
   if (packages.length === 0) {
-    deps.cancel('No packages matched your search.');
+    deps.cancel('No packages matched your search.', cancelOptions);
     return null;
   }
 
   const selection = await deps.autocomplete({
     message: 'Select a package',
+    output: promptOutput,
     options: packages.map((pkg) => ({
       value: pkg.id,
       label: `${pkg.id} — ${pkg.name}`,
@@ -117,7 +125,7 @@ export const pickPackageInteractively = async (
   });
 
   if (deps.isCancel(selection)) {
-    deps.cancel('Search cancelled.');
+    deps.cancel('Search cancelled.', cancelOptions);
     return null;
   }
 
@@ -179,7 +187,9 @@ export const registerSearchCommand = (program: Command): void => {
         writeSearchVerboseMeta(result, globals.verbose);
 
         if (interactive) {
-          const selected = await pickPackageInteractively(result.packages);
+          const selected = await pickPackageInteractively(result.packages, {
+            jsonStdout: globals.json,
+          });
           if (selected === null) {
             process.exit(1);
           }

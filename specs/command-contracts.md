@@ -97,6 +97,8 @@ description, owner, namespace, and tags (`@owner` queries strip the leading `@`)
 Root `--json` emits a JSON object with `query`, `indexUrl`, `updatedAt`, `warnings`,
 and `packages` (summary fields per entry). Interactive mode prints the selected
 package id (or `{ "selected": "<id>" }` with `--json`) and does not run `install`.
+When both `--interactive` and `--json` are set, prompts render on stderr so stdout
+stays a single JSON document.
 
 `--interactive` without a TTY MUST exit `2` with an invalid-usage message.
 
