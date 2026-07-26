@@ -5,9 +5,14 @@ List installed packages from the project lock or global install state.
 ## Usage
 
 ```bash
-agents-repo list [options]
-agents-repo ls [options]
+agents-repo [global-options] list
+agents-repo [global-options] ls
 ```
+
+`--json`, `--verbose`, and `--yes` / `-y` are **root-level** flags and MUST appear
+before the subcommand (for example `agents-repo --json list`, not
+`agents-repo list --json`). Commander returns exit `2` for unknown subcommand
+options when root flags are placed after `list`.
 
 ## Flags
 
