@@ -89,11 +89,38 @@ export class InstallService {
         await rollbackExtractedPaths(extractedPaths)
         throw error
       }
+
+      return {
+        ...resultBase,
+        saved: true,
+      }
+    }
+
+    if (!noSave && scope.global) {
+      try {
+        const resolvedRef = resolveLockRef(resolved, catalogResult)
+        await this.installPersistence.saveGlobal({
+          env: options.env,
+          packageId: plan.pkg.id,
+          version: plan.version,
+          target,
+          artifact: plan.artifact,
+          resolvedRef,
+        })
+      } catch (error) {
+        await rollbackExtractedPaths(extractedPaths)
+        throw error
+      }
+
+      return {
+        ...resultBase,
+        saved: true,
+      }
     }
 
     return {
       ...resultBase,
-      saved: !noSave && scope.mutateProjectConfig,
+      saved: false,
     }
   }
 }

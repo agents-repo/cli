@@ -494,7 +494,7 @@ describe('install command subprocess with mock registry', () => {
       packages: Array<{ saved: boolean; global: boolean }>;
     };
     expect(payload.packages).toHaveLength(2);
-    expect(payload.packages.every((entry) => entry.saved === false && entry.global === true)).toBe(true);
+    expect(payload.packages.every((entry) => entry.saved === true && entry.global === true)).toBe(true);
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore);
     expect(

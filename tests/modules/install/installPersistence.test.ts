@@ -284,4 +284,32 @@ describe('InstallPersistence', () => {
 
     expect(readFileSync(configPath, 'utf8')).toBe(originalConfig)
   })
+
+  it('writes global install state without touching project files', async () => {
+    const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-install-global-state-home-'))
+    tempDirs.push(homeDir)
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-global-state-'))
+    tempDirs.push(cwd)
+
+    const persistence = new InstallPersistence()
+    await persistence.saveGlobal({
+      env: { ...process.env, HOME: homeDir },
+      packageId: 'agents-repo/sample-agent',
+      version: '1.0.0',
+      target: 'cursor',
+      artifact: {
+        target: 'cursor',
+        file: '1.0.0-cursor.zip',
+        sha256: 'd'.repeat(64),
+      },
+      resolvedRef: 'v2.0.0',
+    })
+
+    const statePath = path.join(homeDir, '.config', 'agents-repo', 'agents-global.json')
+    const state = JSON.parse(readFileSync(statePath, 'utf8')) as {
+      packages: Record<string, { version: string }>
+    }
+    expect(state.packages['agents-repo/sample-agent']?.version).toBe('1.0.0')
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
+  })
 })

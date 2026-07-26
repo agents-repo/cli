@@ -160,6 +160,8 @@ Behavior depends on [install scope](#install-scope). Skip when `--no-save` or `-
   ad-hoc `packages` write).
 - Bulk `install` with `global: true` MAY update `packages` in the active gate target but MUST NOT
   update the project lock (see [Config and Lock Writes](#config-and-lock-writes)).
+- Upsert `agents-global.json` per `global-install-state.md` for each installed package (same lock
+  entry fields: version, target, integrity, artifact).
 
 ## Config and Lock Writes
 
@@ -173,8 +175,11 @@ Unless `--no-save` or `--dry-run`, config and lock mutation follows:
 | `install` (bulk, project scope) | Project | Yes | Yes |
 | `install` (bulk, `global: true`) | Global | Yes (`packages` map) | No |
 
-With `--no-save` or `--dry-run`, all rows skip `agents.json` and `agents-lock.json` writes.
-Global-scope rows already skip project file writes regardless.
+With `--no-save` or `--dry-run`, all rows skip `agents.json`, `agents-lock.json`, and
+`agents-global.json` writes. Global-scope rows already skip project file writes regardless.
+
+Global-scope installs with saves enabled MUST update `agents-global.json` (see
+`global-install-state.md`).
 
 **Bulk + `global: true` drift:** `agents.json` records declared package ranges while the project
 lock is unchanged. This is intentional in MVP (npm global-install parity for lock). Reconcile by

@@ -9,7 +9,7 @@ boundaries and webapp parity mappings are defined here and in
 | Module | Responsibility |
 | --- | --- |
 | `cli` | Commander setup, command registration, global flags |
-| `config` | `agents.json` and `agents-lock.json` read/write |
+| `config` | `agents.json`, `agents-lock.json`, and global install state I/O |
 | `registry` | Registry index, manifest, and artifact URL resolution |
 | `install` | Download, verify, extract packages per install target |
 | `target` | Detect IDE/project install targets (`.cursor/`, `.github/`, etc.) |
@@ -206,14 +206,26 @@ verification, and extraction per [`specs/cli-protocol.md`](../specs/cli-protocol
 9. Verify SHA-256                         -> install/infrastructure/
 10. ZIP security scan                     -> install/infrastructure/
 11. Extract package                       -> install/infrastructure/
-12. Update agents.json + lock             -> config/ + install/application/
+12. Update agents.json + lock (+ global state when `-g`) -> config/ + install/application/
 ```
+
+### Delivered in issue #11 (`list`)
+
+| Area | CLI path | Notes |
+| --- | --- | --- |
+| List aggregation | `config/application/listInstalledService.ts` | Project lock + global state |
+| Global install state | `config/application/globalInstallStateService.ts` | Global state file I/O |
+| Global state persistence | `install/application/installPersistence.ts` | Global save helpers |
+| `list` command | `cli/presentation/listCommand.ts` | `list` / `ls`, `-g`, `--json` |
+
+Product documentation: [commands/list.md](commands/list.md).
 
 See [`specs/cli-protocol.md`](../specs/cli-protocol.md) for normative step
 details.
 
 ## Normative contracts
 
+- [global-install-state.md](../specs/global-install-state.md) — `agents-global.json` for global installs
 - [config-schema.md](../specs/config-schema.md) — `agents.json` schema and schema gate
 - [lock-schema.md](../specs/lock-schema.md) — `agents-lock.json` lockfile format
 - [cli-protocol.md](../specs/cli-protocol.md) — install pipeline protocol
@@ -224,5 +236,6 @@ details.
 
 - [commands/init.md](commands/init.md) — `init` command usage
 - [commands/install.md](commands/install.md) — `install` command usage
+- [commands/list.md](commands/list.md) — `list` command usage
 - [architecture/ddd-decision.md](architecture/ddd-decision.md)
 - [development.md](development.md)
