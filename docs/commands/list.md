@@ -66,8 +66,8 @@ agents-repo/sample-agent@1.0.0  target=cursor
 }
 ```
 
-Config warnings are written to stderr in text mode (not duplicated in JSON
-`warnings` on stdout for parity with `search`).
+Config warnings appear in the `warnings` array (JSON) or on stderr as
+`warning: …` lines (text), matching `search`.
 
 ## Examples
 
