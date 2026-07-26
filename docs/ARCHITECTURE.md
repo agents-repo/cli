@@ -87,6 +87,15 @@ Product documentation: [commands/init.md](commands/init.md).
 | Batched persistence | `install/application/installPersistence.ts` | `saveBulk` lock merge |
 | `install` command | `cli/presentation/installCommand.ts` | Optional id; bulk JSON array |
 
+### Delivered in issue #13 (`update`)
+
+| Area | CLI path | Notes |
+| --- | --- | --- |
+| Configured-only bulk refresh | `install/application/bulkInstallService.ts` | `packageId` filter |
+| `update` command | `cli/presentation/updateCommand.ts` | `update` / `up` |
+
+Product documentation: [commands/update.md](commands/update.md).
+
 ### Delivered in issue #8 (`install`)
 
 | Area | CLI path | Notes |
@@ -236,6 +245,7 @@ details.
 
 - [commands/init.md](commands/init.md) — `init` command usage
 - [commands/install.md](commands/install.md) — `install` command usage
+- [commands/update.md](commands/update.md) — `update` command usage
 - [commands/list.md](commands/list.md) — `list` command usage
 - [architecture/ddd-decision.md](architecture/ddd-decision.md)
 - [development.md](development.md)

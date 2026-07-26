@@ -387,4 +387,58 @@ describe('BulkInstallService', () => {
     expect(() => readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toThrow()
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
   })
+
+  it('rejects update for a package id that is not configured when enforceConfiguredOnly is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-not-configured-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        target: 'cursor',
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    )
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const otherZipBytes = buildOtherCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const otherSha256 = createHash('sha256').update(otherZipBytes).digest('hex')
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), otherSha256)
+
+    mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
+      sampleZipBytes,
+      otherZipBytes,
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+
+    await expect(
+      service.runAll({
+        cwd,
+        packageId: 'agents-repo/other-agent',
+        enforceConfiguredOnly: true,
+      }),
+    ).rejects.toThrow(/not listed in agents\.json packages/)
+  })
+
+  it('rejects packageId when enforceConfiguredOnly is not set', async () => {
+    const service = new BulkInstallService()
+
+    await expect(
+      service.runAll({
+        packageId: 'agents-repo/sample-agent',
+        enforceConfiguredOnly: false,
+      }),
+    ).rejects.toThrow(/packageId requires enforceConfiguredOnly/)
+  })
 })

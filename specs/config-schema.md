@@ -150,6 +150,7 @@ Config resolution MUST be gate-aware:
 | Code | Example | Default behavior |
 | --- | --- | --- |
 | `type_mismatch` | `packages` is an array in the active gate target | Exit `3` |
+| `package_not_configured` | `update <package-id>` when id is absent from `packages` | Exit `3` |
 | `dual_definition_mismatch` | `target` differs top-level vs namespace | Exit `4` unless `--yes` |
 | `invalid_enum` | `target` not in install-targets table | Exit `3` |
 | `invalid_semver_range` | Invalid semver range in `packages` | Exit `3` |
