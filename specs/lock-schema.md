@@ -81,7 +81,9 @@ identical resolution produces identical lock content.
 ### Global scope
 
 Global extract scope (`-g` or resolved `global: true`) MUST NOT modify project `agents-lock.json`.
-There is no global lockfile in MVP (npm `install -g` parity).
+There is no project global lockfile in MVP (npm `install -g` parity). Global install metadata
+is recorded in `agents-global.json` per `global-install-state.md`; that file is not a substitute
+for the project lock and is used by `list -g`.
 
 | Invocation | Lock behavior |
 | --- | --- |
@@ -131,4 +133,4 @@ format MUST support that command; MVP does not implement it. See issue #16.
 ## Cross-References
 
 - Registry: [manifest-schema.md](https://github.com/agents-repo/registry/blob/main/specs/manifest-schema.md)
-- CLI: `config-schema.md`, `cli-protocol.md`, `command-contracts.md`
+- CLI: `config-schema.md`, `cli-protocol.md`, `command-contracts.md`, `global-install-state.md`

@@ -6,6 +6,7 @@ import { Command } from 'commander';
 import { setCliGlobals } from '../application/cliGlobals.js';
 import { registerInitCommand } from './initCommand.js';
 import { registerInstallCommand } from './installCommand.js';
+import { registerListCommand } from './listCommand.js';
 import { registerSearchCommand } from './searchCommand.js';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
@@ -16,26 +17,6 @@ const readPackageVersion = (): string => {
   };
 
   return version;
-};
-
-const registerPlaceholderCommand = (
-  program: Command,
-  name: string,
-  description: string,
-  issueNumber: number,
-  aliases: string[] = [],
-): void => {
-  const command = program
-    .command(name)
-    .description(description)
-    .action(() => {
-      console.error(`${name} is not implemented yet (see issue #${issueNumber})`);
-      process.exit(1);
-    });
-
-  for (const alias of aliases) {
-    command.alias(alias);
-  }
 };
 
 const syncGlobalsFromCommand = (command: Command): void => {
@@ -77,7 +58,7 @@ export const createCliProgram = (): Command => {
   registerInitCommand(program);
   registerInstallCommand(program);
   registerSearchCommand(program);
-  registerPlaceholderCommand(program, 'list', 'List installed packages', 11, ['ls']);
+  registerListCommand(program);
 
   return program;
 };

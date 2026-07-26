@@ -45,7 +45,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | --- | --- | --- |
 | `install` | `i` | MVP |
 | `search` | `find` | MVP |
-| `list` | `ls` | Reserved (issue #11) |
+| `list` | `ls` | MVP |
 
 ## Command-Specific Flags
 
@@ -82,6 +82,22 @@ global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bul
 `global: true` MAY update `agents.json` `packages` but MUST NOT update the project lock.
 
 `-g` forces global extract scope even when config has `global: false`.
+
+### `list`
+
+| Flag | Description |
+| --- | --- |
+| `--global` / `-g` | List globally installed packages from `agents-global.json` |
+
+Project scope (default): reads `agents-lock.json` beside resolved `agents.json`. Supplements each
+entry with the semver range from `agents.json` `packages` when present.
+
+Global scope (`-g`): reads `~/.config/agents-repo/agents-global.json` only. Missing file yields an
+empty list.
+
+Root `--json` emits a JSON object with `scope` (`project` or `global`), `rootPath`, `resolvedRef`
+(when the backing file exists), `warnings`, and `packages` (id, version, target, integrity,
+artifact, optional `range` in project scope).
 
 ### `search`
 

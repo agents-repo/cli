@@ -342,7 +342,7 @@ describe('BulkInstallService', () => {
     })
 
     expect(results).toHaveLength(2)
-    expect(results.every((result) => result.saved === false && result.global === true)).toBe(true)
+    expect(results.every((result) => result.saved === true && result.global === true)).toBe(true)
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore)
   })

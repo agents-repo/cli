@@ -158,6 +158,10 @@ With `--json`, successful installs print JSON on stdout:
 
 Errors use a single JSON object on stderr: `{"error":{"code":"...","message":"..."}}`.
 
+`saved` is `true` when install persistence ran: project `agents.json` / `agents-lock.json`
+for project scope, or `agents-global.json` for global scope (`-g`). It is `false` for
+`--dry-run`, `--no-save`, or when only extraction occurred without a save path.
+
 ## Related specs
 
 - [cli-protocol.md](../../specs/cli-protocol.md) — install pipeline steps

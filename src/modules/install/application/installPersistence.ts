@@ -2,7 +2,9 @@ import { LOCKFILE_VERSION } from '../../config/domain/configConstants.js'
 import type { ResolvedAgentsConfig } from '../../config/domain/agentsConfig.js'
 import type { AgentsLockDocument, PackageLockEntry } from '../../config/domain/agentsLock.js'
 import { ConfigMerger } from '../../config/application/configMerger.js'
+import { GlobalInstallStateService } from '../../config/application/globalInstallStateService.js'
 import { LockFileService } from '../../config/application/lockFileService.js'
+import { resolveGlobalInstallStatePath } from '../../config/infrastructure/globalInstallStatePaths.js'
 import { AgentsJsonRepository } from '../../config/infrastructure/agentsJsonRepository.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import type { ManifestArtifact } from '../../registry/domain/manifest.js'
@@ -32,10 +34,26 @@ export interface BulkInstallPersistenceInput {
   readonly writeLock: boolean
 }
 
+export interface GlobalInstallPersistenceInput {
+  readonly env?: NodeJS.ProcessEnv
+  readonly packageId: string
+  readonly version: string
+  readonly target: InstallTargetId
+  readonly artifact: ManifestArtifact
+  readonly resolvedRef: string
+}
+
+export interface GlobalBulkInstallPersistenceInput {
+  readonly env?: NodeJS.ProcessEnv
+  readonly resolvedRef: string
+  readonly entries: readonly BulkInstallPersistenceEntry[]
+}
+
 export class InstallPersistence {
   private readonly configMerger = new ConfigMerger()
   private readonly agentsJsonRepository = new AgentsJsonRepository()
   private readonly lockFileService = new LockFileService()
+  private readonly globalInstallStateService = new GlobalInstallStateService()
 
   async save(input: InstallPersistenceInput): Promise<void> {
     assertResolvableLockRef(input.resolvedRef)
@@ -84,6 +102,39 @@ export class InstallPersistence {
 
     await this.agentsJsonRepository.write(input.resolved.configPath, merged)
     await this.lockFileService.write(input.resolved.lockPath, lockDocument)
+  }
+
+  async saveGlobal(input: GlobalInstallPersistenceInput): Promise<void> {
+    assertResolvableLockRef(input.resolvedRef)
+
+    const statePath = resolveGlobalInstallStatePath(input.env ?? process.env)
+    const lockEntry: PackageLockEntry = {
+      version: input.version,
+      target: input.target,
+      integrity: this.lockFileService.formatIntegrity(input.artifact.sha256),
+      artifact: input.artifact.file,
+    }
+
+    await this.globalInstallStateService.upsertPackages(statePath, input.resolvedRef, [
+      { packageId: input.packageId, entry: lockEntry },
+    ])
+  }
+
+  async saveGlobalBulk(input: GlobalBulkInstallPersistenceInput): Promise<void> {
+    assertResolvableLockRef(input.resolvedRef)
+
+    const statePath = resolveGlobalInstallStatePath(input.env ?? process.env)
+    const entries = input.entries.map((entry) => ({
+      packageId: entry.packageId,
+      entry: {
+        version: entry.version,
+        target: entry.target,
+        integrity: this.lockFileService.formatIntegrity(entry.artifact.sha256),
+        artifact: entry.artifact.file,
+      } satisfies PackageLockEntry,
+    }))
+
+    await this.globalInstallStateService.upsertPackages(statePath, input.resolvedRef, entries)
   }
 
   async saveBulk(input: BulkInstallPersistenceInput): Promise<void> {

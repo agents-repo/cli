@@ -113,6 +113,7 @@ export class BulkInstallService {
 
     const shouldPersist = !noSave && !dryRun && persistenceEntries.length > 0
     const writeLock = shouldPersist && scope.mutateProjectConfig
+    const writeGlobalState = shouldPersist && scope.global
 
     if (shouldPersist && writeLock) {
       try {
@@ -127,9 +128,21 @@ export class BulkInstallService {
         await rollbackExtractedPaths(extractedPathsAll)
         throw error
       }
+    } else if (writeGlobalState) {
+      try {
+        const resolvedRef = resolveLockRef(resolved, catalogResult)
+        await this.installPersistence.saveGlobalBulk({
+          env,
+          resolvedRef,
+          entries: persistenceEntries,
+        })
+      } catch (error) {
+        await rollbackExtractedPaths(extractedPathsAll)
+        throw error
+      }
     }
 
-    const saved = writeLock
+    const saved = writeLock || writeGlobalState
 
     return results.map((result) => ({
       ...result,
