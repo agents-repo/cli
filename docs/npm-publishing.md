@@ -119,8 +119,8 @@ identity.
      [`actions/create-github-app-token`](https://github.com/actions/create-github-app-token))
    - **Secret** `RELEASE_APP_PRIVATE_KEY` — full PEM from **Generate a private key**
      (include `BEGIN` / `END` lines)
-   - Remove legacy variable **`RELEASE_APP_ID`** if present (replaced by
-     `RELEASE_APP_CLIENT_ID`)
+   - If migrating from an older setup, delete any superseded Actions variable that
+     stored the numeric **App ID** instead of the **Client ID**
 
 The **Publish Release** job resolves the App installation for this repository;
 no installation ID secret is required.

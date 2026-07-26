@@ -86,6 +86,17 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
+      - name: Validate release GitHub App configuration
+        run: |
+          if [ -z "${{ vars.RELEASE_APP_CLIENT_ID }}" ]; then
+            echo "::error::Missing Actions variable RELEASE_APP_CLIENT_ID (GitHub App Client ID). See docs/npm-publishing.md#protected-main-and-release-automation."
+            exit 1
+          fi
+          if [ -z "${{ secrets.RELEASE_APP_PRIVATE_KEY }}" ]; then
+            echo "::error::Missing Actions secret RELEASE_APP_PRIVATE_KEY. See docs/npm-publishing.md#protected-main-and-release-automation."
+            exit 1
+          fi
+
       - name: Mint release GitHub App token
         id: release-app-token
         uses: actions/create-github-app-token@v3
