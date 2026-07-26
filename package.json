@@ -13,7 +13,7 @@
   ],
   "type": "module",
   "bin": {
-    "agents-repo": "./dist/bin/agents-repo.js"
+    "agents-repo": "dist/bin/agents-repo.js"
   },
   "files": [
     "dist",
@@ -29,8 +29,7 @@
   },
   "homepage": "https://github.com/agents-repo/cli#readme",
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "engines": {
     "node": "24.18.0"
@@ -51,6 +50,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.build.json",
     "prepack": "npm run build",
+    "publish:local": "npm run build && npm publish --access public",
     "release:dry-run": "semantic-release --dry-run",
     "prepare": "husky"
   },

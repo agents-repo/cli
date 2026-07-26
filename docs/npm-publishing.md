@@ -43,8 +43,9 @@ UI: package settings or org publishing settings, per current npm docs):
 | Branch | `main` |
 
 Do not commit npm tokens to this repository. With trusted publishing, CI uses
-OIDC (`id-token: write` on release jobs) and npm provenance is generated
-automatically when `publishConfig.provenance` is set in `package.json`.
+OIDC (`id-token: write` on release jobs). npm **provenance** is generated
+automatically on GitHub Actions when trusted publishing is configured (no
+`publishConfig.provenance` needed in `package.json`).
 
 For background, see:
 
@@ -106,16 +107,17 @@ tag. Before the next automated release, publish **`1.7.0`** to npm once so
 
 1. Merge npm publish config to `main` (including `version` `1.7.0` and trusted
    publisher setup).
-2. On a clean tree at `main` with `version` `1.7.0`, run `npm run build`.
-3. Publish with provenance using trusted publishing or a local granular token
-   (never commit tokens):
+2. On a clean tree at `main` with `version` `1.7.0`, run:
 
    ```bash
-   npm publish --access public
+   HUSKY=0 npm run publish:local
    ```
 
-4. Assign the package to the org team (section 3 above).
-5. Confirm `npm view agents-repo version` is `1.7.0` and matches
+   (`npm pkg fix` keeps `bin` paths in the form `dist/...`, not `./dist/...`,
+   so npm 12 does not strip the CLI entry during publish.)
+
+3. Assign the package to the org team (section 3 above).
+4. Confirm `npm view agents-repo version` is `1.7.0` and matches
    [GitHub Releases](https://github.com/agents-repo/cli/releases).
 
 Later releases (`1.7.1`, `1.8.0`, …) are published only via the Release
