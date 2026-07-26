@@ -1,4 +1,6 @@
 import { ConfigResolver } from '../../config/application/configResolver.js'
+import { ConfigValidationError } from '../../config/domain/configErrors.js'
+import { resolvePackageInCatalog } from '../../registry/application/resolvePackageInCatalog.js'
 import type { BulkInstallPersistenceEntry } from './installPersistence.js'
 import { InstallPersistence } from './installPersistence.js'
 import { planPackageInstall } from './installPackagePlan.js'
@@ -20,6 +22,8 @@ export interface BulkInstallServiceOptions {
   readonly yes?: boolean
   readonly dryRun?: boolean
   readonly noSave?: boolean
+  readonly packageId?: string
+  readonly enforceConfiguredOnly?: boolean
 }
 
 export class BulkInstallService {
@@ -36,9 +40,23 @@ export class BulkInstallService {
       waiveConflicts: options.yes ?? false,
     })
 
-    const packageIds = Object.keys(resolved.packages).sort((left, right) => left.localeCompare(right))
+    const enforceConfiguredOnly = options.enforceConfiguredOnly === true
+    const requestedPackageId = options.packageId
 
-    if (packageIds.length === 0) {
+    if (
+      enforceConfiguredOnly &&
+      requestedPackageId !== undefined &&
+      Object.keys(resolved.packages).length === 0
+    ) {
+      throw new ConfigValidationError(
+        `Package ${requestedPackageId} is not listed in agents.json packages`,
+        'type_mismatch',
+      )
+    }
+
+    let packageIds = Object.keys(resolved.packages).sort((left, right) => left.localeCompare(right))
+
+    if (packageIds.length === 0 && requestedPackageId === undefined) {
       return []
     }
 
@@ -51,6 +69,21 @@ export class BulkInstallService {
     })
 
     const { target, scope, catalogResult, warnings } = context
+
+    if (requestedPackageId !== undefined) {
+      const pkg = resolvePackageInCatalog(catalogResult.catalog, requestedPackageId)
+      if (enforceConfiguredOnly && !Object.hasOwn(resolved.packages, pkg.id)) {
+        throw new ConfigValidationError(
+          `Package ${pkg.id} is not listed in agents.json packages`,
+          'type_mismatch',
+        )
+      }
+      packageIds = [pkg.id]
+    }
+
+    if (packageIds.length === 0) {
+      return []
+    }
     const noSave = options.noSave === true
     const dryRun = options.dryRun === true
 

@@ -46,6 +46,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | `install` | `i` | MVP |
 | `search` | `find` | MVP |
 | `list` | `ls` | MVP |
+| `update` | `up` | MVP |
 
 ## Command-Specific Flags
 
@@ -82,6 +83,26 @@ global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bul
 `global: true` MAY update `agents.json` `packages` but MUST NOT update the project lock.
 
 `-g` forces global extract scope even when config has `global: false`.
+
+### `update`
+
+| Flag | Description |
+| --- | --- |
+| `--global` / `-g` | Global extract scope; same lock/config rules as bulk `install` |
+| `--target <id>` | Override install target for this invocation |
+| `--no-save` | Skip `agents.json` and lock writes |
+| `--dry-run` | Resolve only; no download, extract, or save |
+| `--yes` / `-y` | Non-interactive; waive conflicts with warnings |
+
+Grammar: `update [package-id]` where optional `<package-id>` is a qualified id or index alias.
+When `<package-id>` is provided, it MUST already exist in resolved `agents.json` `packages`; otherwise
+tooling MUST exit `3`. Tooling MUST NOT add new `packages` keys (contrast ad-hoc `install
+<package-id>`).
+
+With no arguments, `update` refreshes every entry in `packages` using the same semver resolution and
+install pipeline as bulk `install` (highest satisfying manifest version per range). `update` is the
+explicit npm/skills parity name; behavior MAY converge with bulk `install` unless a future spec
+change documents a difference.
 
 ### `list`
 

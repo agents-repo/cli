@@ -15,8 +15,15 @@ RFC 2119.
 
 ## Purpose
 
-This spec defines end-to-end **install** behavior for single-package and bulk commands.
+This spec defines end-to-end **install** behavior for single-package, bulk, and `update` commands.
 Implementation is provided by the registry, config, and install modules.
+
+## Update command
+
+`update` and `update <package-id>` MUST execute the same pipeline steps as bulk `install` for
+configured `packages` entries only. When `<package-id>` is omitted, all configured packages are
+processed. When `<package-id>` is provided, only that package is processed after validating it
+exists in `agents.json` `packages`. See `command-contracts.md` for flags and exit codes.
 
 ## Install Scope
 
@@ -174,6 +181,9 @@ Unless `--no-save` or `--dry-run`, config and lock mutation follows:
 | `install <pkg>` (`global: true`, no `-g`) | Global | No | No |
 | `install` (bulk, project scope) | Project | Yes | Yes |
 | `install` (bulk, `global: true`) | Global | Yes (`packages` map) | No |
+| `update` (project scope) | Project | Yes | Yes |
+| `update` (bulk, `global: true`) | Global | Yes (`packages` map) | No |
+| `update <pkg>` (project scope) | Project | Yes | Yes |
 
 With `--no-save` or `--dry-run`, all rows skip `agents.json`, `agents-lock.json`, and
 `agents-global.json` writes. Global-scope rows already skip project file writes regardless.
