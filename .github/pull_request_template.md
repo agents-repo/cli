@@ -63,7 +63,8 @@ List affected paths or areas:
 - [ ] `npm run test`
 - [ ] `npm run check:secrets`
 - [ ] Docs were updated where behavior or workflow changed.
-- [ ] Pre-ready self-review completed per org CONTRIBUTING (draft PR updated with validation evidence).
+- [ ] Pre-ready self-review completed per [Pre-ready agent handoff][org-pre-ready]
+  (draft PR updated with validation evidence).
 - [ ] Pull request remains draft until a human marks it ready for review.
 - [ ] This PR follows the repository contributor guidance.
 
@@ -78,3 +79,4 @@ List affected paths or areas:
 - Rollback plan:
 
 [org-wf-ex]: https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#workflow-exceptions
+[org-pre-ready]: https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pre-ready-agent-handoff
