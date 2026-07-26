@@ -100,7 +100,7 @@ Use conventional-style summaries:
   setup (npm org package, trusted publisher, verification) is documented in
   [docs/npm-publishing.md](../docs/npm-publishing.md).
 - **Protected `main`:** before the first successful automated release, complete
-  the GitHub App + ruleset bypass + `RELEASE_APP_ID` (Actions variable) /
+  the GitHub App + ruleset bypass + `RELEASE_APP_CLIENT_ID` (Actions variable) /
   `RELEASE_APP_PRIVATE_KEY` (Actions secret) checklist in
   [docs/npm-publishing.md — Protected `main` and release automation](../docs/npm-publishing.md#protected-main-and-release-automation).
 - Release tags use the `v<version>` convention.
