@@ -20,18 +20,21 @@ The npm package name is unscoped **`agents-repo`**. That is separate from the
 
 ## One-time npm setup
 
-Complete these steps **before** expecting a green production publish on `main`.
+Complete trusted publishing **before** the first CI publish on `main`. The
+**`agents-repo`** package is created on the registry when the first version is
+published (npm orgs do not pre-create empty packages in the UI).
 
-### 1. Create the package on npm
+### 1. Account security
 
 1. Sign in at [npmjs.com](https://www.npmjs.com/) as a member of the
    **`agents-repo`** org.
-2. Create the public package **`agents-repo`** under the org (the name is
-   reserved for this CLI; no versions are required yet).
+2. Enable **2FA** on your npm account (`auth-and-publish` or stricter if the org
+   requires it).
 
 ### 2. Configure trusted publishing
 
-On the package settings page, add a **Trusted Publisher** for GitHub Actions:
+Add a **Trusted Publisher** for the future package name **`agents-repo`** (npm
+UI: package settings or org publishing settings, per current npm docs):
 
 | Field | Value |
 | --- | --- |
@@ -48,7 +51,15 @@ For background, see:
 - [npm trusted publishers](https://docs.npmjs.com/trusted-publishers)
 - [semantic-release GitHub Actions recipe](https://semantic-release.gitbook.io/semantic-release/recipes/ci-configurations/github-actions)
 
-### 3. Fallback (not recommended for routine releases)
+### 3. After the first successful publish
+
+When CI publishes the first version, the package exists on npm. Then:
+
+1. Open [org settings](https://www.npmjs.com/settings/agents-repo/packages).
+2. **Teams** → select the team → **Add package** → choose **`agents-repo`**.
+3. Grant the access level your org expects (read/publish).
+
+### 4. Fallback (not recommended for routine releases)
 
 If trusted publishing is unavailable, maintainers may use a short-lived
 **granular access token** as `NPM_TOKEN` in the release workflow environment.
@@ -94,9 +105,11 @@ Version bumps follow conventional commits (see
 ### First production release
 
 1. Merge the npm publish configuration to `main`.
-2. Complete trusted publisher setup above.
+2. Complete trusted publisher setup (sections 1–2 above).
 3. Land a **releasable** conventional commit on `main` (for example `feat:` for
-   the first `MINOR`, or `fix:` for `PATCH`).
+   the first `MINOR`, or `fix:` for `PATCH`) so Release workflow publishes.
+4. Assign **`agents-repo`** to the org team (section 3 above).
+5. Verify `npx agents-repo@latest --help` from a clean environment.
 
 ## Security
 
