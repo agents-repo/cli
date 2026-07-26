@@ -109,10 +109,10 @@ identity.
 2. **Install** the App on `agents-repo/cli`.
 3. In the ruleset for **`main`**, **Bypass list** → add the App → mode
    **Always** (must cover merge-queue rules as well as PR requirements).
-4. Repository **Actions secrets** (names must match the workflow):
-   - `RELEASE_APP_ID` — numeric App ID from the App settings page
-   - `RELEASE_APP_PRIVATE_KEY` — full PEM from **Generate a private key** (include
-     `BEGIN` / `END` lines)
+4. Repository **Actions** configuration (names must match the workflow):
+   - **Variable** `RELEASE_APP_ID` — numeric App ID from the App settings page
+   - **Secret** `RELEASE_APP_PRIVATE_KEY` — full PEM from **Generate a private key**
+     (include `BEGIN` / `END` lines)
 
 The **Publish Release** job resolves the App installation for this repository;
 no installation ID secret is required.
