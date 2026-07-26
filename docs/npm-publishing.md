@@ -87,6 +87,40 @@ Release jobs:
 Version bumps follow conventional commits (see
 [CONTRIBUTING Release Workflow](../.github/CONTRIBUTING.md)).
 
+## Version alignment (npm and GitHub)
+
+GitHub Releases use tags `v1.7.0`, `v1.8.0`, and so on. npm must publish the
+**same** semver on each release.
+
+| Mechanism | Role |
+| --- | --- |
+| `semantic-release` on `main` | Single run: npm publish, GitHub Release, tag `vX.Y.Z` |
+| [`package.json`](../package.json) `version` | Latest **released** semver (aligned with tags) |
+| `@semantic-release/git` | Commits `package.json` + `package-lock.json` after release |
+
+### One-time: npm `1.7.0` to match existing GitHub `v1.7.0`
+
+GitHub already has **`v1.7.0`**. semantic-release will **not** republish that
+tag. Before the next automated release, publish **`1.7.0`** to npm once so
+`npx agents-repo@1.7.0` matches the latest GitHub release:
+
+1. Merge npm publish config to `main` (including `version` `1.7.0` and trusted
+   publisher setup).
+2. On a clean tree at `main` with `version` `1.7.0`, run `npm run build`.
+3. Publish with provenance using trusted publishing or a local granular token
+   (never commit tokens):
+
+   ```bash
+   npm publish --access public
+   ```
+
+4. Assign the package to the org team (section 3 above).
+5. Confirm `npm view agents-repo version` is `1.7.0` and matches
+   [GitHub Releases](https://github.com/agents-repo/cli/releases).
+
+Later releases (`1.7.1`, `1.8.0`, …) are published only via the Release
+workflow; npm and GitHub stay aligned automatically.
+
 ## Verification
 
 ### After npm trusted publisher is configured
@@ -106,9 +140,12 @@ Version bumps follow conventional commits (see
 
 1. Merge the npm publish configuration to `main`.
 2. Complete trusted publisher setup (sections 1–2 above).
-3. Land a **releasable** conventional commit on `main` (for example `feat:` for
-   the first `MINOR`, or `fix:` for `PATCH`) so Release workflow publishes.
-4. Assign **`agents-repo`** to the org team (section 3 above).
+3. Perform the **one-time npm `1.7.0` publish** (see
+   [Version alignment](#version-alignment-npm-and-github)) if GitHub is at
+   `v1.7.0`.
+4. For the **next** version, land a **releasable** conventional commit on `main`
+   (`feat:`, `fix:`, etc.); Release workflow publishes the same version to npm
+   and GitHub.
 5. Verify `npx agents-repo@latest --help` from a clean environment.
 
 ## Security

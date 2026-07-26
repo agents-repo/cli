@@ -1,6 +1,6 @@
 {
   "name": "agents-repo",
-  "version": "0.0.0",
+  "version": "1.7.0",
   "description": "Official CLI for installing and managing agents-repo packages.",
   "license": "MIT",
   "author": "Agents Repo (https://github.com/agents-repo)",
@@ -64,6 +64,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.9",
     "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.1.1",
