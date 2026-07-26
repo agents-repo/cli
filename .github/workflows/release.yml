@@ -63,12 +63,6 @@ jobs:
       - name: Setup Node and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
 
-      - name: Configure npm registry for trusted publishing
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
-
       - name: Build package
         run: npm run build
 
@@ -99,12 +93,6 @@ jobs:
 
       - name: Setup Node and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
-
-      - name: Configure npm registry for trusted publishing
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
 
       - name: Build package
         run: npm run build

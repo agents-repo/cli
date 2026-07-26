@@ -66,8 +66,9 @@ Workflow: [`.github/workflows/release.yml`](../.github/workflows/release.yml)
 
 Release jobs:
 
-- Configure the npm registry via `actions/setup-node` with
-  `registry-url: https://registry.npmjs.org`
+- Grant `id-token: write` so `@semantic-release/npm` can use OIDC trusted
+  publishing (do **not** set `registry-url` on `actions/setup-node`; that
+  writes an `.npmrc` that conflicts with semantic-release)
 - Run `npm run build` (`dist/` is not committed; `prepack` also builds on pack)
 - Set `HUSKY=0` so Husky does not run during publish
 - Run semantic-release with `GITHUB_TOKEN` for GitHub plugin steps
