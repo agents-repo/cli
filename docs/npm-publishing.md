@@ -114,9 +114,13 @@ identity.
 3. In the ruleset for **`main`**, **Bypass list** → add the App → mode
    **Always** (must cover merge-queue rules as well as PR requirements).
 4. Repository **Actions** configuration (names must match the workflow):
-   - **Variable** `RELEASE_APP_ID` — numeric App ID from the App settings page
+   - **Variable** `RELEASE_APP_CLIENT_ID` — **Client ID** from the App **General**
+     settings page (not the numeric App ID; see
+     [`actions/create-github-app-token`](https://github.com/actions/create-github-app-token))
    - **Secret** `RELEASE_APP_PRIVATE_KEY` — full PEM from **Generate a private key**
      (include `BEGIN` / `END` lines)
+   - If migrating from an older setup, delete any superseded Actions variable that
+     stored the numeric **App ID** instead of the **Client ID**
 
 The **Publish Release** job resolves the App installation for this repository;
 no installation ID secret is required.
