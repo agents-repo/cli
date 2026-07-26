@@ -1,4 +1,5 @@
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawn, type ChildProcess } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -8,6 +9,48 @@ import { resetCliGlobals } from '../../../src/modules/cli/application/cliGlobals
 import { createCliProgram } from '../../../src/modules/cli/presentation/createCliProgram.js';
 import { GlobalInstallStateService } from '../../../src/modules/config/application/globalInstallStateService.js';
 import { ListInstalledService } from '../../../src/modules/config/application/listInstalledService.js';
+
+const nodeExecutable = process.execPath;
+const binPath = path.resolve(process.cwd(), 'dist/bin/agents-repo.js');
+
+interface CliRunResult {
+  readonly status: number;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+const runCliSubprocess = async (
+  args: readonly string[],
+  options: { readonly cwd: string },
+): Promise<CliRunResult> => {
+  return new Promise((resolve, reject) => {
+    const child: ChildProcess = spawn(nodeExecutable, [binPath, ...args], {
+      cwd: options.cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (chunk: Buffer | string) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr?.on('data', (chunk: Buffer | string) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', reject);
+
+    child.on('close', (status) => {
+      resolve({
+        status: status ?? 1,
+        stdout,
+        stderr,
+      });
+    });
+  });
+};
 
 describe('list command', () => {
   const tempDirs: string[] = [];
@@ -186,6 +229,44 @@ describe('list command', () => {
     const { stdout } = await runList(['ls'], cwd);
 
     expect(stdout).toContain('No installed packages found.');
+  });
+});
+
+describe('list command subprocess', () => {
+  const tempDirs: string[] = [];
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('exits 3 when agents-lock.json is invalid', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-invalid-lock-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        target: 'cursor',
+        packages: {},
+      }),
+    );
+    writeFileSync(
+      path.join(cwd, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 99,
+        resolvedRef: 'v2.0.0',
+        packages: {},
+      }),
+    );
+
+    const result = await runCliSubprocess(['list'], { cwd });
+
+    expect(result.status).toBe(3);
+    expect(result.stderr).toMatch(/lockfileVersion|Unsupported lockfileVersion/i);
   });
 });
 

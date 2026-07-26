@@ -462,6 +462,47 @@ describe('install command subprocess with mock registry', () => {
     ).toContain('name: sample');
   });
 
+  it('list reflects project install from agents-lock.json', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-then-list-project-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const installResult = await runCliSubprocess(
+      ['install', 'agents-repo/sample-agent', '--target', 'cursor'],
+      { cwd },
+    );
+    expect(installResult.status).toBe(0);
+
+    const listResult = await runCliSubprocess(['list'], { cwd });
+    expect(listResult.status).toBe(0);
+    expect(listResult.stdout).toContain('agents-repo/sample-agent@1.0.0  target=cursor');
+  });
+
+  it('list -g reflects global install from agents-global.json', async () => {
+    const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-install-then-list-global-home-'));
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-then-list-global-cwd-'));
+    tempDirs.push(cwd);
+    tempDirs.push(homeDir);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const env = { ...process.env, HOME: homeDir };
+    const installResult = await runCliSubprocess(
+      ['install', '-g', 'agents-repo/sample-agent', '--target', 'cursor'],
+      { cwd, env },
+    );
+    expect(installResult.status).toBe(0);
+
+    const globalStatePath = path.join(homeDir, '.config', 'agents-repo', 'agents-global.json');
+    const globalState = JSON.parse(readFileSync(globalStatePath, 'utf8')) as {
+      packages: Record<string, { version: string }>;
+    };
+    expect(globalState.packages['agents-repo/sample-agent']?.version).toBe('1.0.0');
+
+    const listResult = await runCliSubprocess(['list', '-g'], { cwd, env });
+    expect(listResult.status).toBe(0);
+    expect(listResult.stdout).toContain('agents-repo/sample-agent@1.0.0  target=cursor');
+  });
+
   it('bulk install globally without writing project config or lock files', async () => {
     const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-global-home-'));
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-global-'));

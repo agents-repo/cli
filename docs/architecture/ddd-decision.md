@@ -85,8 +85,9 @@ Install target detection (issue #6) is implemented in `target/`. The `init`
 command (issue #7) wires config and target modules through `InitService`. The
 `install` command (issue #8) wires config, registry, and install modules through
 `InstallService`. The `search` command (issue #10) wires config and registry
-through `SearchCatalogService`. Remaining command wiring is tracked in downstream
-issues.
+through `SearchCatalogService`. The `list` command (issue #11) reads project lock and
+global install state via `ListInstalledService` in `config/`. Remaining command wiring is
+tracked in downstream issues.
 
 ## Why This Decision Exists
 
