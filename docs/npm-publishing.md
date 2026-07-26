@@ -17,6 +17,9 @@ The npm package name is unscoped **`agents-repo`**. That is separate from the
 - This repository merged to `main` with publish metadata and
   [`.github/workflows/release.yml`](../.github/workflows/release.yml) OIDC
   settings
+- For protected `main` (PR + merge queue): a **GitHub App** on the ruleset
+  **bypass list** and repository secrets for release (see
+  [Protected `main` and release automation](#protected-main-and-release-automation))
 
 ## One-time npm setup
 
@@ -83,10 +86,53 @@ Release jobs:
   writes an `.npmrc` that conflicts with semantic-release)
 - Run `npm run build` (`dist/` is not committed; `prepack` also builds on pack)
 - Set `HUSKY=0` so Husky does not run during publish
-- Run semantic-release with `GITHUB_TOKEN` for GitHub plugin steps
+- **Publish Release** job: mint a short-lived **GitHub App** installation token
+  (`actions/create-github-app-token`), use it for checkout and set
+  `GITHUB_TOKEN` for `semantic-release` (including `@semantic-release/git` push
+  to `main`). **Dry run** still uses the default `GITHUB_TOKEN` (no push).
 
 Version bumps follow conventional commits (see
 [CONTRIBUTING Release Workflow](../.github/CONTRIBUTING.md)).
+
+## Protected `main` and release automation
+
+`main` is protected with rules that require pull requests (and may use a merge
+queue). Workflow pushes use `github-actions[bot]` via the default
+`GITHUB_TOKEN`. That actor **cannot** be added to a ruleset bypass list, so
+`@semantic-release/git` fails with **GH013** unless release uses another
+identity.
+
+**One-time maintainer setup** (GitHub UI, not in git):
+
+1. Create or reuse a **GitHub App** with these **repository permissions** (minimum
+   for default `@semantic-release/github` + `@semantic-release/git`):
+   - **Contents: Read and write** — push `main` and tags, GitHub Releases
+   - **Issues: Read and write** — release success/fail issue comments
+   - **Pull requests: Read and write** — release success comments on merged PRs
+   - **Metadata: Read** (default; required)
+2. **Install** the App on `agents-repo/cli`.
+3. In the ruleset for **`main`**, **Bypass list** → add the App → mode
+   **Always** (must cover merge-queue rules as well as PR requirements).
+4. Repository **Actions** configuration (names must match the workflow):
+   - **Variable** `RELEASE_APP_ID` — numeric App ID from the App settings page
+   - **Secret** `RELEASE_APP_PRIVATE_KEY` — full PEM from **Generate a private key**
+     (include `BEGIN` / `END` lines)
+
+The **Publish Release** job resolves the App installation for this repository;
+no installation ID secret is required.
+
+Repo **Settings → Actions → Workflow permissions** may stay on read-only
+default. The publish job’s `permissions:` block applies to the default
+`GITHUB_TOKEN` only; **semantic-release** uses the **App** token, whose scopes
+come from the App installation and the mint step (`permission-contents`,
+`permission-issues`, `permission-pull-requests` in
+[`.github/workflows/release.yml`](../.github/workflows/release.yml)).
+
+**Validation:** `workflow_dispatch` dry run does **not** prove bypass works
+(no push). Confirm with a successful **Publish Release** run on `main` (logs
+show the mint step and no GH013).
+
+See also [GitHub: App authentication in Actions](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/making-authenticated-api-requests-with-a-github-app-in-a-github-actions-workflow).
 
 ## Version alignment (npm and GitHub)
 
