@@ -86,10 +86,18 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
+      - name: Mint release GitHub App token
+        id: release-app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          token: ${{ steps.release-app-token.outputs.token }}
 
       - name: Setup Node and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
@@ -99,6 +107,6 @@ jobs:
 
       - name: Run semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.release-app-token.outputs.token }}
           HUSKY: 0
         run: npx semantic-release
