@@ -61,6 +61,15 @@ See `docs/testing.md` for test conventions.
 
 If a command cannot be run, explicitly say why in the handoff.
 
+## Pre-ready handoff
+
+Before handoff on a task branch, agents MUST complete the organization
+[Pre-ready agent handoff](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pre-ready-agent-handoff)
+norm, run the **Validation** commands above, perform a self-review, and update
+the **draft** PR with evidence. Agents MUST NOT mark pull requests ready for
+review. After editing `.github/copilot-instructions.md`, run
+`npm run sync:cursor-rules`.
+
 ## Documentation Standard
 
 Any user-facing behavior, contributor workflow, architectural decision, or AI
