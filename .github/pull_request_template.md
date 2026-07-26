@@ -65,7 +65,8 @@ List affected paths or areas:
 - [ ] Docs were updated where behavior or workflow changed.
 - [ ] Pre-ready self-review completed per [Pre-ready agent handoff][org-pre-ready]
   (draft PR updated with validation evidence).
-- [ ] Pull request remains draft until a human marks it ready for review.
+- [ ] For PRs opened by agents: remains draft until a human marks it ready for
+  review (not applicable to human-opened non-draft PRs).
 - [ ] This PR follows the repository contributor guidance.
 
 ## Validation Evidence
