@@ -104,8 +104,12 @@ identity.
 
 **One-time maintainer setup** (GitHub UI, not in git):
 
-1. Create or reuse a **GitHub App** with **Contents: Read and write** on
-   repositories.
+1. Create or reuse a **GitHub App** with these **repository permissions** (minimum
+   for default `@semantic-release/github` + `@semantic-release/git`):
+   - **Contents: Read and write** — push `main` and tags, GitHub Releases
+   - **Issues: Read and write** — release success/fail issue comments
+   - **Pull requests: Read and write** — release success comments on merged PRs
+   - **Metadata: Read** (default; required)
 2. **Install** the App on `agents-repo/cli`.
 3. In the ruleset for **`main`**, **Bypass list** → add the App → mode
    **Always** (must cover merge-queue rules as well as PR requirements).
@@ -118,8 +122,11 @@ The **Publish Release** job resolves the App installation for this repository;
 no installation ID secret is required.
 
 Repo **Settings → Actions → Workflow permissions** may stay on read-only
-default; the release job declares `contents: write` and uses the App token for
-git push.
+default. The publish job’s `permissions:` block applies to the default
+`GITHUB_TOKEN` only; **semantic-release** uses the **App** token, whose scopes
+come from the App installation and the mint step (`permission-contents`,
+`permission-issues`, `permission-pull-requests` in
+[`.github/workflows/release.yml`](../.github/workflows/release.yml)).
 
 **Validation:** `workflow_dispatch` dry run does **not** prove bypass works
 (no push). Confirm with a successful **Publish Release** run on `main` (logs
