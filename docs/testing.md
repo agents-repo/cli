@@ -2,7 +2,7 @@
 
 This document describes how tests are organized in the CLI repository.
 
-Before agent handoff, also follow organization
+Before agent handoff, follow the organization's
 [Pre-ready agent handoff](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pre-ready-agent-handoff)
 and the full validation list in [development.md](development.md#local-validation).
 
