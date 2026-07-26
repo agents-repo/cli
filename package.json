@@ -50,7 +50,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.build.json",
     "prepack": "npm run build",
-    "publish:local": "npm run build && npm publish --access public",
+    "publish:local": "HUSKY=0 npm publish --access public",
     "release:dry-run": "semantic-release --dry-run",
     "prepare": "husky"
   },

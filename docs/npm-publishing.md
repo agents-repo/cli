@@ -110,8 +110,10 @@ tag. Before the next automated release, publish **`1.7.0`** to npm once so
 2. On a clean tree at `main` with `version` `1.7.0`, run:
 
    ```bash
-   HUSKY=0 npm run publish:local
+   npm run publish:local
    ```
+
+   (`publish:local` sets `HUSKY=0`; `prepack` runs the build before publish.)
 
    (`npm pkg fix` keeps `bin` paths in the form `dist/...`, not `./dist/...`,
    so npm 12 does not strip the CLI entry during publish.)
