@@ -1,17 +1,20 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import { resolve, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const nodeExecutable = process.execPath;
 const binPath = resolve(process.cwd(), 'dist/bin/agents-repo.js');
+const packageVersion = (
+  JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8')) as { version: string }
+).version;
 
 describe('agents-repo bin', () => {
   it('prints version and exits 0 with --version', () => {
     const stdout = execFileSync(nodeExecutable, [binPath, '--version'], { encoding: 'utf8' });
 
-    expect(stdout.trim()).toBe('0.0.0');
+    expect(stdout.trim()).toBe(packageVersion);
   });
 
   it('prints help and exits 0 with --help', () => {

@@ -1,11 +1,35 @@
 {
   "name": "agents-repo",
-  "version": "0.0.0",
-  "private": true,
+  "version": "1.7.0",
   "description": "Official CLI for installing and managing agents-repo packages.",
+  "license": "MIT",
+  "author": "Agents Repo (https://github.com/agents-repo)",
+  "keywords": [
+    "agents",
+    "agents-repo",
+    "cli",
+    "copilot",
+    "registry"
+  ],
   "type": "module",
   "bin": {
-    "agents-repo": "./dist/bin/agents-repo.js"
+    "agents-repo": "dist/bin/agents-repo.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agents-repo/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/agents-repo/cli/issues"
+  },
+  "homepage": "https://github.com/agents-repo/cli#readme",
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": "24.18.0"
@@ -16,15 +40,17 @@
     "lint": "eslint .",
     "lint:md": "markdownlint-cli2 \"**/*.md\" \"**/.*/**/*.md\"",
     "lint:yaml": "node scripts/lint-yaml.js",
-    "lint:all": "npm run lint:md && npm run lint && npm run lint:yaml",
+    "lint:all": "markdownlint-cli2 \"**/*.md\" \"**/.*/**/*.md\" && eslint . && node scripts/lint-yaml.js",
     "sync:cursor-rules": "node scripts/sync-cursor-rules.mjs",
     "test:sync": "node --test test/*.test.mjs",
     "check:secrets": "bash scripts/check-secrets.sh",
-    "pretest": "npm run build",
-    "test": "npm run test:sync && vitest run",
+    "pretest": "tsc -p tsconfig.build.json",
+    "test": "node --test test/*.test.mjs && vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.build.json",
+    "prepack": "tsc -p tsconfig.build.json",
+    "publish:local": "HUSKY=0 npm publish --access public",
     "release:dry-run": "semantic-release --dry-run",
     "prepare": "husky"
   },
@@ -38,6 +64,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.9",
     "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.1.1",

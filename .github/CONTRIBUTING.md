@@ -94,7 +94,11 @@ Use conventional-style summaries:
 ## Release Workflow
 
 - Pushes to `main` run release validation checks and then execute
-  `semantic-release`.
+  `semantic-release`, which publishes the **`agents-repo`** package to npm and
+  creates a GitHub Release at the **same version**. `@semantic-release/git`
+  commits `package.json` and `package-lock.json` after each release. Maintainer
+  setup (npm org package, trusted publisher, verification) is documented in
+  [docs/npm-publishing.md](../docs/npm-publishing.md).
 - Release tags use the `v<version>` convention.
 - Commit-to-version mapping:
   - `type!:` or `BREAKING CHANGE:` => `MAJOR`
