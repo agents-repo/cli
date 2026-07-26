@@ -303,6 +303,58 @@ describe('update command subprocess with mock registry', () => {
     expect(result.stdout).toContain('Updated agents-repo/sample-agent@1.0.0');
     expect(result.stdout).not.toContain('other-agent');
   });
+
+  it('emits deduped bulk JSON when --json is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-bulk-json-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        target: 'cursor',
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+          'agents-repo/other-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const result = await runCliSubprocess(['--json', '--dry-run', 'update'], { cwd });
+
+    expect(result.status).toBe(0);
+
+    const payload = JSON.parse(result.stdout.trim()) as {
+      warnings: string[];
+      packages: Array<{ packageId: string; dryRun: boolean }>;
+    };
+    expect(payload.packages).toHaveLength(2);
+    expect(payload.packages.every((entry) => entry.dryRun)).toBe(true);
+  });
+
+  it('supports dry-run without writing lock files', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-dry-run-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        target: 'cursor',
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const result = await runCliSubprocess(['--dry-run', 'update'], { cwd });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Would update');
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
+  });
 });
 
 describe('update command semver refresh with mock registry', () => {

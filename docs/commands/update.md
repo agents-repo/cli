@@ -69,7 +69,7 @@ steps as bulk `install` for configured ids).
 | Code | Meaning |
 | --- | --- |
 | `0` | Success (including empty `packages` map with no `package-id`) |
-| `3` | Missing target, package not in `agents.json`, or other config validation error |
+| `3` | Missing target, `package_not_configured`, or other config validation error |
 | `4` | Config conflict not waived |
 
 See [`specs/command-contracts.md`](../../specs/command-contracts.md) for the full

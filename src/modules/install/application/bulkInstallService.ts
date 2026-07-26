@@ -12,6 +12,7 @@ import {
   extractPackageArtifact,
   rollbackExtractedPaths,
 } from '../infrastructure/packageExtractor.js'
+import { InstallRuntimeError } from '../domain/installErrors.js'
 import type { InstallResult } from '../domain/installResult.js'
 
 export interface BulkInstallServiceOptions {
@@ -43,6 +44,13 @@ export class BulkInstallService {
     const enforceConfiguredOnly = options.enforceConfiguredOnly === true
     const requestedPackageId = options.packageId
 
+    if (requestedPackageId !== undefined && !enforceConfiguredOnly) {
+      throw new InstallRuntimeError(
+        'invalid_bulk_options',
+        'packageId requires enforceConfiguredOnly',
+      )
+    }
+
     if (
       enforceConfiguredOnly &&
       requestedPackageId !== undefined &&
@@ -50,7 +58,7 @@ export class BulkInstallService {
     ) {
       throw new ConfigValidationError(
         `Package ${requestedPackageId} is not listed in agents.json packages`,
-        'type_mismatch',
+        'package_not_configured',
       )
     }
 
@@ -75,7 +83,7 @@ export class BulkInstallService {
       if (enforceConfiguredOnly && !Object.hasOwn(resolved.packages, pkg.id)) {
         throw new ConfigValidationError(
           `Package ${pkg.id} is not listed in agents.json packages`,
-          'type_mismatch',
+          'package_not_configured',
         )
       }
       packageIds = [pkg.id]

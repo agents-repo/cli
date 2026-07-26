@@ -430,4 +430,15 @@ describe('BulkInstallService', () => {
       }),
     ).rejects.toThrow(/not listed in agents\.json packages/)
   })
+
+  it('rejects packageId when enforceConfiguredOnly is not set', async () => {
+    const service = new BulkInstallService()
+
+    await expect(
+      service.runAll({
+        packageId: 'agents-repo/sample-agent',
+        enforceConfiguredOnly: false,
+      }),
+    ).rejects.toThrow(/packageId requires enforceConfiguredOnly/)
+  })
 })

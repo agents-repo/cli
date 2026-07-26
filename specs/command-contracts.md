@@ -96,8 +96,8 @@ global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bul
 
 Grammar: `update [package-id]` where optional `<package-id>` is a qualified id or index alias.
 When `<package-id>` is provided, it MUST already exist in resolved `agents.json` `packages`; otherwise
-tooling MUST exit `3`. Tooling MUST NOT add new `packages` keys (contrast ad-hoc `install
-<package-id>`).
+tooling MUST exit `3` with structured code `package_not_configured`. Tooling MUST NOT add new
+`packages` keys (contrast ad-hoc `install <package-id>`).
 
 With no arguments, `update` refreshes every entry in `packages` using the same semver resolution and
 install pipeline as bulk `install` (highest satisfying manifest version per range). `update` is the
