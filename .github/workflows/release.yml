@@ -53,6 +53,7 @@ jobs:
       - validate
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -62,13 +63,23 @@ jobs:
       - name: Setup Node and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
 
+      - name: Configure npm registry for trusted publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+
+      - name: Build package
+        run: npm run build
+
       - name: Run semantic-release dry run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HUSKY: 0
         run: npm run release:dry-run
 
   release-publish:
-    name: Publish GitHub Release
+    name: Publish Release
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'false' && github.ref == 'refs/heads/main')
@@ -79,6 +90,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -88,7 +100,17 @@ jobs:
       - name: Setup Node and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
 
+      - name: Configure npm registry for trusted publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+
+      - name: Build package
+        run: npm run build
+
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HUSKY: 0
         run: npx semantic-release

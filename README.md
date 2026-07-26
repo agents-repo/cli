@@ -3,6 +3,20 @@
 Official CLI for installing and managing agents-repo packages from the
 registry.
 
+## Install / run
+
+```bash
+npx agents-repo@latest --help
+npx agents-repo@latest init
+```
+
+After `install`, commit **`agents-lock.json`** (and **`agents.json`** when it
+changes) so installs stay reproducible. See
+[docs/commands/init.md](docs/commands/init.md) and
+[docs/commands/install.md](docs/commands/install.md).
+
+## Development
+
 ```bash
 npm run build
 node dist/bin/agents-repo.js <command>
@@ -69,5 +83,7 @@ Do not edit `.cursor/rules/agents-cli.mdc` directly. Run `npm run sync:cursor-ru
 
 ## Contributing
 
-See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) and
-[docs/development.md](docs/development.md).
+See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md),
+[docs/development.md](docs/development.md), and
+[docs/npm-publishing.md](docs/npm-publishing.md) (npm releases and trusted
+publishing).

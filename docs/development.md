@@ -81,3 +81,8 @@ docs/            # Contributor and architecture docs
 ```
 
 Test conventions are documented in [testing.md](testing.md).
+
+## npm publishing
+
+Maintainers: see [npm-publishing.md](npm-publishing.md) for npm org setup,
+trusted publishing from GitHub Actions, and release verification.
