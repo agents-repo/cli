@@ -234,6 +234,27 @@ describe('update command subprocess with mock registry', () => {
     expect(result.stderr).toContain('not listed in agents.json packages');
   });
 
+  it('exits 3 with package_not_configured for unknown package ids', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-unknown-id-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        target: 'cursor',
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+    );
+
+    const result = await runCliSubprocess(['update', 'agents-repo/unknown-agent'], { cwd });
+
+    expect(result.status).toBe(3);
+    expect(result.stderr).toContain('not listed in agents.json packages');
+    expect(result.stderr).not.toContain('Package not found');
+  });
+
   it('updates all configured packages', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-bulk-'));
     tempDirs.push(cwd);

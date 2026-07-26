@@ -1,6 +1,7 @@
 import { ConfigResolver } from '../../config/application/configResolver.js'
 import { ConfigValidationError } from '../../config/domain/configErrors.js'
 import { resolvePackageInCatalog } from '../../registry/application/resolvePackageInCatalog.js'
+import { resolvePackageRef } from '../../registry/domain/package.js'
 import type { BulkInstallPersistenceEntry } from './installPersistence.js'
 import { InstallPersistence } from './installPersistence.js'
 import { planPackageInstall } from './installPackagePlan.js'
@@ -79,13 +80,19 @@ export class BulkInstallService {
     const { target, scope, catalogResult, warnings } = context
 
     if (requestedPackageId !== undefined) {
-      const pkg = resolvePackageInCatalog(catalogResult.catalog, requestedPackageId)
-      if (enforceConfiguredOnly && !Object.hasOwn(resolved.packages, pkg.id)) {
+      const qualifiedId = resolvePackageRef(
+        requestedPackageId,
+        catalogResult.catalog.aliases,
+      )
+
+      if (enforceConfiguredOnly && !Object.hasOwn(resolved.packages, qualifiedId)) {
         throw new ConfigValidationError(
-          `Package ${pkg.id} is not listed in agents.json packages`,
+          `Package ${qualifiedId} is not listed in agents.json packages`,
           'package_not_configured',
         )
       }
+
+      const pkg = resolvePackageInCatalog(catalogResult.catalog, requestedPackageId)
       packageIds = [pkg.id]
     }
 
