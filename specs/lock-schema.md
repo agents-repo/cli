@@ -57,8 +57,8 @@ Each entry in `packages` MUST be an object with:
 | `integrity` | string | yes | `sha256-<64-char-lowercase-hex>` |
 | `artifact` | string | yes | Artifact filename (e.g. `1.0.0-cursor.zip`) |
 
-`byTarget` keys MUST be valid install target ids. On write, keys SHOULD be serialized in canonical
-install-target order.
+`byTarget` keys MUST be valid install target ids. Each slot `artifact` MUST equal
+`${version}-<target-id>.zip`. On write, keys SHOULD be serialized in canonical install-target order.
 
 ### lockfileVersion 1 (read-only)
 
@@ -88,6 +88,10 @@ Where `<manifest-sha256-hex>` is the bare lowercase hex from registry `manifest.
 tooling MUST NOT re-hash with a different algorithm or encoding.
 
 ## Behavioral Rules
+
+When merging a lock slot at a **new** package `version`, tooling MUST drop other `byTarget` slots
+for that package so every remaining slot matches the shared `version` and artifact naming
+(`${version}-<target-id>.zip`).
 
 ### Project scope
 

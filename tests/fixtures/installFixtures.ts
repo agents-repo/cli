@@ -75,6 +75,43 @@ export const makeInstallTestManifest = (): PackageManifest => ({
   ],
 })
 
+export const makeMultiTargetInstallTestManifest = (): PackageManifest => ({
+  schemaVersion: '1.1.0',
+  name: 'sample-agent',
+  latest: '1.0.0',
+  versions: [
+    {
+      version: '1.0.0',
+      artifacts: [
+        {
+          target: 'cursor',
+          file: '1.0.0-cursor.zip',
+          sha256: INSTALL_TEST_SHA256,
+        },
+        {
+          target: 'github-copilot',
+          file: '1.0.0-github-copilot.zip',
+          sha256: INSTALL_TEST_SHA256,
+        },
+      ],
+      srcArtifact: '1.0.0-src.zip',
+      srcSha256: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+  ],
+})
+
+export const makeMultiTargetInstallTestMetadata = (): PackageMetadata => ({
+  ...makeInstallTestMetadata(),
+  compatibility: {
+    canonicalFormat: 'agents-repo.agent-instruction@1.0.0',
+    targets: [
+      { id: 'cursor', status: 'supported' },
+      { id: 'github-copilot', status: 'supported' },
+    ],
+  },
+})
+
 export const makeInstallTestOtherManifest = (): PackageManifest => ({
   schemaVersion: '1.1.0',
   name: 'other-agent',

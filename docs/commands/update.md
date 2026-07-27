@@ -40,9 +40,16 @@ index alias defined in `packages/index.json`.
 
 ### Prerequisites
 
-- An install target must be available from `agents.json` or `--target`. Without
-  either, the command exits `3`.
+- Resolved `targets` (or legacy `target`) must be available from `agents.json`, or pass
+  `--target` for a single-target override. Without either, the command exits `3`.
 - Packages to update must already appear under `packages` in `agents.json`.
+
+### Multi-target fan-out
+
+When `agents.json` lists multiple `targets`, `update` refreshes each configured package once
+per target (same targets × packages loop as bulk `install`). `--target` limits the run to one id.
+Lock and global state updates merge `byTarget` per slot; bumping one target to a new package
+version clears other target slots for that package until they are updated again.
 
 ### Version selection
 

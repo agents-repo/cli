@@ -34,10 +34,35 @@ export const mergeTargetLockSlot = (
   version: string,
   slot: TargetLockSlot,
 ): NormalizedPackageLockEntry => {
-  const byTarget = { ...(existing?.byTarget ?? {}), [targetId]: slot }
+  const versionChanged =
+    existing !== undefined && existing.version !== version
+
+  const byTarget = versionChanged
+    ? { [targetId]: slot }
+    : { ...(existing?.byTarget ?? {}), [targetId]: slot }
+
   return {
     version,
     byTarget,
+  }
+}
+
+export const expectedLockArtifactName = (
+  version: string,
+  targetId: InstallTargetId,
+): string => `${version}-${targetId}.zip`
+
+const assertLockArtifactMatchesVersion = (
+  packageId: string,
+  version: string,
+  targetId: InstallTargetId,
+  artifact: string,
+): void => {
+  const expected = expectedLockArtifactName(version, targetId)
+  if (artifact !== expected) {
+    throw new LockValidationError(
+      `Lock entry for ${packageId} byTarget.${targetId} artifact must be ${expected}`,
+    )
   }
 }
 
@@ -94,7 +119,7 @@ const parseV1FlatPackageEntry = (
     throw new LockValidationError(`Lock entry for ${packageId} has invalid target`)
   }
 
-  const slot = readTargetSlot(packageId, entry)
+  const slot = readTargetSlot(packageId, entry.version as string, entry.target, entry)
 
   if (entry.resolved !== undefined) {
     if (typeof entry.resolved !== 'string' || !isValidRfc3339Timestamp(entry.resolved)) {
@@ -116,6 +141,7 @@ const parseV2ByTargetPackageEntry = (
     throw new LockValidationError(`Lock entry for ${packageId} must include byTarget`)
   }
 
+  const packageVersion = entry.version as string
   const byTarget: Partial<Record<InstallTargetId, TargetLockSlot>> = {}
   for (const [rawTargetId, rawSlot] of Object.entries(entry.byTarget)) {
     if (!isValidInstallTargetId(rawTargetId)) {
@@ -124,7 +150,7 @@ const parseV2ByTargetPackageEntry = (
     if (!isPlainObject(rawSlot)) {
       throw new LockValidationError(`Lock entry for ${packageId} byTarget.${rawTargetId} must be an object`)
     }
-    byTarget[rawTargetId] = readTargetSlot(packageId, rawSlot)
+    byTarget[rawTargetId] = readTargetSlot(packageId, packageVersion, rawTargetId, rawSlot)
   }
 
   if (Object.keys(byTarget).length === 0) {
@@ -132,12 +158,17 @@ const parseV2ByTargetPackageEntry = (
   }
 
   return {
-    version: entry.version as string,
+    version: packageVersion,
     byTarget,
   }
 }
 
-const readTargetSlot = (packageId: string, slotSource: Record<string, unknown>): TargetLockSlot => {
+const readTargetSlot = (
+  packageId: string,
+  version: string,
+  targetId: InstallTargetId,
+  slotSource: Record<string, unknown>,
+): TargetLockSlot => {
   if (typeof slotSource.integrity !== 'string' || !isValidLockIntegrity(slotSource.integrity)) {
     throw new LockValidationError(`Lock entry for ${packageId} has invalid integrity`)
   }
@@ -145,6 +176,8 @@ const readTargetSlot = (packageId: string, slotSource: Record<string, unknown>):
   if (typeof slotSource.artifact !== 'string' || slotSource.artifact.trim().length === 0) {
     throw new LockValidationError(`Lock entry for ${packageId} has invalid artifact`)
   }
+
+  assertLockArtifactMatchesVersion(packageId, version, targetId, slotSource.artifact)
 
   return {
     integrity: slotSource.integrity,

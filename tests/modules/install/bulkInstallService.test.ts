@@ -8,11 +8,15 @@ import { BulkInstallService } from '../../../src/modules/install/application/bul
 import * as registrySourceConfig from '../../../src/modules/registry/infrastructure/registrySourceConfig.js'
 import {
   buildCursorSkillZip,
+  buildGithubCopilotZip,
   buildOtherCursorSkillZip,
   makeDualPackageInstallCatalog,
+  makeInstallTestCatalog,
   makeInstallTestManifest,
   makeInstallTestMetadata,
   makeInstallTestOtherManifest,
+  makeMultiTargetInstallTestManifest,
+  makeMultiTargetInstallTestMetadata,
   withInstallTestArtifactSha256,
 } from '../../fixtures/installFixtures.js'
 
@@ -435,5 +439,128 @@ describe('BulkInstallService', () => {
         enforceConfiguredOnly: true,
       }),
     ).rejects.toThrow(/not listed in agents\.json packages/)
+  })
+
+  it('installs configured package for each target and writes byTarget lock slots', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-multitarget-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    )
+
+    const cursorZipBytes = buildCursorSkillZip()
+    const copilotZipBytes = buildGithubCopilotZip()
+    const cursorSha256 = createHash('sha256').update(cursorZipBytes).digest('hex')
+    const copilotSha256 = createHash('sha256').update(copilotZipBytes).digest('hex')
+
+    const baseManifest = makeMultiTargetInstallTestManifest()
+    const manifest = {
+      ...baseManifest,
+      versions: [
+        {
+          ...baseManifest.versions[0],
+          artifacts: [
+            {
+              target: 'cursor' as const,
+              file: '1.0.0-cursor.zip',
+              sha256: cursorSha256,
+            },
+            {
+              target: 'github-copilot' as const,
+              file: '1.0.0-github-copilot.zip',
+              sha256: copilotSha256,
+            },
+          ],
+        },
+      ],
+    }
+
+    const catalog = makeInstallTestCatalog()
+    const multiTargetCatalog = {
+      ...catalog,
+      packages: [
+        {
+          ...catalog.packages[0],
+          installTargets: [
+            { id: 'cursor', status: 'supported' as const },
+            { id: 'github-copilot', status: 'supported' as const },
+          ],
+        },
+      ],
+    }
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = toFetchUrl(input)
+
+      if (url.includes('packages/index.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(multiTargetCatalog), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/agents-repo/sample-agent/versions/manifest.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(manifest), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/agents-repo/sample-agent/') && url.includes('metadata.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(makeMultiTargetInstallTestMetadata()), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('1.0.0-cursor.zip')) {
+        return Promise.resolve(new Response(cursorZipBytes, { status: 200 }))
+      }
+
+      if (url.includes('1.0.0-github-copilot.zip')) {
+        return Promise.resolve(new Response(copilotZipBytes, { status: 200 }))
+      }
+
+      return Promise.resolve(new Response('not found', { status: 404 }))
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+    const results = await service.runAll({ cwd })
+
+    expect(results).toHaveLength(2)
+    expect(results.map((result) => result.target)).toEqual(['github-copilot', 'cursor'])
+
+    const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
+      packages: Record<
+        string,
+        {
+          version: string
+          byTarget: Record<string, { integrity: string; artifact: string }>
+        }
+      >
+    }
+    const entry = lock.packages['agents-repo/sample-agent']
+    expect(entry.version).toBe('1.0.0')
+    expect(entry.byTarget.cursor.artifact).toBe('1.0.0-cursor.zip')
+    expect(entry.byTarget['github-copilot'].artifact).toBe('1.0.0-github-copilot.zip')
   })
 })
