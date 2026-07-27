@@ -37,7 +37,7 @@ describe('InstallService persistence rollback', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )

@@ -74,7 +74,6 @@ export class InitService {
       ...namespaceManaged,
       ...existingManaged,
       targets: existingManaged.targets ?? namespaceManaged.targets,
-      target: existingManaged.target ?? namespaceManaged.target,
     })
 
     const resolvedTargets = await this.resolveTargets({

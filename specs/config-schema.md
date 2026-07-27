@@ -59,7 +59,6 @@ are:
 | `schemaVersion` | string | yes on write | MUST be `1.0.0` for new files; see [Schema Version Lifecycle](#schema-version-lifecycle) |
 | `registry` | object | yes on write; optional on read | `{ "url": string, "ref": string }`; defaults on read; see [Registry](#registry) |
 | `targets` | string[] | write | Install target ids (below) |
-| `target` | string | legacy | Single id; `targets: [<id>]` when `targets` absent |
 | `packages` | object | yes on write | Map qualified id → semver range string; see [Packages](#packages) |
 | `global` | boolean | no | When true, installs use global extract dir per `command-contracts.md` |
 
@@ -90,11 +89,9 @@ alongside `url`.
 
 - `targets` MUST be a non-empty array of unique install target ids from
   [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md).
-- On managed write, tooling SHOULD persist `targets` only (not a lone `target` field).
-- On read, when `targets` is absent and `target` is present, resolution MUST treat the config as
-  `targets: [<target>]`.
-- When both `target` and `targets` are present, `target` MUST be an element of `targets`; otherwise
-  tooling MUST exit `3` (`invalid_merge_state`).
+- On managed write, tooling MUST persist `targets` only.
+- The managed field name `target` (single string) is deprecated. When `target` is present in the
+  active schema gate target, tooling MUST exit `3` (`deprecated_field`).
 
 ### Packages
 
@@ -151,8 +148,8 @@ Config resolution MUST be gate-aware:
 
 1. Determine schema gate mode.
 2. Read CLI-managed fields from the active target only (top-level or `"@agents-repo"`).
-3. Apply built-in defaults (`registry`, `target` when detection applies during
-   `init` per [target-detection.md](target-detection.md)).
+3. Apply built-in defaults (`registry`; `targets` when detection applies during `init` per
+   [target-detection.md](target-detection.md)).
 4. Apply environment overrides per `command-contracts.md` (`AGENTS_REPO_REGISTRY_URL` overrides
    `registry.url` only).
 
@@ -163,7 +160,8 @@ Config resolution MUST be gate-aware:
 | `type_mismatch` | `packages` is an array in the active gate target | Exit `3` |
 | `package_not_configured` | `update <package-id>` when id is absent from `packages` | Exit `3` |
 | `dual_definition_mismatch` | `targets` differ top-level vs namespace | Exit `4` unless `--yes` |
-| `invalid_enum` | `target` / `targets[]` not in install-targets table | Exit `3` |
+| `deprecated_field` | Managed `target` string present in active gate target | Exit `3` |
+| `invalid_enum` | `targets[]` entry not in install-targets table | Exit `3` |
 | `invalid_semver_range` | Invalid semver range in `packages` | Exit `3` |
 
 `dual_definition_mismatch` applies only in **top-level-ours** mode when the same CLI-managed key is
@@ -183,8 +181,7 @@ on success.
 
 ## Reserved Keys
 
-CLI-managed field names: `schemaVersion`, `registry`, `targets`, `target` (legacy read),
-`packages`, `global`.
+CLI-managed field names: `schemaVersion`, `registry`, `targets`, `packages`, `global`.
 
 - **top-level-ours:** owned at top level; `"@agents-repo"` SHOULD NOT duplicate them.
 - **namespace:** owned only inside `"@agents-repo"`; homonyms at top level are foreign.
@@ -198,7 +195,7 @@ CLI-managed field names: `schemaVersion`, `registry`, `targets`, `target` (legac
 
 - `packages` keys MUST be unique qualified ids.
 - `targets` MUST satisfy [Install targets](#install-targets) when present.
-- Legacy `target` MUST be a supported install target id when `targets` is absent.
+- Managed `target` MUST NOT appear in the active gate target (`deprecated_field`).
 - `global` when true sets default **global extract scope** per `cli-protocol.md` and
   `command-contracts.md`. It does not imply project lock updates when extract is global.
 - Flag `-g` forces global extract scope for that invocation and overrides `global: false`.

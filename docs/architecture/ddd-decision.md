@@ -77,17 +77,22 @@ config/lock writes.
 `DEBUG` env override for verbose logging is documented in
 `specs/command-contracts.md` and will be wired when logging is implemented.
 
+## Pre-1.0 persistence (ADR)
+
+Before public release, the CLI does **not** read legacy shapes:
+
+- Managed `agents.json` field `target` → exit `3` (`deprecated_field`); use `targets[]` only.
+- `lockfileVersion` / `stateVersion` other than **2** → exit `3`.
+- Lock/global package entries use **v2** `byTarget` only (no flat v1 package entries).
+
+`init --target` and `install`/`update` `--target` remain CLI flags (alias or per-run
+override), not persisted config fields.
+
 ## Status
 
-Module directories and the Commander root program are scaffolded in issue #3.
-The registry module (issue #4) and config module (issue #5) are implemented.
-Install target detection (issue #6) is implemented in `target/`. The `init`
-command (issue #7) wires config and target modules through `InitService`. The
-`install` command (issue #8) wires config, registry, and install modules through
-`InstallService`. The `search` command (issue #10) wires config and registry
-through `SearchCatalogService`. The `list` command (issue #11) reads project lock and
-global install state via `ListInstalledService` in `config/`. Remaining command wiring is
-tracked in downstream issues.
+Commands shipped: `init`, `install`, `update`, `search`, `list`. Multi-target install uses
+`BulkInstallService` fan-out; lock normalization lives in
+`config/domain/packageLockEntry.ts`.
 
 ## Why This Decision Exists
 

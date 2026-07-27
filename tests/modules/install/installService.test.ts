@@ -101,7 +101,7 @@ describe('InstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -161,7 +161,7 @@ describe('InstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -203,7 +203,7 @@ describe('InstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -244,7 +244,7 @@ describe('InstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -291,7 +291,7 @@ describe('InstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -334,7 +334,7 @@ describe('InstallService', () => {
         url: 'https://registry-proxy.example.workers.dev',
         ref: 'v2.0.0',
       },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
     })
   })
@@ -351,7 +351,7 @@ describe('InstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )

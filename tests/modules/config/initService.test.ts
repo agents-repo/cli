@@ -145,7 +145,7 @@ describe('InitService', () => {
     expect(written.customTool).toEqual(partialNamespaceConfig.customTool)
     expect(written['@agents-repo']).toMatchObject({
       schemaVersion: '1.0.0',
-      target: 'cursor',
+      targets: ['cursor'],
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
     })
@@ -207,7 +207,7 @@ describe('InitService', () => {
     expect(result.created).toBe(false)
     expect(result.targets).toEqual(['cursor'])
     const written = await readAgentsJson(result.configPath)
-    expect(written.target).toBe('cursor')
+    expect(written.targets).toEqual(['cursor'])
     expect(written.packages).toEqual(canonicalTopLevelConfig.packages)
   })
 
@@ -314,7 +314,7 @@ describe('InitService', () => {
     expect(result.targets).toEqual(['claude-code'])
     const written = await readAgentsJson(result.configPath)
     expect(written.targets).toEqual(['claude-code'])
-    expect(written['@agents-repo']).toMatchObject({ target: 'claude-code' })
+    expect(written['@agents-repo']).toMatchObject({ targets: ['claude-code'] })
   })
 
   it('rejects --target that conflicts with namespace-only target without --force', async () => {

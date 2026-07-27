@@ -170,7 +170,7 @@ After follow-up issues land, implementation MUST update this table with behavior
 | `0` | Success |
 | `1` | General or runtime failure (registry/network errors MAY use this code) |
 | `2` | Invalid usage or CLI flags |
-| `3` | Config or validation error (missing `target`, invalid semver, schema errors) |
+| `3` | Config or validation error (see config-schema and lock-schema validation tables) |
 | `4` | Conflict detected and not waived (`--yes` absent) |
 
 When `--yes` is present, conflicts downgrade to warnings; tooling MUST exit `0` on success.

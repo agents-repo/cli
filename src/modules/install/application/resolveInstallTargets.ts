@@ -18,11 +18,7 @@ export const resolveInstallTargets = (
     return [targetOverride]
   }
 
-  const managed = {
-    target: resolved.target,
-    targets: resolved.targets,
-  }
-  const targets = resolveTargetsFromManaged(managed)
+  const targets = resolveTargetsFromManaged({ targets: resolved.targets })
   if (targets === undefined || targets.length === 0) {
     throw new ConfigValidationError('Install target is required but missing from config', 'missing_target')
   }

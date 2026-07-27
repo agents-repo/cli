@@ -124,7 +124,7 @@ describe('InstallPersistence', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: DEFAULT_REGISTRY_CONFIG,
-        target: 'cursor',
+        targets: ['cursor'],
         packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     )
@@ -134,7 +134,7 @@ describe('InstallPersistence', () => {
       configPath,
       lockPath,
       registry: DEFAULT_REGISTRY_CONFIG,
-      target: 'cursor',
+      targets: ['cursor'],
       packages: { 'agents-repo/sample-agent': '^1.0.0' },
       global: false,
       warnings: [],
@@ -178,7 +178,7 @@ describe('InstallPersistence', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: DEFAULT_REGISTRY_CONFIG,
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -186,14 +186,17 @@ describe('InstallPersistence', () => {
     writeFileSync(
       lockPath,
       JSON.stringify({
-        lockfileVersion: 1,
+        lockfileVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/other-agent': {
             version: '2.0.0',
-            target: 'cursor',
-            integrity: `sha256-${'c'.repeat(64)}`,
-            artifact: '2.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'c'.repeat(64)}`,
+                artifact: '2.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),
@@ -204,7 +207,7 @@ describe('InstallPersistence', () => {
       configPath,
       lockPath,
       registry: DEFAULT_REGISTRY_CONFIG,
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
       global: false,
       warnings: [],
@@ -245,7 +248,7 @@ describe('InstallPersistence', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: DEFAULT_REGISTRY_CONFIG,
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -256,7 +259,7 @@ describe('InstallPersistence', () => {
       configPath,
       lockPath,
       registry: DEFAULT_REGISTRY_CONFIG,
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
       global: false,
       warnings: [],

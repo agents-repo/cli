@@ -37,20 +37,9 @@ export const resolveTargetsFromManaged = (
   managed: CliManagedConfig,
 ): InstallTargetId[] | undefined => {
   const fromTargets = managed.targets
-  const fromTarget = managed.target
 
   if (fromTargets !== undefined && fromTargets.length > 0) {
-    if (fromTarget !== undefined && !fromTargets.includes(fromTarget)) {
-      throw new ConfigValidationError(
-        'target is not included in targets; remove target or align values',
-        'invalid_merge_state',
-      )
-    }
     return sortCanonicalInstallTargetIds(fromTargets)
-  }
-
-  if (fromTarget !== undefined) {
-    return [fromTarget]
   }
 
   return undefined

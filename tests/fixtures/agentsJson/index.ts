@@ -4,7 +4,7 @@ export const canonicalTopLevelConfig = {
     url: 'https://registry-proxy.maiconfz.workers.dev',
     ref: 'v2.x',
   },
-  target: 'cursor',
+  targets: ['cursor'],
   packages: {
     'agents-repo/hello-agent': '^1.0.0',
   },
@@ -21,7 +21,7 @@ export const namespaceConfig = {
     agents: ['planner'],
   },
   '@agents-repo': {
-    target: 'cursor',
+    targets: ['cursor'],
     packages: {
       'agents-repo/hello-agent': '^1.0.0',
     },
@@ -37,7 +37,7 @@ export const partialNamespaceConfig = {
     agents: ['planner'],
   },
   '@agents-repo': {
-    target: 'cursor',
+    targets: ['cursor'],
     packages: {},
   },
 } as const
@@ -59,20 +59,30 @@ export const namespaceOnlyTargetConfig = {
     ref: 'v2.x',
   },
   '@agents-repo': {
-    target: 'claude-code',
+    targets: ['claude-code'],
     packages: {},
   },
 } as const
 
 export const conflictingTopLevelConfig = {
   schemaVersion: '1.0.0',
-  target: 'cursor',
+  targets: ['cursor'],
   packages: {},
   registry: {
     url: 'https://registry-proxy.maiconfz.workers.dev',
     ref: 'v2.x',
   },
   '@agents-repo': {
-    target: 'claude-code',
+    targets: ['claude-code'],
+  },
+} as const
+
+export const legacyTargetOnlyConfig = {
+  schemaVersion: '1.0.0',
+  target: 'cursor',
+  packages: {},
+  registry: {
+    url: 'https://registry-proxy.maiconfz.workers.dev',
+    ref: 'v2.x',
   },
 } as const

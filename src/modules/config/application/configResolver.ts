@@ -60,7 +60,6 @@ export class ConfigResolver {
       lockPath,
       schemaVersion: managed.schemaVersion,
       registry,
-      target: managed.target,
       targets: resolvedTargets,
       packages,
       global,

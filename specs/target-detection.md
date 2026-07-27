@@ -16,9 +16,9 @@ interpreted as described in RFC 2119.
 
 ## Purpose
 
-`agents.json` requires an install `target` id for install operations. During
-`init`, tooling SHOULD suggest a default `target` when project markers indicate a
-single IDE or agent consumer. Canonical install target ids and ZIP layouts are
+`agents.json` requires `targets` for install operations. During `init`, tooling SHOULD persist
+`targets` when project markers indicate one or more IDE or agent consumers. Canonical install
+target ids and ZIP layouts are
 defined in [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md).
 
 ## Scope
@@ -110,6 +110,6 @@ Tooling MUST NOT treat an empty detection as a required install target. When `st
 
 - [install-targets.md](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md)
   — canonical target ids and ZIP layouts
-- [config-schema.md](config-schema.md) — `target` field and merge semantics
+- [config-schema.md](config-schema.md) — `targets` field and merge semantics
 - [cli-protocol.md](cli-protocol.md) — init-only detection reference
 - [command-contracts.md](command-contracts.md) — `init --target`

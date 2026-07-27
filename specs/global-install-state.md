@@ -12,10 +12,10 @@ RFC 2119.
 
 | Version | Applies To | Status | Notes |
 | --- | --- | --- | --- |
-| `1` | stateVersion | read-only | Flat package entry (lock v1 shape) |
 | `2` | stateVersion | current | Same package entry shape as lock v2 (`byTarget`) |
 
-Tooling MUST read `stateVersion` `1` and `2`. New state files MUST use `stateVersion` `2`.
+Tooling MUST support `stateVersion` `2` only. New state files MUST use `stateVersion` `2`.
+Tooling MUST reject `stateVersion` values other than `2` (exit `3`).
 
 ## Purpose
 

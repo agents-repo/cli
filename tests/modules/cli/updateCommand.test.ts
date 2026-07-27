@@ -107,7 +107,7 @@ describe('update command subprocess', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     );
@@ -223,7 +223,7 @@ describe('update command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     );
@@ -243,7 +243,7 @@ describe('update command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     );
@@ -264,7 +264,7 @@ describe('update command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -288,7 +288,7 @@ describe('update command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
         },
@@ -310,7 +310,7 @@ describe('update command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -334,7 +334,7 @@ describe('update command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -363,7 +363,7 @@ describe('update command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
         },
@@ -506,7 +506,7 @@ describe('update command semver refresh with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
         },
@@ -516,14 +516,17 @@ describe('update command semver refresh with mock registry', () => {
     writeFileSync(
       path.join(cwd, 'agents-lock.json'),
       JSON.stringify({
-        lockfileVersion: 1,
+        lockfileVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/sample-agent': {
             version: '1.0.0',
-            target: 'cursor',
-            integrity: `sha256-${sha256}`,
-            artifact: '1.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${sha256}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),

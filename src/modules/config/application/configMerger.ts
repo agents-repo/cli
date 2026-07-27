@@ -54,8 +54,6 @@ export class ConfigMerger {
 
     if (patch.targets !== undefined) {
       document.targets = patch.targets
-    } else if (patch.target !== undefined) {
-      document.target = patch.target
     }
     if (patch.global !== undefined) {
       document.global = patch.global
@@ -81,13 +79,10 @@ export class ConfigMerger {
       document.registry = this.mergeRegistry(document.registry, patch.registry, force)
     }
 
-    if (patch.target !== undefined) {
-      document.target = this.mergeScalar(document.target, patch.target, force)
-    }
-
     if (patch.targets !== undefined) {
-      document.targets = patch.targets
-      delete document.target
+      if (force || document.targets === undefined) {
+        document.targets = patch.targets
+      }
     }
 
     if (patch.global !== undefined) {
@@ -132,13 +127,10 @@ export class ConfigMerger {
       result.registry = this.mergeRegistry(result.registry, patch.registry, force)
     }
 
-    if (patch.target !== undefined) {
-      result.target = this.mergeScalar(result.target, patch.target, force)
-    }
-
     if (patch.targets !== undefined) {
-      result.targets = patch.targets
-      delete result.target
+      if (force || result.targets === undefined) {
+        result.targets = patch.targets
+      }
     }
 
     if (patch.global !== undefined) {

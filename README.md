@@ -7,10 +7,11 @@ registry.
 
 ```bash
 npx agents-repo@latest --help
-npx agents-repo@latest init --target cursor
+npx agents-repo@latest init --targets cursor
 ```
 
-In a fresh project without detectable install markers, pass `--target` (for
+`--target` remains an alias for `--targets` on `init`. In a fresh project without
+detectable install markers, pass `--targets` (for
 example `cursor` or `github-copilot`); otherwise `init` may exit with code `3`.
 
 After `install`, commit **`agents-lock.json`** (and **`agents.json`** when it

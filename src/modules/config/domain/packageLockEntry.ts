@@ -6,7 +6,6 @@ import {
   isQualifiedPackageId,
   isValidInstallTargetId,
   isValidLockIntegrity,
-  isValidRfc3339Timestamp,
 } from './validators.js'
 import { isPlainObject } from '../infrastructure/jsonDocument.js'
 
@@ -100,37 +99,11 @@ export const parsePackageLockEntry = (
     throw new LockValidationError(`Lock entry for ${packageId} has invalid version`)
   }
 
-  if (lockfileVersion === 1) {
-    return parseV1FlatPackageEntry(packageId, entry)
+  if (lockfileVersion !== 2) {
+    throw new LockValidationError(`Unsupported lock entry format for ${packageId}`)
   }
 
-  if (lockfileVersion === 2) {
-    return parseV2ByTargetPackageEntry(packageId, entry)
-  }
-
-  throw new LockValidationError(`Unsupported lock entry format for ${packageId}`)
-}
-
-const parseV1FlatPackageEntry = (
-  packageId: string,
-  entry: Record<string, unknown>,
-): NormalizedPackageLockEntry => {
-  if (typeof entry.target !== 'string' || !isValidInstallTargetId(entry.target)) {
-    throw new LockValidationError(`Lock entry for ${packageId} has invalid target`)
-  }
-
-  const slot = readTargetSlot(packageId, entry.version as string, entry.target, entry)
-
-  if (entry.resolved !== undefined) {
-    if (typeof entry.resolved !== 'string' || !isValidRfc3339Timestamp(entry.resolved)) {
-      throw new LockValidationError(`Lock entry for ${packageId} has invalid resolved timestamp`)
-    }
-  }
-
-  return {
-    version: entry.version as string,
-    byTarget: { [entry.target]: slot },
-  }
+  return parseV2ByTargetPackageEntry(packageId, entry)
 }
 
 const parseV2ByTargetPackageEntry = (

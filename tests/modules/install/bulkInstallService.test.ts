@@ -146,7 +146,7 @@ describe('BulkInstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -209,7 +209,7 @@ describe('BulkInstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -254,7 +254,7 @@ describe('BulkInstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -280,7 +280,7 @@ describe('BulkInstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -323,7 +323,7 @@ describe('BulkInstallService', () => {
         url: 'https://registry-proxy.example.workers.dev',
         ref: 'v2.0.0',
       },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {
         'agents-repo/sample-agent': '^1.0.0',
         'agents-repo/other-agent': '^1.0.0',
@@ -369,7 +369,7 @@ describe('BulkInstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/other-agent': '^1.0.0',
           'agents-repo/sample-agent': '^1.0.0',
@@ -410,7 +410,7 @@ describe('BulkInstallService', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
         },

@@ -13,11 +13,10 @@ RFC 2119.
 
 | Version | Applies To | Status | Notes |
 | --- | --- | --- | --- |
-| `1` | lockfileVersion | read-only | Flat per-package entry (`target`, `integrity`, `artifact`) |
-| `2` | lockfileVersion | current | `byTarget` map per package; write format |
+| `2` | lockfileVersion | current | `byTarget` map per package |
 
-Tooling MUST read `lockfileVersion` `1` and `2`. New lock files MUST use `lockfileVersion` `2`.
-Tooling MUST reject lock files whose `lockfileVersion` is outside its supported set (exit `3`).
+Tooling MUST support `lockfileVersion` `2` only. New lock files MUST use `lockfileVersion` `2`.
+Tooling MUST reject lock files whose `lockfileVersion` is not `2` (exit `3`).
 
 ## Purpose
 
@@ -59,21 +58,6 @@ Each entry in `packages` MUST be an object with:
 
 `byTarget` keys MUST be valid install target ids. Each slot `artifact` MUST equal
 `${version}-<target-id>.zip`. On write, keys SHOULD be serialized in canonical install-target order.
-
-### lockfileVersion 1 (read-only)
-
-v1 entries used flat fields `target`, `integrity`, and `artifact` at the package entry level.
-On read, tooling MUST normalize v1 entries into v2 `byTarget` shape in memory and write v2 on save.
-
-Legacy v1 fields at package level (read-only):
-
-| Field | Type | Required | Constraints |
-| --- | --- | --- | --- |
-| `version` | string | yes | Exact resolved semver (`MAJOR.MINOR.PATCH`) |
-| `target` | string | yes | Install target id used for this install |
-| `integrity` | string | yes | `sha256-<64-char-lowercase-hex>` |
-| `artifact` | string | yes | Artifact filename (e.g. `1.0.0-cursor.zip`) |
-| `resolved` | string | no | RFC 3339 last-resolution timestamp; omitted in MVP for lock stability |
 
 ### Integrity format
 
@@ -135,22 +119,26 @@ format MUST support that command; MVP does not implement it. See issue #16.
 
 - `packages` keys MUST match qualified id format from `config-schema.md`.
 - `packages[<id>].version` MUST be an exact semver present in the resolved manifest.
-- `packages[<id>].artifact` MUST match the manifest artifact filename for the resolved version and
-  target.
-- `packages[<id>].integrity` MUST equal `sha256-` + manifest `artifacts[].sha256` for that artifact.
+- For each `byTarget` slot, `artifact` MUST match the manifest artifact filename for the resolved
+  version and install target id.
+- For each `byTarget` slot, `integrity` MUST equal `sha256-` + manifest `artifacts[].sha256` for
+  that artifact.
 
 ## Canonical JSON Example
 
 ```json
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 2,
   "resolvedRef": "v2.3.1",
   "packages": {
     "agents-repo/hello-agent": {
       "version": "1.0.0",
-      "target": "cursor",
-      "integrity": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "artifact": "1.0.0-cursor.zip"
+      "byTarget": {
+        "cursor": {
+          "integrity": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "artifact": "1.0.0-cursor.zip"
+        }
+      }
     }
   }
 }

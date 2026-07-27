@@ -23,7 +23,7 @@ describe('ConfigResolver', () => {
     expect(resolved.registry).toEqual(DEFAULT_REGISTRY_CONFIG)
     expect(resolved.packages).toEqual({})
     expect(resolved.global).toBe(false)
-    expect(resolved.target).toBeUndefined()
+    expect(resolved.targets).toBeUndefined()
   })
 
   it('applies AGENTS_REPO_REGISTRY_URL override', async () => {
@@ -88,7 +88,7 @@ describe('ConfigResolver', () => {
       stringifyJsonDocument({
         other: { enabled: true },
         '@agents-repo': {
-          target: 'cursor',
+          targets: ['cursor'],
           packages: { 'agents-repo/hello-agent': '^1.0.0' },
         },
       }),
@@ -96,7 +96,7 @@ describe('ConfigResolver', () => {
 
     const resolved = await resolver.resolve({ cwd, env: {} })
     expect(resolved.gateMode).toBe('namespace')
-    expect(resolved.target).toBe('cursor')
+    expect(resolved.targets).toEqual(['cursor'])
     expect(resolved.packages).toEqual({ 'agents-repo/hello-agent': '^1.0.0' })
   })
 
@@ -124,21 +124,21 @@ describe('ConfigResolver', () => {
     })
   })
 
-  it('waives dual_definition and prefers top-level target', async () => {
+  it('waives dual_definition and prefers top-level targets', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
     const configPath = path.join(cwd, 'agents.json')
     await writeFile(
       configPath,
       stringifyJsonDocument({
         schemaVersion: '1.0.0',
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
-        '@agents-repo': { target: 'claude-code' },
+        '@agents-repo': { targets: ['claude-code'] },
       }),
     )
 
     const resolved = await resolver.resolve({ cwd, env: {}, waiveConflicts: true })
-    expect(resolved.target).toBe('cursor')
+    expect(resolved.targets).toEqual(['cursor'])
     expect(resolved.warnings.some((entry) => entry.code === 'dual_definition_mismatch')).toBe(true)
   })
 
@@ -149,9 +149,9 @@ describe('ConfigResolver', () => {
       configPath,
       stringifyJsonDocument({
         schemaVersion: '1.0.0',
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
-        '@agents-repo': { target: 'claude-code' },
+        '@agents-repo': { targets: ['claude-code'] },
       }),
     )
 
@@ -195,7 +195,7 @@ describe('ConfigResolver', () => {
       stringifyJsonDocument({
         schemaVersion: '9.9.9',
         '@agents-repo': {
-          target: 'cursor',
+          targets: ['cursor'],
           packages: { 'agents-repo/hello-agent': '^1.0.0' },
         },
       }),
@@ -203,7 +203,7 @@ describe('ConfigResolver', () => {
 
     const resolved = await resolver.resolve({ cwd, env: {} })
     expect(resolved.gateMode).toBe('namespace')
-    expect(resolved.target).toBe('cursor')
+    expect(resolved.targets).toEqual(['cursor'])
     expect(resolved.packages).toEqual({ 'agents-repo/hello-agent': '^1.0.0' })
   })
 
@@ -220,6 +220,24 @@ describe('ConfigResolver', () => {
 
     await expect(resolver.resolve({ cwd, env: {} })).rejects.toMatchObject({
       code: 'type_mismatch',
+      exitCode: 3,
+    })
+  })
+
+  it('rejects deprecated managed target field', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-'))
+    const configPath = path.join(cwd, 'agents.json')
+    await writeFile(
+      configPath,
+      stringifyJsonDocument({
+        schemaVersion: '1.0.0',
+        target: 'cursor',
+        packages: {},
+      }),
+    )
+
+    await expect(resolver.resolve({ cwd, env: {} })).rejects.toMatchObject({
+      code: 'deprecated_field',
       exitCode: 3,
     })
   })

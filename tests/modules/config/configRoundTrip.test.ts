@@ -26,12 +26,12 @@ describe('config round-trip integration', () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-roundtrip-'))
     const configPath = path.join(cwd, 'agents.json')
 
-    const merged = merger.merge(null, { target: 'cursor' }, { gateMode: 'greenfield' })
+    const merged = merger.merge(null, { targets: ['cursor'] }, { gateMode: 'greenfield' })
     await repository.write(configPath, merged)
 
     const resolved = await resolver.resolve({ cwd, env: {} })
     expect(resolved.gateMode).toBe('top-level-ours')
-    expect(resolved.target).toBe('cursor')
+    expect(resolved.targets).toEqual(['cursor'])
     expect(resolved.packages).toEqual({})
   })
 
@@ -45,7 +45,7 @@ describe('config round-trip integration', () => {
 
     const merged = merger.merge(
       foreignOnlyConfig,
-      { target: 'cursor', packages: { 'agents-repo/hello-agent': '^1.0.0' } },
+      { targets: ['cursor'], packages: { 'agents-repo/hello-agent': '^1.0.0' } },
       { gateMode: 'namespace' },
     )
     await repository.write(configPath, merged)
@@ -54,7 +54,7 @@ describe('config round-trip integration', () => {
     expect(written.customTool).toEqual(foreignOnlyConfig.customTool)
     expect(written['@agents-repo']).toMatchObject({
       schemaVersion: '1.0.0',
-      target: 'cursor',
+      targets: ['cursor'],
       packages: { 'agents-repo/hello-agent': '^1.0.0' },
     })
     expect(written.schemaVersion).toBeUndefined()
@@ -67,7 +67,7 @@ describe('config round-trip integration', () => {
 
     const resolved = await resolver.resolve({ cwd, env: {} })
     expect(gate.determineMode(namespaceConfig)).toBe('namespace')
-    expect(resolved.target).toBe('cursor')
+    expect(resolved.targets).toEqual(['cursor'])
     expect(resolved.packages).toEqual({ 'agents-repo/hello-agent': '^1.0.0' })
   })
 
@@ -76,11 +76,11 @@ describe('config round-trip integration', () => {
     const configPath = path.join(cwd, 'agents.json')
     const document = {
       schemaVersion: '1.0.0',
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
       registry: { url: 'https://registry-proxy.maiconfz.workers.dev', ref: 'v2.x' },
       '@agents-repo': {
-        target: 'claude-code',
+        targets: ['claude-code'],
       },
     }
     await writeFile(configPath, stringifyJsonDocument(document))
@@ -91,6 +91,6 @@ describe('config round-trip integration', () => {
     })
 
     const resolved = await resolver.resolve({ cwd, env: {}, waiveConflicts: true })
-    expect(resolved.target).toBe('cursor')
+    expect(resolved.targets).toEqual(['cursor'])
   })
 })

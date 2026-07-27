@@ -67,8 +67,8 @@ Install MUST execute these steps in order:
 
 - Resolve schema gate per `config-schema.md`.
 - Apply `AGENTS_REPO_REGISTRY_URL` after file resolution.
-- Resolve install `targets` from config (`targets` or legacy `target`) or a single `--target`
-  override per [config-schema.md](config-schema.md). Install MUST NOT run target detection.
+- Resolve install `targets` from config `targets` or a single `--target` override per
+  [config-schema.md](config-schema.md). Install MUST NOT run target detection.
 - Missing resolved targets on install MUST exit `3`.
 - `install` and `update` MUST fan out across all resolved targets (targets × packages) unless
   `--target` overrides to a single id.

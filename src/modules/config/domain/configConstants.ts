@@ -6,14 +6,13 @@ export type SupportedConfigSchemaVersion = (typeof SUPPORTED_CONFIG_SCHEMA_VERSI
 
 export const LOCKFILE_VERSION = 2
 
-export const SUPPORTED_LOCKFILE_VERSIONS = [1, 2] as const
+export const SUPPORTED_LOCKFILE_VERSIONS = [2] as const
 
 export const AGENTS_REPO_NAMESPACE = '@agents-repo'
 
 export const CLI_MANAGED_KEYS = [
   'schemaVersion',
   'registry',
-  'target',
   'targets',
   'packages',
   'global',

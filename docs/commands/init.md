@@ -50,7 +50,7 @@ Foreign keys outside the active gate target are preserved.
 
 | Condition | Behavior |
 | --- | --- |
-| Existing managed targets (or legacy `target`), no CLI override | Unchanged (idempotent) |
+| Existing managed `targets`, no CLI override | Unchanged (idempotent) |
 | CLI override matches existing set | No change to targets |
 | CLI override differs from existing set, no `--force` | Exit `3` |
 | CLI override differs, with `--force` | Managed `targets` updated |
@@ -88,25 +88,28 @@ homonyms are foreign keys and dual-definition checks do not apply. With
 
 ## Examples
 
-Greenfield project with explicit target:
+Managed field `target` (single string) is rejected with exit `3` (`deprecated_field`);
+use `targets` only.
+
+Greenfield project with explicit targets:
 
 ```bash
 agents-repo init --target cursor
-# Created /path/to/project/agents.json (gate: greenfield, target: cursor)
+# Created /path/to/project/agents.json (gate: greenfield, targets: cursor)
 ```
 
 When conflicts are waived with `--yes`, the success line includes a warning count:
 
 ```bash
 agents-repo -y init --target cursor
-# Updated /path/to/project/agents.json (gate: top-level-ours, target: cursor, 1 warning(s))
+# Updated /path/to/project/agents.json (gate: top-level-ours, targets: cursor, 1 warning(s))
 ```
 
 Re-run on an existing config (no managed field changes):
 
 ```bash
 agents-repo init
-# Updated /path/to/project/agents.json (gate: top-level-ours, target: cursor)
+# Updated /path/to/project/agents.json (gate: top-level-ours, targets: cursor)
 ```
 
 Foreign-only `agents.json` (managed block added under `@agents-repo`):

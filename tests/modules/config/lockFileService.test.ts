@@ -56,13 +56,12 @@ describe('LockFileService', () => {
     await expect(service.read(lockPath)).resolves.toBeNull()
   })
 
-  it('reads and validates a valid v1 lock file into normalized v2 shape', async () => {
+  it('rejects lockfileVersion 1', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')
     await writeFile(lockPath, stringifyJsonDocument(v1LockOnDisk))
 
-    const document = await service.read(lockPath)
-    expect(document).toEqual(normalizedLockDocument)
+    await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
 
   it('reads and validates a valid v2 lock file', async () => {
@@ -104,7 +103,7 @@ describe('LockFileService', () => {
     await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
 
-  it('accepts a valid RFC 3339 resolved timestamp on v1 entries', async () => {
+  it('rejects lockfileVersion 1 even when package entry includes resolved timestamp', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')
     const lockWithResolved = {
@@ -118,8 +117,7 @@ describe('LockFileService', () => {
     }
     await writeFile(lockPath, stringifyJsonDocument(lockWithResolved))
 
-    const document = await service.read(lockPath)
-    expect(document).toEqual(normalizedLockDocument)
+    await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
 
   it('rejects invalid resolved timestamps', async () => {

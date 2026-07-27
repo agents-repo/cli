@@ -9,15 +9,12 @@ import { ConfigConflictError, ConfigValidationError } from '../domain/configErro
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import {
   isQualifiedPackageId,
-  isValidInstallTargetId,
   isValidSemverRange,
 } from '../domain/validators.js'
 import {
   installTargetSetsEqual,
   parseInstallTargetsArray,
-  resolveTargetsFromManaged,
 } from './resolveTargets.js'
-import { extractCliManagedConfig } from './cliManagedSlice.js'
 import { isPlainObject, valuesAreEqual } from '../infrastructure/jsonDocument.js'
 import { getActiveGateTarget, getNamespaceBlock } from './schemaGate.js'
 
@@ -73,7 +70,8 @@ export class ConflictDetector {
         (entry) =>
           entry.code === 'type_mismatch' ||
           entry.code === 'invalid_enum' ||
-          entry.code === 'invalid_semver_range',
+          entry.code === 'invalid_semver_range' ||
+          entry.code === 'deprecated_field',
       )
       if (validationErrors.length > 0) {
         throwConflictAsValidationError(validationErrors[0])
@@ -100,6 +98,16 @@ export class ConflictDetector {
     const errors: ConfigConflictRecord[] = []
     const prefix = gateMode === 'namespace' ? `${AGENTS_REPO_NAMESPACE}.` : ''
 
+    if ('target' in activeTarget) {
+      errors.push({
+        code: 'deprecated_field',
+        path: `${prefix}target`,
+        message:
+          'agents.json managed field "target" is deprecated; use "targets" array instead',
+        severity: 'error',
+      })
+    }
+
     for (const key of CLI_MANAGED_KEYS) {
       if (!(key in activeTarget)) {
         continue
@@ -112,13 +120,6 @@ export class ConflictDetector {
         case 'schemaVersion':
           if (typeof value !== 'string') {
             errors.push(typeMismatch(path, 'schemaVersion must be a string'))
-          }
-          break
-        case 'target':
-          if (typeof value !== 'string') {
-            errors.push(typeMismatch(path, 'target must be a string'))
-          } else if (!isValidInstallTargetId(value)) {
-            errors.push(invalidEnum(path, `target "${value}" is not a supported install target id`))
           }
           break
         case 'targets':
@@ -241,22 +242,6 @@ export class ConflictDetector {
       }
     }
 
-    const topTargets = safeResolveTargetsFromDocument(raw)
-    const namespaceTargets = safeResolveTargetsFromDocument(namespaceBlock)
-    if (
-      topTargets !== undefined &&
-      namespaceTargets !== undefined &&
-      !installTargetSetsEqual(topTargets, namespaceTargets) &&
-      !conflicts.some((entry) => entry.path === 'targets' || entry.path === 'target')
-    ) {
-      conflicts.push({
-        code: 'dual_definition_mismatch',
-        path: 'targets',
-        message: `incompatible install target sets at top level and ${AGENTS_REPO_NAMESPACE}`,
-        severity: 'error',
-      })
-    }
-
     return conflicts
   }
 
@@ -273,16 +258,6 @@ export class ConflictDetector {
     return [
       typeMismatch(AGENTS_REPO_NAMESPACE, '@agents-repo must be an object'),
     ]
-  }
-}
-
-const safeResolveTargetsFromDocument = (
-  document: Record<string, unknown>,
-): InstallTargetId[] | undefined => {
-  try {
-    return resolveTargetsFromManaged(extractCliManagedConfig(document))
-  } catch {
-    return undefined
   }
 }
 
@@ -311,9 +286,13 @@ const throwConflictAsValidationError = (conflict: ConfigConflictRecord): never =
   if (
     conflict.code === 'type_mismatch' ||
     conflict.code === 'invalid_enum' ||
-    conflict.code === 'invalid_semver_range'
+    conflict.code === 'invalid_semver_range' ||
+    conflict.code === 'deprecated_field'
   ) {
-    throw new ConfigValidationError(conflict.message, conflict.code)
+    throw new ConfigValidationError(
+      conflict.message,
+      conflict.code === 'deprecated_field' ? 'deprecated_field' : conflict.code,
+    )
   }
 
   throw new ConfigValidationError(conflict.message, 'type_mismatch')

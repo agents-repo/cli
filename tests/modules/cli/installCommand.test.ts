@@ -77,7 +77,7 @@ const writeInstallConfig = (cwd: string, baseUrl: string): void => {
     JSON.stringify({
       schemaVersion: '1.0.0',
       registry: { url: baseUrl, ref: 'v2.0.0' },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
     }),
   );
@@ -130,7 +130,7 @@ describe('install command subprocess', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     );
@@ -279,7 +279,7 @@ describe('install command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -309,7 +309,7 @@ describe('install command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -421,7 +421,7 @@ describe('install command subprocess with mock registry', () => {
     ).toEqual({
       schemaVersion: '1.0.0',
       registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
     });
   });
@@ -452,7 +452,7 @@ describe('install command subprocess with mock registry', () => {
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual({
       schemaVersion: '1.0.0',
       registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
     });
     expect(
@@ -511,7 +511,7 @@ describe('install command subprocess with mock registry', () => {
     const configBefore = {
       schemaVersion: '1.0.0',
       registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {
         'agents-repo/sample-agent': '^1.0.0',
         'agents-repo/other-agent': '^1.0.0',

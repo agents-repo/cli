@@ -40,7 +40,7 @@ index alias defined in `packages/index.json`.
 
 ### Prerequisites
 
-- Resolved `targets` (or legacy `target`) must be available from `agents.json`, or pass
+- Resolved `targets` must be available from `agents.json`, or pass
   `--target` for a single-target override. Without either, the command exits `3`.
 - Packages to update must already appear under `packages` in `agents.json`.
 

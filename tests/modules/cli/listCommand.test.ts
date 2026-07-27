@@ -119,21 +119,24 @@ describe('list command', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     );
     writeFileSync(
       path.join(cwd, 'agents-lock.json'),
       JSON.stringify({
-        lockfileVersion: 1,
+        lockfileVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/sample-agent': {
             version: '1.0.0',
-            target: 'cursor',
-            integrity: `sha256-${'a'.repeat(64)}`,
-            artifact: '1.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'a'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),
@@ -153,21 +156,24 @@ describe('list command', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     );
     writeFileSync(
       path.join(cwd, 'agents-lock.json'),
       JSON.stringify({
-        lockfileVersion: 1,
+        lockfileVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/sample-agent': {
             version: '1.0.0',
-            target: 'cursor',
-            integrity: `sha256-${'a'.repeat(64)}`,
-            artifact: '1.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'a'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),
@@ -195,14 +201,17 @@ describe('list command', () => {
     writeFileSync(
       path.join(globalDir, 'agents-global.json'),
       JSON.stringify({
-        stateVersion: 1,
+        stateVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/sample-agent': {
             version: '1.0.0',
-            target: 'cursor',
-            integrity: `sha256-${'b'.repeat(64)}`,
-            artifact: '1.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'b'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),
@@ -250,7 +259,7 @@ describe('list command subprocess', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     );

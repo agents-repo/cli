@@ -10,10 +10,16 @@ import { parseInstallTargetsArray } from './resolveTargets.js'
 export const extractCliManagedConfig = (
   activeTarget: Record<string, unknown>,
 ): CliManagedConfig => {
+  if ('target' in activeTarget) {
+    throw new ConfigValidationError(
+      'agents.json managed field "target" is deprecated; use "targets" array instead',
+      'deprecated_field',
+    )
+  }
+
   const managed: {
     schemaVersion?: string
     registry?: RegistryConfig
-    target?: InstallTargetId
     targets?: InstallTargetId[]
     packages?: Record<string, string>
     global?: boolean
@@ -21,10 +27,6 @@ export const extractCliManagedConfig = (
 
   if (typeof activeTarget.schemaVersion === 'string') {
     managed.schemaVersion = activeTarget.schemaVersion
-  }
-
-  if (typeof activeTarget.target === 'string') {
-    managed.target = activeTarget.target as InstallTargetId
   }
 
   if (activeTarget.targets !== undefined) {
