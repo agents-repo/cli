@@ -56,7 +56,8 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | --- | --- |
 | `--force` | Overwrite agents-repo-managed keys in the active schema gate target |
 | `--yes` / `-y` | Non-interactive merge; waive conflicts with warnings |
-| `--target <id>` | Set install target id |
+| `--targets <id...>` | Set one or more install target ids (canonical order on write) |
+| `--target <id...>` | Alias of `--targets` on `init` only |
 
 Merge semantics per `config-schema.md`.
 
@@ -65,7 +66,7 @@ Merge semantics per `config-schema.md`.
 | Flag | Description |
 | --- | --- |
 | `--global` / `-g` | Global extract scope; single-package: no project config/lock writes |
-| `--target <id>` | Override install target for this invocation |
+| `--target <id>` | Override install target (single id) for this invocation |
 | `--no-save` | Skip `agents.json` and lock writes |
 | `--dry-run` | Resolve only; no download, extract, or save |
 | `--yes` / `-y` | Non-interactive; waive conflicts with warnings |
@@ -89,7 +90,7 @@ global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bul
 | Flag | Description |
 | --- | --- |
 | `--global` / `-g` | Global extract scope; same lock/config rules as bulk `install` |
-| `--target <id>` | Override install target for this invocation |
+| `--target <id>` | Override install target (single id) for this invocation |
 | `--no-save` | Skip `agents.json` and lock writes |
 | `--dry-run` | Resolve only; no download, extract, or save |
 | `--yes` / `-y` | Non-interactive; waive conflicts with warnings |

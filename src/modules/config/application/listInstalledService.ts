@@ -4,6 +4,8 @@ import { ConfigResolver } from './configResolver.js'
 import { GlobalInstallStateService } from './globalInstallStateService.js'
 import { LockFileService } from './lockFileService.js'
 import type { PackageLockEntry } from '../domain/agentsLock.js'
+import { sortCanonicalInstallTargetIds } from '../domain/packageLockEntry.js'
+import type { InstallTargetId } from '../../registry/domain/package.js'
 import {
   resolveGlobalInstallConfigDir,
   resolveGlobalInstallStatePath,
@@ -14,7 +16,7 @@ export type ListInstallScope = 'project' | 'global'
 export interface ListedPackage {
   readonly id: string
   readonly version: string
-  readonly target: PackageLockEntry['target']
+  readonly target: InstallTargetId
   readonly integrity: string
   readonly artifact: string
   readonly range?: string
@@ -115,18 +117,32 @@ export class ListInstalledService {
     declaredRanges?: Record<string, string>,
   ): ListedPackage[] {
     const ids = Object.keys(entries).sort((left, right) => left.localeCompare(right))
+    const listed: ListedPackage[] = []
 
-    return ids.map((id) => {
+    for (const id of ids) {
       const entry = entries[id]
-      const range = declaredRanges?.[id]
-      return {
-        id,
-        version: entry.version,
-        target: entry.target,
-        integrity: entry.integrity,
-        artifact: entry.artifact,
-        ...(range === undefined ? {} : { range }),
+      const targetIds = sortCanonicalInstallTargetIds(
+        Object.keys(entry.byTarget) as InstallTargetId[],
+      )
+
+      for (const target of targetIds) {
+        const slot = entry.byTarget[target]
+        if (slot === undefined) {
+          continue
+        }
+
+        const range = declaredRanges?.[id]
+        listed.push({
+          id,
+          version: entry.version,
+          target,
+          integrity: slot.integrity,
+          artifact: slot.artifact,
+          ...(range === undefined ? {} : { range }),
+        })
       }
-    })
+    }
+
+    return listed
   }
 }

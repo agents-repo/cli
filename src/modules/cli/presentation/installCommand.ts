@@ -9,7 +9,6 @@ import {
   collectInstallResultWarnings,
   writeBulkInstallResultSuccess,
   writeInstallResultWarnings,
-  writeSingleInstallResultSuccess,
 } from './installResultOutput.js';
 
 export interface InstallCommandOptions {
@@ -53,13 +52,14 @@ export const registerInstallCommand = (program: Command): void => {
         }
 
         const service = new InstallService();
-        const result = await service.run({
+        const results = await service.run({
           packageId,
           ...runOptions,
         });
 
-        writeInstallResultWarnings(result.warnings, globals.json);
-        writeSingleInstallResultSuccess(result, globals.json, INSTALL_RESULT_ACTION_LABELS);
+        const warnings = collectInstallResultWarnings(results);
+        writeInstallResultWarnings(warnings, globals.json);
+        writeBulkInstallResultSuccess(results, globals.json, INSTALL_RESULT_ACTION_LABELS);
       } catch (error) {
         handleCliError(error);
       }

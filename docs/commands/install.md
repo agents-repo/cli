@@ -37,9 +37,14 @@ index alias defined in `packages/index.json`.
 
 ### Prerequisites
 
-- An install target must be available from `agents.json` or `--target`. Without
-  either, the command exits `3`.
-- Run `agents-repo init --target <id>` first when starting from an empty project.
+- Resolved `targets` (or legacy `target`) must be available from `agents.json`, or pass
+  `--target` for a single-target override. Without either, the command exits `3`.
+- Run `agents-repo init --targets <id...>` when starting from an empty project.
+
+### Multi-target fan-out
+
+When `agents.json` lists multiple `targets`, `install` (and `update`) installs each configured
+package once per target, updating lock/global `byTarget` slots. `--target` limits the run to one id.
 
 ### Version selection
 

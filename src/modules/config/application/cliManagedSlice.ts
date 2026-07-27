@@ -5,6 +5,7 @@ import { ConfigValidationError } from '../domain/configErrors.js'
 import type { CliManagedConfig } from '../domain/agentsConfig.js'
 import { isPlainObject } from '../infrastructure/jsonDocument.js'
 import { getRegistryRefDefault, getRegistryUrlAlias } from './schemaGate.js'
+import { parseInstallTargetsArray } from './resolveTargets.js'
 
 export const extractCliManagedConfig = (
   activeTarget: Record<string, unknown>,
@@ -13,6 +14,7 @@ export const extractCliManagedConfig = (
     schemaVersion?: string
     registry?: RegistryConfig
     target?: InstallTargetId
+    targets?: InstallTargetId[]
     packages?: Record<string, string>
     global?: boolean
   } = {}
@@ -23,6 +25,10 @@ export const extractCliManagedConfig = (
 
   if (typeof activeTarget.target === 'string') {
     managed.target = activeTarget.target as InstallTargetId
+  }
+
+  if (activeTarget.targets !== undefined) {
+    managed.targets = parseInstallTargetsArray(activeTarget.targets, 'targets')
   }
 
   if (typeof activeTarget.global === 'boolean') {

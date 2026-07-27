@@ -52,7 +52,9 @@ export class ConfigMerger {
       packages: patch.packages ?? {},
     }
 
-    if (patch.target !== undefined) {
+    if (patch.targets !== undefined) {
+      document.targets = patch.targets
+    } else if (patch.target !== undefined) {
       document.target = patch.target
     }
     if (patch.global !== undefined) {
@@ -81,6 +83,11 @@ export class ConfigMerger {
 
     if (patch.target !== undefined) {
       document.target = this.mergeScalar(document.target, patch.target, force)
+    }
+
+    if (patch.targets !== undefined) {
+      document.targets = patch.targets
+      delete document.target
     }
 
     if (patch.global !== undefined) {
@@ -127,6 +134,11 @@ export class ConfigMerger {
 
     if (patch.target !== undefined) {
       result.target = this.mergeScalar(result.target, patch.target, force)
+    }
+
+    if (patch.targets !== undefined) {
+      result.targets = patch.targets
+      delete result.target
     }
 
     if (patch.global !== undefined) {

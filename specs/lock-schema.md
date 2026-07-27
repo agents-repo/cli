@@ -13,11 +13,11 @@ RFC 2119.
 
 | Version | Applies To | Status | Notes |
 | --- | --- | --- | --- |
-| `1` | lockfileVersion | current | Initial release |
+| `1` | lockfileVersion | read-only | Flat per-package entry (`target`, `integrity`, `artifact`) |
+| `2` | lockfileVersion | current | `byTarget` map per package; write format |
 
-MVP implementations MUST support `lockfileVersion` `1` only. Tooling MUST reject lock files whose
-`lockfileVersion` is outside its supported set (exit `3`). When this table lists a newer version
-and the implementation explicitly supports it, tooling MAY accept that version.
+Tooling MUST read `lockfileVersion` `1` and `2`. New lock files MUST use `lockfileVersion` `2`.
+Tooling MUST reject lock files whose `lockfileVersion` is outside its supported set (exit `3`).
 
 ## Purpose
 
@@ -35,15 +35,37 @@ pairs with `agents.json` and SHOULD be committed to VCS.
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `lockfileVersion` | integer | yes | MUST be `1` for new lock files |
+| `lockfileVersion` | integer | yes | MUST be `2` for new lock files |
 | `resolvedRef` | string | yes | Concrete registry git ref after alias resolution |
-| `packages` | object | yes | Map qualified id → lock entry; see [Package Lock Entry](#package-lock-entry) |
+| `packages` | object | yes | Map qualified id → lock entry; see below |
 
 `resolvedRef` MUST be the concrete ref (e.g. `v2.3.1`), not a major-line alias (e.g. `v2.x`).
 
-## Package Lock Entry
+## Package Lock Entry (lockfileVersion 2)
 
 Each entry in `packages` MUST be an object with:
+
+| Field | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `version` | string | yes | Exact resolved semver (`MAJOR.MINOR.PATCH`) shared by all slots |
+| `byTarget` | object | yes | Map install target id → slot; see [Target slot](#target-slot) |
+
+### Target slot
+
+| Field | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `integrity` | string | yes | `sha256-<64-char-lowercase-hex>` |
+| `artifact` | string | yes | Artifact filename (e.g. `1.0.0-cursor.zip`) |
+
+`byTarget` keys MUST be valid install target ids. On write, keys SHOULD be serialized in canonical
+install-target order.
+
+### lockfileVersion 1 (read-only)
+
+v1 entries used flat fields `target`, `integrity`, and `artifact` at the package entry level.
+On read, tooling MUST normalize v1 entries into v2 `byTarget` shape in memory and write v2 on save.
+
+Legacy v1 fields at package level (read-only):
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |

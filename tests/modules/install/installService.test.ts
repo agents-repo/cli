@@ -123,10 +123,11 @@ describe('InstallService', () => {
     mockRegistryFetch(manifest, { zipBytes })
 
     const service = new InstallService()
-    const result = await service.run({
+    const results = await service.run({
       cwd,
       packageId: 'agents-repo/sample-agent',
     })
+    const result = results[0]
 
     expect(result.saved).toBe(true)
     expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
@@ -140,10 +141,12 @@ describe('InstallService', () => {
 
     const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
       resolvedRef: string
-      packages: Record<string, { integrity: string }>
+      packages: Record<string, { byTarget: Record<string, { integrity: string }> }>
     }
     expect(lock.resolvedRef).toBe('v2.0.0')
-    expect(lock.packages['agents-repo/sample-agent'].integrity).toBe(`sha256-${sha256}`)
+    expect(lock.packages['agents-repo/sample-agent'].byTarget.cursor.integrity).toBe(
+      `sha256-${sha256}`,
+    )
   })
 
   it('stops before download on dry-run', async () => {
@@ -176,11 +179,12 @@ describe('InstallService', () => {
     })
 
     const service = new InstallService()
-    const result = await service.run({
+    const results = await service.run({
       cwd,
       packageId: 'agents-repo/sample-agent',
       dryRun: true,
     })
+    const result = results[0]
 
     expect(result.dryRun).toBe(true)
     expect(result.artifactUrl).toContain('1.0.0-cursor.zip')
@@ -265,11 +269,12 @@ describe('InstallService', () => {
     })
 
     const service = new InstallService()
-    const result = await service.run({
+    const results = await service.run({
       cwd,
       packageId: 'agents-repo/sample-agent',
       dryRun: true,
     })
+    const result = results[0]
 
     expect(result.warnings.some((warning) => warning.includes('deprecated'))).toBe(true)
   })
@@ -308,11 +313,12 @@ describe('InstallService', () => {
     })
 
     const service = new InstallService()
-    const result = await service.run({
+    const results = await service.run({
       cwd,
       packageId: 'agents-repo/sample-agent',
       noSave: true,
     })
+    const result = results[0]
 
     expect(result.saved).toBe(false)
     expect(result.noSave).toBe(true)

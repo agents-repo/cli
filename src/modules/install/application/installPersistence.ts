@@ -1,6 +1,6 @@
 import { LOCKFILE_VERSION } from '../../config/domain/configConstants.js'
 import type { ResolvedAgentsConfig } from '../../config/domain/agentsConfig.js'
-import type { AgentsLockDocument, PackageLockEntry } from '../../config/domain/agentsLock.js'
+import type { AgentsLockDocument } from '../../config/domain/agentsLock.js'
 import { ConfigMerger } from '../../config/application/configMerger.js'
 import { GlobalInstallStateService } from '../../config/application/globalInstallStateService.js'
 import { LockFileService } from '../../config/application/lockFileService.js'
@@ -8,6 +8,7 @@ import { resolveGlobalInstallStatePath } from '../../config/infrastructure/globa
 import { AgentsJsonRepository } from '../../config/infrastructure/agentsJsonRepository.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import type { ManifestArtifact } from '../../registry/domain/manifest.js'
+import type { NormalizedPackageLockEntry } from '../../config/domain/packageLockEntry.js'
 import { assertResolvableLockRef } from './resolveLockRef.js'
 
 export interface InstallPersistenceInput {
@@ -56,107 +57,102 @@ export class InstallPersistence {
   private readonly globalInstallStateService = new GlobalInstallStateService()
 
   async save(input: InstallPersistenceInput): Promise<void> {
-    assertResolvableLockRef(input.resolvedRef)
-
-    const patch: {
-      target?: InstallTargetId
-      registry?: ResolvedAgentsConfig['registry']
-      packages?: Record<string, string>
-    } = {}
-
-    if (input.adHocInstall) {
-      patch.packages = { [input.packageId]: `^${input.version}` }
-    }
-
-    if (input.resolved.rawDocument === null) {
-      patch.registry = input.resolved.registry
-      patch.target = input.target
-      if (patch.packages === undefined) {
-        patch.packages = { [input.packageId]: `^${input.version}` }
-      }
-    } else if (input.resolved.target === undefined) {
-      patch.target = input.target
-    }
-
-    const merged = this.configMerger.merge(input.resolved.rawDocument, patch, {
-      gateMode: input.resolved.gateMode,
-      force: true,
-    })
-
-    const existingLock = await this.lockFileService.read(input.resolved.lockPath)
-    const lockEntry: PackageLockEntry = {
-      version: input.version,
-      target: input.target,
-      integrity: this.lockFileService.formatIntegrity(input.artifact.sha256),
-      artifact: input.artifact.file,
-    }
-
-    const lockDocument: AgentsLockDocument = {
-      lockfileVersion: LOCKFILE_VERSION,
+    await this.saveBulk({
+      resolved: input.resolved,
       resolvedRef: input.resolvedRef,
-      packages: {
-        ...(existingLock?.packages ?? {}),
-        [input.packageId]: lockEntry,
-      },
-    }
-
-    await this.agentsJsonRepository.write(input.resolved.configPath, merged)
-    await this.lockFileService.write(input.resolved.lockPath, lockDocument)
+      entries: [
+        {
+          packageId: input.packageId,
+          version: input.version,
+          target: input.target,
+          artifact: input.artifact,
+        },
+      ],
+      writeLock: true,
+      adHocInstallPackageId: input.adHocInstall ? input.packageId : undefined,
+      adHocInstallVersion: input.adHocInstall ? input.version : undefined,
+      configTargetOverride:
+        input.resolved.targets === undefined ? [input.target] : undefined,
+    })
   }
 
   async saveGlobal(input: GlobalInstallPersistenceInput): Promise<void> {
-    assertResolvableLockRef(input.resolvedRef)
-
-    const statePath = resolveGlobalInstallStatePath(input.env ?? process.env)
-    const lockEntry: PackageLockEntry = {
-      version: input.version,
-      target: input.target,
-      integrity: this.lockFileService.formatIntegrity(input.artifact.sha256),
-      artifact: input.artifact.file,
-    }
-
-    await this.globalInstallStateService.upsertPackages(statePath, input.resolvedRef, [
-      { packageId: input.packageId, entry: lockEntry },
-    ])
+    await this.saveGlobalBulk({
+      env: input.env,
+      resolvedRef: input.resolvedRef,
+      entries: [
+        {
+          packageId: input.packageId,
+          version: input.version,
+          target: input.target,
+          artifact: input.artifact,
+        },
+      ],
+    })
   }
 
   async saveGlobalBulk(input: GlobalBulkInstallPersistenceInput): Promise<void> {
     assertResolvableLockRef(input.resolvedRef)
 
     const statePath = resolveGlobalInstallStatePath(input.env ?? process.env)
-    const entries = input.entries.map((entry) => ({
-      packageId: entry.packageId,
-      entry: {
-        version: entry.version,
-        target: entry.target,
-        integrity: this.lockFileService.formatIntegrity(entry.artifact.sha256),
-        artifact: entry.artifact.file,
-      } satisfies PackageLockEntry,
-    }))
+    const existing = await this.globalInstallStateService.read(statePath)
+    const packages: Record<string, NormalizedPackageLockEntry> = { ...(existing?.packages ?? {}) }
 
-    await this.globalInstallStateService.upsertPackages(statePath, input.resolvedRef, entries)
+    for (const entry of input.entries) {
+      packages[entry.packageId] = this.globalInstallStateService.mergePackageEntry(
+        packages[entry.packageId],
+        entry.target,
+        entry.version,
+        this.lockFileService.formatIntegrity(entry.artifact.sha256),
+        entry.artifact.file,
+      )
+    }
+
+    await this.globalInstallStateService.upsertPackages(statePath, input.resolvedRef, Object.entries(packages).map(([packageId, entry]) => ({
+      packageId,
+      entry,
+    })))
   }
 
-  async saveBulk(input: BulkInstallPersistenceInput): Promise<void> {
-    const targetFromEntries = input.entries[0]?.target
-    const hasTargetFromEntries = input.entries.length > 0
+  async saveBulk(
+    input: BulkInstallPersistenceInput & {
+      readonly adHocInstallPackageId?: string
+      readonly adHocInstallVersion?: string
+      readonly configTargetOverride?: InstallTargetId[]
+    },
+  ): Promise<void> {
+    if (input.writeLock) {
+      assertResolvableLockRef(input.resolvedRef)
+      await this.lockFileService.read(input.resolved.lockPath)
+    }
+
     const shouldWriteConfig =
       input.resolved.rawDocument === null ||
-      (input.resolved.target === undefined && hasTargetFromEntries)
+      input.resolved.targets === undefined ||
+      input.adHocInstallPackageId !== undefined
 
     if (shouldWriteConfig) {
       const patch: {
-        target?: InstallTargetId
+        targets?: InstallTargetId[]
         registry?: ResolvedAgentsConfig['registry']
         packages?: Record<string, string>
       } = {}
 
       if (input.resolved.rawDocument === null) {
         patch.registry = input.resolved.registry
-        patch.target = input.resolved.target ?? targetFromEntries
-        patch.packages = input.resolved.packages
-      } else if (input.resolved.target === undefined && hasTargetFromEntries) {
-        patch.target = targetFromEntries
+        if (input.configTargetOverride !== undefined) {
+          patch.targets = input.configTargetOverride
+        } else if (input.resolved.targets !== undefined) {
+          patch.targets = input.resolved.targets
+        }
+        patch.packages = { ...input.resolved.packages }
+        if (input.adHocInstallPackageId !== undefined && input.adHocInstallVersion !== undefined) {
+          patch.packages[input.adHocInstallPackageId] = `^${input.adHocInstallVersion}`
+        }
+      } else if (input.adHocInstallPackageId !== undefined && input.adHocInstallVersion !== undefined) {
+        patch.packages = { [input.adHocInstallPackageId]: `^${input.adHocInstallVersion}` }
+      } else if (input.resolved.targets === undefined && input.configTargetOverride !== undefined) {
+        patch.targets = input.configTargetOverride
       }
 
       const merged = this.configMerger.merge(input.resolved.rawDocument, patch, {
@@ -171,18 +167,18 @@ export class InstallPersistence {
       return
     }
 
-    assertResolvableLockRef(input.resolvedRef)
-
     const existingLock = await this.lockFileService.read(input.resolved.lockPath)
     const packages: AgentsLockDocument['packages'] = { ...(existingLock?.packages ?? {}) }
 
     for (const entry of input.entries) {
-      packages[entry.packageId] = {
-        version: entry.version,
-        target: entry.target,
-        integrity: this.lockFileService.formatIntegrity(entry.artifact.sha256),
-        artifact: entry.artifact.file,
-      }
+      const prior = packages[entry.packageId]
+      packages[entry.packageId] = this.lockFileService.mergePackageEntry(
+        prior,
+        entry.target,
+        entry.version,
+        this.lockFileService.formatIntegrity(entry.artifact.sha256),
+        entry.artifact.file,
+      )
     }
 
     const lockDocument: AgentsLockDocument = {

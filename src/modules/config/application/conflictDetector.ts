@@ -6,11 +6,18 @@ import {
 import type { SchemaGateMode, AgentsConfigDocument } from '../domain/agentsConfig.js'
 import type { ConfigConflictRecord } from '../domain/configErrors.js'
 import { ConfigConflictError, ConfigValidationError } from '../domain/configErrors.js'
+import type { InstallTargetId } from '../../registry/domain/package.js'
 import {
   isQualifiedPackageId,
   isValidInstallTargetId,
   isValidSemverRange,
 } from '../domain/validators.js'
+import {
+  installTargetSetsEqual,
+  parseInstallTargetsArray,
+  resolveTargetsFromManaged,
+} from './resolveTargets.js'
+import { extractCliManagedConfig } from './cliManagedSlice.js'
 import { isPlainObject, valuesAreEqual } from '../infrastructure/jsonDocument.js'
 import { getActiveGateTarget, getNamespaceBlock } from './schemaGate.js'
 
@@ -114,6 +121,9 @@ export class ConflictDetector {
             errors.push(invalidEnum(path, `target "${value}" is not a supported install target id`))
           }
           break
+        case 'targets':
+          errors.push(...this.validateTargetsArray(value, path))
+          break
         case 'global':
           if (typeof value !== 'boolean') {
             errors.push(typeMismatch(path, 'global must be a boolean'))
@@ -177,6 +187,29 @@ export class ConflictDetector {
     return errors
   }
 
+  private validateTargetsArray(value: unknown, path: string): ConfigConflictRecord[] {
+    try {
+      parseInstallTargetsArray(value, path)
+      return []
+    } catch (error) {
+      if (error instanceof ConfigValidationError) {
+        const code =
+          error.code === 'type_mismatch' || error.code === 'invalid_enum'
+            ? error.code
+            : 'invalid_enum'
+        return [
+          {
+            code,
+            path,
+            message: error.message,
+            severity: 'error',
+          },
+        ]
+      }
+      throw error
+    }
+  }
+
   private detectDualDefinitionMismatches(raw: AgentsConfigDocument): ConfigConflictRecord[] {
     const namespaceBlock = getNamespaceBlock(raw)
     if (!namespaceBlock) {
@@ -191,7 +224,14 @@ export class ConflictDetector {
 
       const topLevelValue = raw[key]
       const namespaceValue = namespaceBlock[key]
-      if (!valuesAreEqual(topLevelValue, namespaceValue)) {
+      const mismatch =
+        key === 'targets' && Array.isArray(topLevelValue) && Array.isArray(namespaceValue)
+          ? !installTargetSetsEqual(
+              topLevelValue as InstallTargetId[],
+              namespaceValue as InstallTargetId[],
+            )
+          : !valuesAreEqual(topLevelValue, namespaceValue)
+      if (mismatch) {
         conflicts.push({
           code: 'dual_definition_mismatch',
           path: key,
@@ -199,6 +239,22 @@ export class ConflictDetector {
           severity: 'error',
         })
       }
+    }
+
+    const topTargets = safeResolveTargetsFromDocument(raw)
+    const namespaceTargets = safeResolveTargetsFromDocument(namespaceBlock)
+    if (
+      topTargets !== undefined &&
+      namespaceTargets !== undefined &&
+      !installTargetSetsEqual(topTargets, namespaceTargets) &&
+      !conflicts.some((entry) => entry.path === 'targets' || entry.path === 'target')
+    ) {
+      conflicts.push({
+        code: 'dual_definition_mismatch',
+        path: 'targets',
+        message: `incompatible install target sets at top level and ${AGENTS_REPO_NAMESPACE}`,
+        severity: 'error',
+      })
     }
 
     return conflicts
@@ -217,6 +273,16 @@ export class ConflictDetector {
     return [
       typeMismatch(AGENTS_REPO_NAMESPACE, '@agents-repo must be an object'),
     ]
+  }
+}
+
+const safeResolveTargetsFromDocument = (
+  document: Record<string, unknown>,
+): InstallTargetId[] | undefined => {
+  try {
+    return resolveTargetsFromManaged(extractCliManagedConfig(document))
+  } catch {
+    return undefined
   }
 }
 

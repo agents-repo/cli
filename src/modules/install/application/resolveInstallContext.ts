@@ -1,17 +1,16 @@
 import { ConfigResolver } from '../../config/application/configResolver.js'
-import { ConfigValidationError } from '../../config/domain/configErrors.js'
-import { isValidInstallTargetId } from '../../config/domain/validators.js'
 import type { ResolvedAgentsConfig } from '../../config/domain/agentsConfig.js'
-import type { InstallTargetId } from '../../registry/domain/package.js'
 import { loadRegistryCatalog } from '../../registry/infrastructure/registryRepository.js'
 import type { RegistryCatalogLoadResult } from '../../registry/infrastructure/registryRepository.js'
+import type { InstallTargetId } from '../../registry/domain/package.js'
+import { resolveInstallTargets } from './resolveInstallTargets.js'
 import { resolveInstallScope, type InstallScope } from './installScope.js'
 
 export interface ResolvedInstallContext {
   readonly cwd: string
   readonly env: NodeJS.ProcessEnv
   readonly resolved: ResolvedAgentsConfig
-  readonly target: InstallTargetId
+  readonly targets: readonly InstallTargetId[]
   readonly scope: InstallScope
   readonly warnings: string[]
   readonly catalogResult: RegistryCatalogLoadResult
@@ -26,19 +25,7 @@ export const buildInstallContext = async (options: {
 }): Promise<ResolvedInstallContext> => {
   const warnings = options.resolved.warnings.map((warning) => warning.message)
 
-  const effectiveTargetInput = options.targetOverride ?? options.resolved.target
-  if (effectiveTargetInput === undefined) {
-    throw new ConfigValidationError('Install target is required but missing from config', 'missing_target')
-  }
-
-  if (!isValidInstallTargetId(effectiveTargetInput)) {
-    throw new ConfigValidationError(
-      `Invalid install target id: ${effectiveTargetInput}`,
-      'invalid_enum',
-    )
-  }
-
-  const target = effectiveTargetInput
+  const targets = resolveInstallTargets(options.resolved, options.targetOverride)
   const scope = resolveInstallScope({
     cwd: options.cwd,
     env: options.env,
@@ -53,7 +40,7 @@ export const buildInstallContext = async (options: {
     cwd: options.cwd,
     env: options.env,
     resolved: options.resolved,
-    target,
+    targets,
     scope,
     warnings,
     catalogResult,

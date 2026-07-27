@@ -7,16 +7,20 @@ import { handleCliError } from './cliErrorHandling.js';
 
 export interface InitCommandOptions {
   readonly force?: boolean;
-  readonly target?: string;
+  readonly target?: string[];
+  readonly targets?: string[];
   readonly yes?: boolean;
 }
 
 const formatInitSuccess = (result: InitResult): string => {
-  const targetLabel = result.target ?? '(unchanged)';
+  const targetLabel =
+    result.targets === undefined || result.targets.length === 0
+      ? '(unchanged)'
+      : result.targets.join(', ');
   const action = result.created ? 'Created' : 'Updated';
   const warningSuffix =
     result.warnings.length > 0 ? `, ${result.warnings.length} warning(s)` : '';
-  return `${action} ${result.configPath} (gate: ${result.gateMode}, target: ${targetLabel}${warningSuffix})`;
+  return `${action} ${result.configPath} (gate: ${result.gateMode}, targets: ${targetLabel}${warningSuffix})`;
 };
 
 const writeInitWarnings = (warnings: InitResult['warnings']): void => {
@@ -25,12 +29,20 @@ const writeInitWarnings = (warnings: InitResult['warnings']): void => {
   }
 };
 
+const mergeCliTargetIds = (options: InitCommandOptions): string[] | undefined => {
+  const fromTargets = options.targets ?? [];
+  const fromTarget = options.target ?? [];
+  const merged = [...fromTargets, ...fromTarget];
+  return merged.length === 0 ? undefined : merged;
+};
+
 export const registerInitCommand = (program: Command): void => {
   program
     .command('init')
     .description('Initialize agents.json in the current project')
     .option('--force', 'Overwrite agents-repo-managed keys in the active schema gate target')
-    .option('--target <id>', 'Set install target id')
+    .option('--targets <ids...>', 'Set one or more install target ids')
+    .option('--target <ids...>', 'Alias for --targets on init')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
     .action(async function initAction(this: Command, options: InitCommandOptions) {
       const globals = getCliGlobals();
@@ -40,7 +52,7 @@ export const registerInitCommand = (program: Command): void => {
         const service = new InitService();
         const result = await service.run({
           force: options.force ?? false,
-          target: options.target,
+          targetIds: mergeCliTargetIds(options),
           yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
           verbose: globals.verbose,
         });

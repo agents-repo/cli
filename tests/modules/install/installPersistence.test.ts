@@ -107,7 +107,7 @@ describe('InstallPersistence', () => {
       packages: Record<string, { version: string }>
     }
 
-    expect(config.target).toBe('cursor')
+    expect(config.targets).toEqual(['cursor'])
     expect(config.packages).toEqual({ 'agents-repo/sample-agent': '^1.0.0' })
     expect(lock.resolvedRef).toBe('v2.0.0')
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0')

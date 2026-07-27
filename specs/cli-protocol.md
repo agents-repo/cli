@@ -67,9 +67,11 @@ Install MUST execute these steps in order:
 
 - Resolve schema gate per `config-schema.md`.
 - Apply `AGENTS_REPO_REGISTRY_URL` after file resolution.
-- Resolve install `target` from config, `--target` flag, or detection during
-  `init` only per [target-detection.md](target-detection.md).
-- Missing `target` on install MUST exit `3`.
+- Resolve install `targets` from config (`targets` or legacy `target`) or a single `--target`
+  override per [config-schema.md](config-schema.md). Install MUST NOT run target detection.
+- Missing resolved targets on install MUST exit `3`.
+- `install` and `update` MUST fan out across all resolved targets (targets × packages) unless
+  `--target` overrides to a single id.
 
 ### 2. Resolve registry ref
 
@@ -157,9 +159,8 @@ Behavior depends on [install scope](#install-scope). Skip when `--no-save` or `-
 - Write CLI-managed fields to the active schema gate target per `config-schema.md` (top-level for
   greenfield/top-level-ours; `"@agents-repo"` only for namespace mode).
 - On greenfield file create, MUST persist `schemaVersion: "1.0.0"`, resolved `registry`, resolved
-  `target`, and `packages` (npm create-on-install parity for in-memory defaults).
-- Add or update `packages[<id>]` (`^<resolved-version>` for ad-hoc installs).
-- Add or update lock entry per `lock-schema.md`.
+  `targets` (or `targets: [<override>]` when `--target` was used on ad-hoc install), and `packages`.
+- Add or update lock entry per `lock-schema.md` (v2 `byTarget`; merge per target slot).
 
 **Global scope**:
 
@@ -167,8 +168,8 @@ Behavior depends on [install scope](#install-scope). Skip when `--no-save` or `-
   ad-hoc `packages` write).
 - Bulk `install` with `global: true` MAY update `packages` in the active gate target but MUST NOT
   update the project lock (see [Config and Lock Writes](#config-and-lock-writes)).
-- Upsert `agents-global.json` per `global-install-state.md` for each installed package (same lock
-  entry fields: version, target, integrity, artifact).
+- Upsert `agents-global.json` per `global-install-state.md` for each installed package (lock v2
+  `byTarget` shape; merge per target slot).
 
 ## Config and Lock Writes
 

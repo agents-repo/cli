@@ -362,14 +362,12 @@ describe('install command subprocess with mock registry', () => {
     expect(result.status).toBe(0);
 
     const payload = JSON.parse(result.stdout.trim()) as {
-      packageId: string;
-      dryRun: boolean;
-      saved: boolean;
+      packages: Array<{ packageId: string; dryRun: boolean; saved: boolean }>;
       warnings: string[];
     };
-    expect(payload.packageId).toBe('agents-repo/sample-agent');
-    expect(payload.dryRun).toBe(true);
-    expect(payload.saved).toBe(false);
+    expect(payload.packages[0]?.packageId).toBe('agents-repo/sample-agent');
+    expect(payload.packages[0]?.dryRun).toBe(true);
+    expect(payload.packages[0]?.saved).toBe(false);
     expect(payload.warnings).toEqual([]);
     expect(result.stderr).not.toMatch(/^warning:/m);
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();

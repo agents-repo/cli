@@ -100,7 +100,7 @@ describe('InstallService persistence rollback', () => {
       return Promise.resolve(new Response('not found', { status: 404 }))
     })
 
-    vi.spyOn(InstallPersistence.prototype, 'save').mockRejectedValue(new Error('disk full'))
+    vi.spyOn(InstallPersistence.prototype, 'saveBulk').mockRejectedValue(new Error('disk full'))
 
     const service = new InstallService()
 

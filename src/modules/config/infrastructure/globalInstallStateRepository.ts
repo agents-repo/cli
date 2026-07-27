@@ -4,6 +4,7 @@ import path from 'node:path'
 import type { GlobalInstallStateDocument } from '../domain/agentsGlobalState.js'
 import { AGENTS_GLOBAL_STATE_FILENAME } from '../domain/configConstants.js'
 import { ConfigParseError } from '../domain/configErrors.js'
+import { serializePackageLockEntryV2 } from '../domain/packageLockEntry.js'
 import { parseJsonDocument, stringifyJsonDocument } from './jsonDocument.js'
 
 export class GlobalInstallStateRepository {
@@ -41,13 +42,7 @@ const sortStatePackages = (document: GlobalInstallStateDocument): Record<string,
   )
   const packages: Record<string, unknown> = {}
   for (const key of sortedPackageKeys) {
-    const entry = document.packages[key]
-    packages[key] = {
-      version: entry.version,
-      target: entry.target,
-      integrity: entry.integrity,
-      artifact: entry.artifact,
-    }
+    packages[key] = serializePackageLockEntryV2(document.packages[key])
   }
 
   return {

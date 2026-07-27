@@ -12,10 +12,10 @@ RFC 2119.
 
 | Version | Applies To | Status | Notes |
 | --- | --- | --- | --- |
-| `1` | stateVersion | current | Initial release |
+| `1` | stateVersion | read-only | Flat package entry (lock v1 shape) |
+| `2` | stateVersion | current | Same package entry shape as lock v2 (`byTarget`) |
 
-MVP implementations MUST support `stateVersion` `1` only. Tooling MUST reject state files whose
-`stateVersion` is outside its supported set (exit `3`).
+Tooling MUST read `stateVersion` `1` and `2`. New state files MUST use `stateVersion` `2`.
 
 ## Purpose
 
@@ -36,7 +36,7 @@ install runs again with saves enabled.
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `stateVersion` | integer | yes | MUST be `1` for new state files |
+| `stateVersion` | integer | yes | MUST be `2` for new state files |
 | `resolvedRef` | string | yes | Concrete registry git ref after alias resolution |
 | `packages` | object | yes | Map qualified id → package entry; see [Package Entry](#package-entry) |
 
@@ -44,8 +44,8 @@ install runs again with saves enabled.
 
 ## Package Entry
 
-Each entry in `packages` MUST match the package lock entry shape in `lock-schema.md` (`version`,
-`target`, `integrity`, `artifact`; optional `resolved` omitted in MVP).
+Each entry in `packages` MUST match the lock v2 package entry shape in `lock-schema.md` (`version`,
+`byTarget` with per-target `integrity` and `artifact`).
 
 ## Behavioral Rules
 

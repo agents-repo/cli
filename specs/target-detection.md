@@ -96,8 +96,9 @@ Status semantics:
 | `single` | Exactly one target detected | MUST equal the detected id |
 | `ambiguous` | Two or more targets detected | MUST be absent |
 
-Tooling MUST NOT treat an ambiguous or empty detection as a required install
-target. `init` MUST prompt or require `--target` in those cases.
+Tooling MUST NOT treat an empty detection as a required install target. When `status` is
+`ambiguous`, `init` MUST persist all ids in `detected` (canonical order) unless the user passes
+`--targets` / `--target` to override.
 
 ## Errors
 

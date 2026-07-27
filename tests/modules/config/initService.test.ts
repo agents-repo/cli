@@ -79,18 +79,18 @@ describe('InitService', () => {
     const cwd = await createProjectDir()
     const service = new InitService(stubDetector(noneDetection))
 
-    const result = await service.run({ cwd, target: 'cursor' })
+    const result = await service.run({ cwd, targetIds: ['cursor'] })
 
     expect(result.created).toBe(true)
     expect(result.gateMode).toBe('greenfield')
-    expect(result.target).toBe('cursor')
+    expect(result.targets).toEqual(['cursor'])
 
     const written = await readAgentsJson(result.configPath)
     expect(written).toEqual({
       schemaVersion: '1.0.0',
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
-      target: 'cursor',
+      targets: ['cursor'],
     })
   })
 
@@ -100,9 +100,9 @@ describe('InitService', () => {
 
     const result = await service.run({ cwd })
 
-    expect(result.target).toBe('cursor')
+    expect(result.targets).toEqual(['cursor'])
     const written = await readAgentsJson(result.configPath)
-    expect(written.target).toBe('cursor')
+    expect(written.targets).toEqual(['cursor'])
   })
 
   it('rejects greenfield init when target cannot be resolved', async () => {
@@ -120,14 +120,14 @@ describe('InitService', () => {
     await writeAgentsJson(cwd, foreignOnlyConfig)
     const service = new InitService(stubDetector(noneDetection))
 
-    const result = await service.run({ cwd, target: 'cursor' })
+    const result = await service.run({ cwd, targetIds: ['cursor'] })
 
     expect(result.gateMode).toBe('namespace')
     const written = await readAgentsJson(result.configPath)
     expect(written.customTool).toEqual(foreignOnlyConfig.customTool)
     expect(written['@agents-repo']).toMatchObject({
       schemaVersion: '1.0.0',
-      target: 'cursor',
+      targets: ['cursor'],
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
     })
@@ -156,7 +156,7 @@ describe('InitService', () => {
     await writeAgentsJson(cwd, conflictingTopLevelConfig)
     const service = new InitService(stubDetector(noneDetection))
 
-    await expect(service.run({ cwd, target: 'cursor' })).rejects.toMatchObject({
+    await expect(service.run({ cwd, targetIds: ['cursor'] })).rejects.toMatchObject({
       exitCode: 4,
     })
   })
@@ -166,11 +166,11 @@ describe('InitService', () => {
     await writeAgentsJson(cwd, conflictingTopLevelConfig)
     const service = new InitService(stubDetector(noneDetection))
 
-    const result = await service.run({ cwd, target: 'cursor', yes: true })
+    const result = await service.run({ cwd, targetIds: ['cursor'], yes: true })
 
     expect(result.warnings).toHaveLength(1)
     expect(result.warnings[0]?.code).toBe('dual_definition_mismatch')
-    expect(result.target).toBe('cursor')
+    expect(result.targets).toEqual(['cursor'])
   })
 
   it('rejects --target that differs from existing managed target without --force', async () => {
@@ -178,7 +178,7 @@ describe('InitService', () => {
     await writeAgentsJson(cwd, canonicalTopLevelConfig)
     const service = new InitService(stubDetector(noneDetection))
 
-    await expect(service.run({ cwd, target: 'claude-code' })).rejects.toMatchObject({
+    await expect(service.run({ cwd, targetIds: ['claude-code'] })).rejects.toMatchObject({
       code: 'target_mismatch',
       exitCode: 3,
     })
@@ -189,11 +189,11 @@ describe('InitService', () => {
     await writeAgentsJson(cwd, canonicalTopLevelConfig)
     const service = new InitService(stubDetector(noneDetection))
 
-    const result = await service.run({ cwd, target: 'claude-code', force: true })
+    const result = await service.run({ cwd, targetIds: ['claude-code'], force: true })
 
-    expect(result.target).toBe('claude-code')
+    expect(result.targets).toEqual(['claude-code'])
     const written = await readAgentsJson(result.configPath)
-    expect(written.target).toBe('claude-code')
+    expect(written.targets).toEqual(['claude-code'])
     expect(written.packages).toEqual(canonicalTopLevelConfig.packages)
   })
 
@@ -205,7 +205,7 @@ describe('InitService', () => {
     const result = await service.run({ cwd })
 
     expect(result.created).toBe(false)
-    expect(result.target).toBe('cursor')
+    expect(result.targets).toEqual(['cursor'])
     const written = await readAgentsJson(result.configPath)
     expect(written.target).toBe('cursor')
     expect(written.packages).toEqual(canonicalTopLevelConfig.packages)
@@ -215,7 +215,7 @@ describe('InitService', () => {
     const cwd = await createProjectDir()
     const service = new InitService(stubDetector(noneDetection))
 
-    await expect(service.run({ cwd, target: 'unknown-target' })).rejects.toMatchObject({
+    await expect(service.run({ cwd, targetIds: ['unknown-target'] })).rejects.toMatchObject({
       code: 'invalid_enum',
       exitCode: 3,
     })
@@ -230,32 +230,29 @@ describe('InitService', () => {
     })
     const service = new InitService(stubDetector(noneDetection))
 
-    await expect(service.run({ cwd, target: 'cursor' })).rejects.toBeInstanceOf(
+    await expect(service.run({ cwd, targetIds: ['cursor'] })).rejects.toBeInstanceOf(
       ConfigValidationError,
     )
   })
 
-  it('rejects ambiguous target detection without --target', async () => {
+  it('persists all detected targets when detection is ambiguous', async () => {
     const cwd = await createProjectDir()
     const service = new InitService(stubDetector(ambiguousDetection))
 
-    await expect(service.run({ cwd })).rejects.toSatisfy((error: unknown) => {
-      return (
-        error instanceof ConfigValidationError &&
-        error.code === 'missing_target' &&
-        error.exitCode === 3 &&
-        error.message.includes('cursor, claude-code')
-      )
-    })
+    const result = await service.run({ cwd })
+
+    expect(result.targets).toEqual(['claude-code', 'cursor'])
+    const written = await readAgentsJson(result.configPath)
+    expect(written.targets).toEqual(['claude-code', 'cursor'])
   })
 
-  it('includes marker paths in ambiguous detection errors when verbose', async () => {
+  it('persists all detected targets when verbose is set and detection is ambiguous', async () => {
     const cwd = await createProjectDir()
     const service = new InitService(stubDetector(ambiguousDetection))
 
-    await expect(service.run({ cwd, verbose: true })).rejects.toSatisfy((error: unknown) => {
-      return error instanceof ConfigValidationError && error.message.includes('.cursor')
-    })
+    const result = await service.run({ cwd, verbose: true })
+
+    expect(result.targets).toEqual(['claude-code', 'cursor'])
   })
 
   it('treats an on-disk empty object as a bootstrap create', async () => {
@@ -263,7 +260,7 @@ describe('InitService', () => {
     await writeAgentsJson(cwd, {})
     const service = new InitService(stubDetector(noneDetection))
 
-    const result = await service.run({ cwd, target: 'cursor' })
+    const result = await service.run({ cwd, targetIds: ['cursor'] })
 
     expect(result.created).toBe(true)
     expect(result.gateMode).toBe('greenfield')
@@ -283,8 +280,8 @@ describe('InitService', () => {
     })
 
     expect(result.configPath).toBe(configPath)
-    expect(result.target).toBe('cursor')
-    expect(await readAgentsJson(configPath)).toMatchObject({ target: 'cursor' })
+    expect(result.targets).toEqual(['cursor'])
+    expect(await readAgentsJson(configPath)).toMatchObject({ targets: ['cursor'] })
     expect(await readFile(path.join(projectRoot, 'agents.json'), 'utf8').catch(() => null)).toBeNull()
   })
 
@@ -296,10 +293,10 @@ describe('InitService', () => {
     const result = await service.run({ cwd })
 
     expect(result.gateMode).toBe('namespace')
-    expect(result.target).toBe('cursor')
+    expect(result.targets).toEqual(['cursor'])
     const written = await readAgentsJson(path.join(cwd, 'agents.json'))
     expect(written['@agents-repo']).toMatchObject({
-      target: 'cursor',
+      targets: ['cursor'],
       schemaVersion: '1.0.0',
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
@@ -314,9 +311,9 @@ describe('InitService', () => {
     const result = await service.run({ cwd })
 
     expect(result.gateMode).toBe('top-level-ours')
-    expect(result.target).toBe('claude-code')
+    expect(result.targets).toEqual(['claude-code'])
     const written = await readAgentsJson(result.configPath)
-    expect(written.target).toBe('claude-code')
+    expect(written.targets).toEqual(['claude-code'])
     expect(written['@agents-repo']).toMatchObject({ target: 'claude-code' })
   })
 
@@ -325,7 +322,7 @@ describe('InitService', () => {
     await writeAgentsJson(cwd, namespaceOnlyTargetConfig)
     const service = new InitService(stubDetector(noneDetection))
 
-    await expect(service.run({ cwd, target: 'cursor' })).rejects.toMatchObject({
+    await expect(service.run({ cwd, targetIds: ['cursor'] })).rejects.toMatchObject({
       code: 'target_mismatch',
       exitCode: 3,
     })
@@ -336,7 +333,9 @@ describe('InitService', () => {
     await writeAgentsJson(cwd, namespaceOnlyTargetConfig)
     const service = new InitService(stubDetector(noneDetection))
 
-    await expect(service.run({ cwd, target: 'cursor', force: true })).rejects.toMatchObject({
+    await expect(
+      service.run({ cwd, targetIds: ['cursor'], force: true }),
+    ).rejects.toMatchObject({
       exitCode: 4,
     })
   })
@@ -348,6 +347,6 @@ describe('InitService', () => {
 
     const result = await service.run({ cwd })
 
-    expect(result.target).toBe('cursor')
+    expect(result.targets).toEqual(['cursor'])
   })
 })

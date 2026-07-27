@@ -9,6 +9,7 @@ export interface CliManagedConfig {
   readonly schemaVersion?: string
   readonly registry?: RegistryConfig
   readonly target?: InstallTargetId
+  readonly targets?: InstallTargetId[]
   readonly packages?: Record<string, string>
   readonly global?: boolean
 }
@@ -22,6 +23,7 @@ export interface ResolvedAgentsConfig {
   readonly schemaVersion?: string
   readonly registry: RegistryConfig
   readonly target?: InstallTargetId
+  readonly targets?: InstallTargetId[]
   readonly packages: Record<string, string>
   readonly global: boolean
   readonly warnings: readonly ConfigConflictRecord[]

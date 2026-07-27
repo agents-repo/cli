@@ -13,7 +13,6 @@ import {
   extractPackageArtifact,
   rollbackExtractedPaths,
 } from '../infrastructure/packageExtractor.js'
-import { InstallRuntimeError } from '../domain/installErrors.js'
 import type { InstallResult } from '../domain/installResult.js'
 
 export interface BulkInstallServiceOptions {
@@ -45,13 +44,6 @@ export class BulkInstallService {
     const enforceConfiguredOnly = options.enforceConfiguredOnly === true
     const requestedPackageId = options.packageId
 
-    if (requestedPackageId !== undefined && !enforceConfiguredOnly) {
-      throw new InstallRuntimeError(
-        'invalid_bulk_options',
-        'packageId requires enforceConfiguredOnly',
-      )
-    }
-
     if (
       enforceConfiguredOnly &&
       requestedPackageId !== undefined &&
@@ -77,7 +69,7 @@ export class BulkInstallService {
       globalFlag: options.global,
     })
 
-    const { target, scope, catalogResult, warnings } = context
+    const { targets, scope, catalogResult, warnings } = context
 
     if (requestedPackageId !== undefined) {
       const qualifiedId = resolvePackageRef(
@@ -107,52 +99,54 @@ export class BulkInstallService {
     const extractedPathsAll: string[] = []
 
     try {
-      for (const packageId of packageIds) {
-        const packageWarnings = [...warnings]
-        const plan = await planPackageInstall({
-          catalogResult,
-          resolved,
-          packageId,
-          target,
-          warnings: packageWarnings,
-        })
+      for (const target of targets) {
+        for (const packageId of packageIds) {
+          const packageWarnings = [...warnings]
+          const plan = await planPackageInstall({
+            catalogResult,
+            resolved,
+            packageId,
+            target,
+            warnings: packageWarnings,
+          })
 
-        const resultBase: InstallResult = {
-          packageId: plan.pkg.id,
-          version: plan.version,
-          target,
-          extractRoot: scope.extractRoot,
-          artifactUrl: plan.artifactUrl,
-          saved: false,
-          dryRun,
-          global: scope.global,
-          noSave,
-          warnings: packageWarnings,
-        }
+          const resultBase: InstallResult = {
+            packageId: plan.pkg.id,
+            version: plan.version,
+            target,
+            extractRoot: scope.extractRoot,
+            artifactUrl: plan.artifactUrl,
+            saved: false,
+            dryRun,
+            global: scope.global,
+            noSave,
+            warnings: packageWarnings,
+          }
 
-        if (dryRun) {
+          if (dryRun) {
+            results.push(resultBase)
+            continue
+          }
+
+          const zipBytes = await downloadArtifact(plan.artifactUrl)
+          verifySha256(zipBytes, plan.artifact.sha256)
+          const extractedPaths = await extractPackageArtifact(
+            zipBytes,
+            target,
+            plan.version,
+            scope.extractRoot,
+          )
+          extractedPathsAll.push(...extractedPaths)
+
+          persistenceEntries.push({
+            packageId: plan.pkg.id,
+            version: plan.version,
+            target,
+            artifact: plan.artifact,
+          })
+
           results.push(resultBase)
-          continue
         }
-
-        const zipBytes = await downloadArtifact(plan.artifactUrl)
-        verifySha256(zipBytes, plan.artifact.sha256)
-        const extractedPaths = await extractPackageArtifact(
-          zipBytes,
-          target,
-          plan.version,
-          scope.extractRoot,
-        )
-        extractedPathsAll.push(...extractedPaths)
-
-        persistenceEntries.push({
-          packageId: plan.pkg.id,
-          version: plan.version,
-          target,
-          artifact: plan.artifact,
-        })
-
-        results.push(resultBase)
       }
     } catch (error) {
       await rollbackExtractedPaths(extractedPathsAll)
@@ -166,11 +160,20 @@ export class BulkInstallService {
     if (shouldPersist && writeLock) {
       try {
         const resolvedRef = resolveLockRef(resolved, catalogResult)
+        const adHocEntry = persistenceEntries.find(
+          (entry) => !Object.hasOwn(resolved.packages, entry.packageId),
+        )
         await this.installPersistence.saveBulk({
-          resolved: { ...resolved, target },
+          resolved,
           resolvedRef,
           entries: persistenceEntries,
           writeLock: true,
+          configTargetOverride:
+            resolved.targets === undefined && options.target !== undefined
+              ? [options.target as (typeof targets)[number]]
+              : undefined,
+          adHocInstallPackageId: adHocEntry?.packageId,
+          adHocInstallVersion: adHocEntry?.version,
         })
       } catch (error) {
         await rollbackExtractedPaths(extractedPathsAll)

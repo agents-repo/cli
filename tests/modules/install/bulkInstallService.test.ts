@@ -178,13 +178,19 @@ describe('BulkInstallService', () => {
 
     const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
       resolvedRef: string
-      packages: Record<string, { version: string; integrity: string }>
+      lockfileVersion: number
+      packages: Record<string, { version: string; byTarget: Record<string, { integrity: string }> }>
     }
     expect(lock.resolvedRef).toBe('v2.0.0')
+    expect(lock.lockfileVersion).toBe(2)
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0')
     expect(lock.packages['agents-repo/other-agent'].version).toBe('1.0.0')
-    expect(lock.packages['agents-repo/sample-agent'].integrity).toBe(`sha256-${sampleSha256}`)
-    expect(lock.packages['agents-repo/other-agent'].integrity).toBe(`sha256-${otherSha256}`)
+    expect(lock.packages['agents-repo/sample-agent'].byTarget.cursor.integrity).toBe(
+      `sha256-${sampleSha256}`,
+    )
+    expect(lock.packages['agents-repo/other-agent'].byTarget.cursor.integrity).toBe(
+      `sha256-${otherSha256}`,
+    )
   })
 
   it('writes a stable lock file when reinstalling after clearing extracted files', async () => {
@@ -429,16 +435,5 @@ describe('BulkInstallService', () => {
         enforceConfiguredOnly: true,
       }),
     ).rejects.toThrow(/not listed in agents\.json packages/)
-  })
-
-  it('rejects packageId when enforceConfiguredOnly is not set', async () => {
-    const service = new BulkInstallService()
-
-    await expect(
-      service.runAll({
-        packageId: 'agents-repo/sample-agent',
-        enforceConfiguredOnly: false,
-      }),
-    ).rejects.toThrow(/packageId requires enforceConfiguredOnly/)
   })
 })

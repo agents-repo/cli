@@ -319,9 +319,12 @@ describe('GlobalInstallStateService', () => {
         packageId: 'agents-repo/foo',
         entry: {
           version: '1.0.0',
-          target: 'cursor',
-          integrity: `sha256-${'c'.repeat(64)}`,
-          artifact: '1.0.0-cursor.zip',
+          byTarget: {
+            cursor: {
+              integrity: `sha256-${'c'.repeat(64)}`,
+              artifact: '1.0.0-cursor.zip',
+            },
+          },
         },
       },
     ]);

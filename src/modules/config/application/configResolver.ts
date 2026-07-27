@@ -7,6 +7,7 @@ import { resolveConfigPaths } from '../infrastructure/configPaths.js'
 import { extractCliManagedConfig } from './cliManagedSlice.js'
 import { ConflictDetector } from './conflictDetector.js'
 import { SchemaGate, getActiveGateTarget } from './schemaGate.js'
+import { resolveTargetsFromManaged } from './resolveTargets.js'
 
 export interface ConfigResolverOptions {
   readonly cwd?: string
@@ -47,8 +48,9 @@ export class ConfigResolver {
 
     const packages = managed.packages ?? {}
     const global = managed.global ?? false
+    const resolvedTargets = resolveTargetsFromManaged(managed)
 
-    if (options.requireTarget && managed.target === undefined) {
+    if (options.requireTarget && resolvedTargets === undefined) {
       throw new ConfigValidationError('Install target is required but missing from config', 'missing_target')
     }
 
@@ -59,6 +61,7 @@ export class ConfigResolver {
       schemaVersion: managed.schemaVersion,
       registry,
       target: managed.target,
+      targets: resolvedTargets,
       packages,
       global,
       warnings,

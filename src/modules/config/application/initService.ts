@@ -3,12 +3,16 @@ import { ProjectTargetDetector } from '../../target/application/projectTargetDet
 import type { TargetDetectionResult } from '../../target/domain/targetDetection.js'
 import { ConfigValidationError } from '../domain/configErrors.js'
 import type { InitResult } from '../domain/initResult.js'
-import { isValidInstallTargetId } from '../domain/validators.js'
 import { AgentsJsonRepository } from '../infrastructure/agentsJsonRepository.js'
 import { resolveConfigPaths } from '../infrastructure/configPaths.js'
 import { extractCliManagedConfig } from './cliManagedSlice.js'
 import { ConfigMerger } from './configMerger.js'
 import { ConflictDetector } from './conflictDetector.js'
+import {
+  installTargetSetsEqual,
+  parseInstallTargetsArray,
+  resolveTargetsFromManaged,
+} from './resolveTargets.js'
 import { SchemaGate, getActiveGateTarget, getNamespaceBlock } from './schemaGate.js'
 
 export interface InitServiceOptions {
@@ -16,7 +20,8 @@ export interface InitServiceOptions {
   readonly env?: NodeJS.ProcessEnv
   readonly force?: boolean
   readonly yes?: boolean
-  readonly target?: string
+  /** Explicit target ids from CLI (`--targets` / `--target` variadic). */
+  readonly targetIds?: readonly string[]
   readonly verbose?: boolean
 }
 
@@ -36,7 +41,6 @@ export class InitService {
     const env = options.env ?? process.env
     const force = options.force ?? false
     const yes = options.yes ?? false
-    const verbose = options.verbose ?? false
 
     const { configPath } = resolveConfigPaths(cwd, env)
     const rawDocument = await this.agentsJsonRepository.read(configPath)
@@ -64,24 +68,29 @@ export class InitService {
         ? {}
         : extractCliManagedConfig(getNamespaceBlock(rawDocument) ?? {})
 
-    const topTarget = existingManaged.target
-    const namespaceTarget = namespaceManaged.target
+    const existingTargets = resolveTargetsFromManaged(existingManaged)
+    const namespaceTargets = resolveTargetsFromManaged(namespaceManaged)
+    const effectiveTargets = resolveTargetsFromManaged({
+      ...namespaceManaged,
+      ...existingManaged,
+      targets: existingManaged.targets ?? namespaceManaged.targets,
+      target: existingManaged.target ?? namespaceManaged.target,
+    })
 
-    const resolvedTarget = await this.resolveTarget({
+    const resolvedTargets = await this.resolveTargets({
       cwd,
       force,
-      verbose,
-      targetOption: options.target,
-      existingTarget: topTarget ?? namespaceTarget,
-      topTarget,
-      namespaceTarget,
+      cliTargetIds: options.targetIds,
+      existingTargets: effectiveTargets,
+      topTargets: existingTargets,
+      namespaceTargets,
     })
 
     const patch: {
-      target?: InstallTargetId
+      targets?: InstallTargetId[]
     } = {}
-    if (resolvedTarget !== undefined) {
-      patch.target = resolvedTarget
+    if (resolvedTargets !== undefined) {
+      patch.targets = resolvedTargets
     }
 
     const merged = this.configMerger.merge(rawDocument, patch, { gateMode, force })
@@ -93,84 +102,88 @@ export class InitService {
 
     await this.agentsJsonRepository.write(configPath, merged)
 
-    const finalTarget = resolvedTarget ?? topTarget ?? namespaceTarget
+    const mergedActive =
+      getActiveGateTarget(merged, gateMode)
+    const finalTargets = resolveTargetsFromManaged(extractCliManagedConfig(mergedActive))
 
     return {
       configPath,
       gateMode,
-      target: finalTarget,
+      targets: finalTargets,
       warnings: finalWarnings,
       created,
     }
   }
 
-  private async resolveTarget(options: {
+  private parseCliTargetIds(raw: readonly string[] | undefined): InstallTargetId[] | undefined {
+    if (raw === undefined || raw.length === 0) {
+      return undefined
+    }
+
+    return parseInstallTargetsArray(raw, '--targets')
+  }
+
+  private async resolveTargets(options: {
     readonly cwd: string
     readonly force: boolean
-    readonly verbose: boolean
-    readonly targetOption?: string
-    readonly existingTarget?: InstallTargetId
-    readonly topTarget?: InstallTargetId
-    readonly namespaceTarget?: InstallTargetId
-  }): Promise<InstallTargetId | undefined> {
-    const { cwd, force, verbose, targetOption, existingTarget, topTarget, namespaceTarget } = options
+    readonly cliTargetIds?: readonly string[]
+    readonly existingTargets?: InstallTargetId[]
+    readonly topTargets?: InstallTargetId[]
+    readonly namespaceTargets?: InstallTargetId[]
+  }): Promise<InstallTargetId[] | undefined> {
+    const {
+      cwd,
+      force,
+      cliTargetIds,
+      existingTargets,
+      topTargets,
+      namespaceTargets,
+    } = options
 
-    if (targetOption !== undefined) {
-      if (!isValidInstallTargetId(targetOption)) {
-        throw new ConfigValidationError(
-          `Invalid install target id: ${targetOption}`,
-          'invalid_enum',
-        )
-      }
+    const fromCli = this.parseCliTargetIds(cliTargetIds)
 
-      if (existingTarget !== undefined && existingTarget !== targetOption && !force) {
+    if (fromCli !== undefined) {
+      if (
+        existingTargets !== undefined &&
+        !installTargetSetsEqual(existingTargets, fromCli) &&
+        !force
+      ) {
         throw new ConfigValidationError(
-          `Install target is already set to "${existingTarget}"; use --force to change it to "${targetOption}"`,
+          `Install targets are already set to [${existingTargets.join(', ')}]; use --force to change them`,
           'target_mismatch',
         )
       }
 
-      if (topTarget === targetOption) {
+      if (topTargets !== undefined && installTargetSetsEqual(topTargets, fromCli)) {
         return undefined
       }
 
-      return targetOption
+      return fromCli
     }
 
-    if (topTarget !== undefined) {
+    if (topTargets !== undefined) {
       return undefined
     }
 
-    if (namespaceTarget !== undefined) {
-      return namespaceTarget
+    if (namespaceTargets !== undefined) {
+      return namespaceTargets
     }
 
     const detection = await this.targetDetector.detect(cwd)
-    return this.targetFromDetection(detection, verbose)
+    return this.targetsFromDetection(detection)
   }
 
-  private targetFromDetection(
-    detection: TargetDetectionResult,
-    verbose: boolean,
-  ): InstallTargetId {
+  private targetsFromDetection(detection: TargetDetectionResult): InstallTargetId[] {
     if (detection.status === 'single' && detection.suggestedTarget !== undefined) {
-      return detection.suggestedTarget
+      return [detection.suggestedTarget]
     }
 
     if (detection.status === 'ambiguous') {
-      const detectedList = detection.detected.join(', ')
-      const matchDetails = detection.matches
-        .map((match) => `${match.target} (${match.markers.join(', ')})`)
-        .join('; ')
-      const verboseSuffix = verbose ? ` Matches: ${matchDetails}.` : ''
-      throw new ConfigValidationError(
-        `Multiple install targets detected (${detectedList}); pass --target <id> to choose one.${verboseSuffix}`,
-        'missing_target',
-      )
+      return parseInstallTargetsArray(detection.detected, 'detected targets')
     }
 
     throw new ConfigValidationError(
-      'Install target could not be detected; pass --target <id> to set one.',
+      'Install target could not be detected; pass --targets <id...> to set one or more.',
       'missing_target',
     )
   }

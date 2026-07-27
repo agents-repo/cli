@@ -535,9 +535,11 @@ describe('update command semver refresh with mock registry', () => {
     expect(result.stdout).toContain('Updated agents-repo/sample-agent@1.1.0');
 
     const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
-      packages: Record<string, { version: string; integrity: string }>
+      packages: Record<string, { version: string; byTarget: Record<string, { integrity: string }> }>
     };
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.1.0');
-    expect(lock.packages['agents-repo/sample-agent'].integrity).toBe(`sha256-${sha256110}`);
+    expect(lock.packages['agents-repo/sample-agent'].byTarget.cursor.integrity).toBe(
+      `sha256-${sha256110}`,
+    );
   });
 });
