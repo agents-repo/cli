@@ -30,16 +30,11 @@ exists in `agents.json` `packages`. See `command-contracts.md` for flags and exi
 **Project scope** (default): extract under the project root; update `agents.json` and
 `agents-lock.json` unless `--no-save`.
 
-**Global scope**: extract under `~/.config/agents-repo/`. Single-package global installs MUST NOT
-mutate project `agents.json` or `agents-lock.json`. Bulk `install` with `global: true` MAY update
-`agents.json` only; see [Config and Lock Writes](#config-and-lock-writes).
+**Global scope** (`-g`): resolve config and lock under `~/.agents-repo/` (or `AGENTS_REPO_HOME`);
+extract under that directory. Project `agents.json` / `agents-lock.json` MUST NOT be modified when
+`-g` is set.
 
-Global scope applies when:
-
-- `--global` / `-g` is passed, or
-- resolved config has `global: true` and `-g` was not passed.
-
-`-g` forces global scope even when config has `global: false`.
+Global scope applies only when `--global` / `-g` is passed.
 
 ## Pipeline Overview
 
@@ -67,11 +62,12 @@ Install MUST execute these steps in order:
 
 - Resolve schema gate per `config-schema.md`.
 - Apply `AGENTS_REPO_REGISTRY_URL` after file resolution.
-- Resolve install `targets` from config `targets` or a single `--target` override per
-  [config-schema.md](config-schema.md). Install MUST NOT run target detection.
-- Missing resolved targets on install MUST exit `3`.
-- `install` and `update` MUST fan out across all resolved targets (targets × packages) unless
-  `--target` overrides to a single id.
+- Resolve install `targets` from config `targets` only (`install` / `update` MUST NOT accept
+  `--target`).
+- Greenfield `install <package-id>` (no file or `{}` only) MAY run target detection before fan-out;
+  bulk `install` / `update` MUST NOT run detection.
+- Missing resolved targets on bulk `install` / `update` MUST exit `3`.
+- `install` and `update` MUST fan out across all resolved targets (targets × packages).
 
 ### 2. Resolve registry ref
 
@@ -148,7 +144,7 @@ At minimum, tooling MUST reject archives with:
   ZIP layout for the chosen target.
 - MVP: install the **entire package** (all agents and flows in the artifact).
 - **Project scope:** extract under project root.
-- **Global scope:** extract under `~/.config/agents-repo/`.
+- **Global scope:** extract under `~/.agents-repo/` (or `AGENTS_REPO_HOME`).
 
 ### 12. Update config and lock
 
@@ -159,42 +155,30 @@ Behavior depends on [install scope](#install-scope). Skip when `--no-save` or `-
 - Write CLI-managed fields to the active schema gate target per `config-schema.md` (top-level for
   greenfield/top-level-ours; `"@agents-repo"` only for namespace mode).
 - On greenfield file create, MUST persist `schemaVersion: "1.0.0"`, resolved `registry`, resolved
-  `targets` (or `targets: [<override>]` when `--target` was used on ad-hoc install), and `packages`.
+  `targets`, and `packages`.
 - Add or update lock entry per `lock-schema.md` (v2 `byTarget`; merge per target slot).
 
-**Global scope**:
+**Global scope** (when `-g` is set):
 
-- Single-package global installs MUST NOT mutate project `agents.json` or `agents-lock.json` (no
-  ad-hoc `packages` write).
-- Bulk `install` with `global: true` MAY update `packages` in the active gate target but MUST NOT
-  update the project lock (see [Config and Lock Writes](#config-and-lock-writes)).
-- Upsert `agents-global.json` per `global-install-state.md` for each installed package (lock v2
-  `byTarget` shape; merge per target slot).
+- Write CLI-managed fields to global `agents.json` under `AGENTS_REPO_HOME`.
+- Add or update global `agents-lock.json` beside global `agents.json`.
+- MUST NOT mutate project `agents.json` or `agents-lock.json`.
 
 ## Config and Lock Writes
 
 Unless `--no-save` or `--dry-run`, config and lock mutation follows:
 
-| Invocation | Extract scope | Mutate `agents.json` | Mutate `agents-lock.json` |
+| Invocation | Extract scope | Mutate scope `agents.json` | Mutate scope `agents-lock.json` |
 | --- | --- | --- | --- |
-| `install <pkg>` (project scope) | Project | Yes | Yes |
-| `install <pkg> -g` | Global | No | No |
-| `install <pkg>` (`global: true`, no `-g`) | Global | No | No |
-| `install` (bulk, project scope) | Project | Yes | Yes |
-| `install` (bulk, `global: true`) | Global | Yes (`packages` map) | No |
-| `update` (project scope) | Project | Yes | Yes |
-| `update` (bulk, `global: true`) | Global | Yes (`packages` map) | No |
-| `update <pkg>` (project scope) | Project | Yes | Yes |
+| `install <pkg>` (project) | Project cwd | Yes | Yes |
+| `install <pkg> -g` | Global home | Yes (global) | Yes (global) |
+| `install` (bulk, project) | Project cwd | Yes | Yes |
+| `install` (bulk, `-g`) | Global home | Yes (global) | Yes (global) |
+| `update` (project) | Project cwd | Yes | Yes |
+| `update` (bulk, `-g`) | Global home | Yes (global) | Yes (global) |
 
-With `--no-save` or `--dry-run`, all rows skip `agents.json`, `agents-lock.json`, and
-`agents-global.json` writes. Global-scope rows already skip project file writes regardless.
-
-Global-scope installs with saves enabled MUST update `agents-global.json` (see
-`global-install-state.md`).
-
-**Bulk + `global: true` drift:** `agents.json` records declared package ranges while the project
-lock is unchanged. This is intentional in MVP (npm global-install parity for lock). Reconcile by
-running project-scope `install` without `global: true`, or by removing `global: true` from config.
+With `--no-save` or `--dry-run`, all rows skip config and lock writes. Global-scope rows MUST NOT
+touch project config or lock files.
 
 ## MVP Install Scope
 

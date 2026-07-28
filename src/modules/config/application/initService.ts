@@ -4,7 +4,10 @@ import type { TargetDetectionResult } from '../../target/domain/targetDetection.
 import { ConfigValidationError } from '../domain/configErrors.js'
 import type { InitResult } from '../domain/initResult.js'
 import { AgentsJsonRepository } from '../infrastructure/agentsJsonRepository.js'
-import { resolveConfigPaths } from '../infrastructure/configPaths.js'
+import {
+  resolveGlobalConfigPaths,
+  resolveProjectConfigPaths,
+} from '../infrastructure/configPaths.js'
 import { extractCliManagedConfig } from './cliManagedSlice.js'
 import { ConfigMerger } from './configMerger.js'
 import { ConflictDetector } from './conflictDetector.js'
@@ -23,6 +26,7 @@ export interface InitServiceOptions {
   /** Explicit target ids from CLI (`--targets` / `--target` variadic). */
   readonly targetIds?: readonly string[]
   readonly verbose?: boolean
+  readonly globalScope?: boolean
 }
 
 export class InitService {
@@ -42,7 +46,9 @@ export class InitService {
     const force = options.force ?? false
     const yes = options.yes ?? false
 
-    const { configPath } = resolveConfigPaths(cwd, env)
+    const { configPath } = options.globalScope === true
+      ? resolveGlobalConfigPaths(env)
+      : resolveProjectConfigPaths(cwd, env)
     const rawDocument = await this.agentsJsonRepository.read(configPath)
     const gateMode = this.schemaGate.determineMode(rawDocument)
     const created =

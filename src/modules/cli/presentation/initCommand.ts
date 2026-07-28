@@ -10,6 +10,7 @@ export interface InitCommandOptions {
   readonly target?: string[];
   readonly targets?: string[];
   readonly yes?: boolean;
+  readonly global?: boolean;
 }
 
 const formatInitSuccess = (result: InitResult): string => {
@@ -40,6 +41,7 @@ export const registerInitCommand = (program: Command): void => {
   program
     .command('init')
     .description('Initialize agents.json in the current project')
+    .option('-g, --global', 'Initialize agents.json in the global agents-repo home directory')
     .option('--force', 'Overwrite agents-repo-managed keys in the active schema gate target')
     .option('--targets <ids...>', 'Set one or more install target ids')
     .option('--target <ids...>', 'Alias for --targets on init')
@@ -55,6 +57,7 @@ export const registerInitCommand = (program: Command): void => {
           targetIds: mergeCliTargetIds(options),
           yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
           verbose: globals.verbose,
+          globalScope: options.global ?? false,
         });
 
         writeInitWarnings(result.warnings);

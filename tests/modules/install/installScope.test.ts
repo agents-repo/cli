@@ -18,32 +18,22 @@ describe('resolveInstallScope', () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-scope-project-'))
     tempDirs.push(cwd)
 
-    const scope = resolveInstallScope({ cwd, globalFlag: false, configGlobal: false })
+    const scope = resolveInstallScope({ cwd, globalFlag: false })
 
     expect(scope.global).toBe(false)
     expect(scope.extractRoot).toBe(cwd)
-    expect(scope.mutateProjectConfig).toBe(true)
+    expect(scope.persistScopeConfig).toBe(true)
   })
 
   it('forces global scope when -g is set', () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-scope-global-flag-'))
     tempDirs.push(cwd)
 
-    const scope = resolveInstallScope({ cwd, globalFlag: true, configGlobal: false })
+    const scope = resolveInstallScope({ cwd, globalFlag: true })
 
     expect(scope.global).toBe(true)
-    expect(scope.extractRoot).toContain('.config/agents-repo')
-    expect(scope.mutateProjectConfig).toBe(false)
-  })
-
-  it('uses global scope from config when globalFlag is unset', () => {
-    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-scope-config-global-'))
-    tempDirs.push(cwd)
-
-    const scope = resolveInstallScope({ cwd, configGlobal: true })
-
-    expect(scope.global).toBe(true)
-    expect(scope.mutateProjectConfig).toBe(false)
+    expect(scope.extractRoot).toContain('.agents-repo')
+    expect(scope.persistScopeConfig).toBe(true)
   })
 
   it('respects HOME from env when resolving global extract root', () => {
@@ -58,6 +48,6 @@ describe('resolveInstallScope', () => {
       globalFlag: true,
     })
 
-    expect(scope.extractRoot).toBe(path.join(homeDir, '.config', 'agents-repo'))
+    expect(scope.extractRoot).toBe(path.join(homeDir, '.agents-repo'))
   })
 })

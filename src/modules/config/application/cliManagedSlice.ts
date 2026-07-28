@@ -17,12 +17,18 @@ export const extractCliManagedConfig = (
     )
   }
 
+  if ('global' in activeTarget) {
+    throw new ConfigValidationError(
+      'agents.json managed field "global" is removed; use install -g for global scope',
+      'deprecated_field',
+    )
+  }
+
   const managed: {
     schemaVersion?: string
     registry?: RegistryConfig
     targets?: InstallTargetId[]
     packages?: Record<string, string>
-    global?: boolean
   } = {}
 
   if (typeof activeTarget.schemaVersion === 'string') {
@@ -31,10 +37,6 @@ export const extractCliManagedConfig = (
 
   if (activeTarget.targets !== undefined) {
     managed.targets = parseInstallTargetsArray(activeTarget.targets, 'targets')
-  }
-
-  if (typeof activeTarget.global === 'boolean') {
-    managed.global = activeTarget.global
   }
 
   if (activeTarget.packages !== undefined) {

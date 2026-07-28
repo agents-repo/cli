@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -330,6 +330,10 @@ describe('BulkInstallService', () => {
       },
     }
     writeFileSync(configPath, JSON.stringify(configBefore))
+
+    const globalRoot = path.join(homeDir, '.agents-repo')
+    mkdirSync(globalRoot, { recursive: true })
+    writeFileSync(path.join(globalRoot, 'agents.json'), JSON.stringify(configBefore))
 
     const sampleZipBytes = buildCursorSkillZip()
     const otherZipBytes = buildOtherCursorSkillZip()

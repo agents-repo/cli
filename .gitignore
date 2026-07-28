@@ -137,7 +137,10 @@ dist
 !.yarn/sdks
 !.yarn/versions
 
-# Vite files
+# Local dev manifest at repository root
+/agents.json
+/agents-lock.json
+
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/

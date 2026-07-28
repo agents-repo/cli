@@ -90,25 +90,19 @@ identical resolution produces identical lock content.
 
 ### Global scope
 
-Global extract scope (`-g` or resolved `global: true`) MUST NOT modify project `agents-lock.json`.
-There is no project global lockfile in MVP (npm `install -g` parity). Global install metadata
-is recorded in `agents-global.json` per `global-install-state.md`; that file is not a substitute
-for the project lock and is used by `list -g`.
+Global scope (`-g`) MUST NOT modify project `agents-lock.json`. Global installs persist
+`agents-lock.json` under `AGENTS_REPO_HOME` (`~/.agents-repo/` by default) with the same v2
+`byTarget` shape as project scope.
 
 | Invocation | Lock behavior |
 | --- | --- |
-| `install <pkg> -g` | No project lock write |
-| `install <pkg>` with `global: true` (no `-g`) | No project lock write |
-| `install` (bulk, `global: true`) | No project lock write |
-
-Bulk `install` when `global: true` is set in config: extract globally, update `agents.json`
-`packages` if needed, do not update the project lock. Config and lock may temporarily diverge until
-a project-scope install reconciles the lock.
+| `install <pkg> -g` | Update global lock only |
+| `install` (bulk, `-g`) | Update global lock only |
 
 ### Bulk install without lock
 
 When `agents-lock.json` is missing on bulk `install`, tooling MUST resolve from `agents.json`
-ranges and write the lock (project scope, unless `global: true`).
+ranges and write the lock (project scope, or global lock under `AGENTS_REPO_HOME` when `-g` is set).
 
 ### Frozen install (post-MVP)
 

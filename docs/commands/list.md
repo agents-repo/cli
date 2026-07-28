@@ -18,7 +18,7 @@ options when root flags are placed after `list`.
 
 | Flag | Scope | Description |
 | --- | --- | --- |
-| `--global` / `-g` | list | List packages recorded in `~/.config/agents-repo/agents-global.json` |
+| `--global` / `-g` | list | List packages from `~/.agents-repo/agents-lock.json` |
 | `--json` | global | Machine-readable output |
 | `--yes` / `-y` | global | Waive dual-definition config conflicts with warnings (project scope) |
 
@@ -35,12 +35,8 @@ Missing lock file: exit `0` with an empty list.
 
 ### Global scope (`-g`)
 
-`list -g` reads `agents-global.json` under `~/.config/agents-repo/`. This file
-is written on successful global-scope `install` when saves are enabled. Missing
-file: exit `0` with an empty list.
-
-Pre-existing global extracts without `agents-global.json` do not appear until a
-global install runs again.
+`list -g` resolves global `agents.json` (when present) and reads `agents-lock.json` under
+`~/.agents-repo/` (or `AGENTS_REPO_HOME`). Missing lock: exit `0` with an empty list.
 
 ### Output
 
@@ -96,7 +92,7 @@ agents-repo --json list
 
 ## Related specs
 
-- [global-install-state.md](../../specs/global-install-state.md) — `agents-global.json`
+- [global-install-state.md](../../specs/global-install-state.md) — global scope uses project lock schema
 - [lock-schema.md](../../specs/lock-schema.md) — project lock entries
 - [command-contracts.md](../../specs/command-contracts.md) — `list` / `ls` surface
 

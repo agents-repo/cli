@@ -83,10 +83,9 @@ Before public release, the CLI does **not** read legacy shapes:
 
 - Managed `agents.json` field `target` → exit `3` (`deprecated_field`); use `targets[]` only.
 - `lockfileVersion` / `stateVersion` other than **2** → exit `3`.
-- Lock/global package entries use **v2** `byTarget` only (no flat v1 package entries).
-
-`init --target` and `install`/`update` `--target` remain CLI flags (alias or per-run
-override), not persisted config fields.
+- Lock/package entries use **v2** `byTarget` only (no flat v1 package entries).
+- `init` exposes variadic `--targets` / `--target` alias. `install` and `update` resolve
+  `targets[]` from config only (no per-run `--target`). `add-target` appends target ids.
 
 ## Status
 

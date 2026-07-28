@@ -22,7 +22,7 @@ describe('ConfigResolver', () => {
     expect(resolved.gateMode).toBe('greenfield')
     expect(resolved.registry).toEqual(DEFAULT_REGISTRY_CONFIG)
     expect(resolved.packages).toEqual({})
-    expect(resolved.global).toBe(false)
+    expect(resolved.configRoot).toBe(cwd)
     expect(resolved.targets).toBeUndefined()
   })
 
@@ -45,6 +45,17 @@ describe('ConfigResolver', () => {
 
     expect(resolved.registry.url).toBe('https://override.example')
     expect(resolved.registry.ref).toBe('v2.x')
+  })
+
+  it('uses ref query param from AGENTS_REPO_REGISTRY_URL when present', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-config-ref-override-'))
+    const resolved = await resolver.resolve({
+      cwd,
+      env: { AGENTS_REPO_REGISTRY_URL: 'https://override.example/?ref=v2.0.0' },
+    })
+
+    expect(resolved.registry.url).toBe('https://override.example/?ref=v2.0.0')
+    expect(resolved.registry.ref).toBe('v2.0.0')
   })
 
   it('maps registryUrl alias to registry.url', async () => {

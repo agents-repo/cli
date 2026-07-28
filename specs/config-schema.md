@@ -60,7 +60,6 @@ are:
 | `registry` | object | yes on write; optional on read | `{ "url": string, "ref": string }`; defaults on read; see [Registry](#registry) |
 | `targets` | string[] | write | Install target ids (below) |
 | `packages` | object | yes on write | Map qualified id → semver range string; see [Packages](#packages) |
-| `global` | boolean | no | When true, installs use global extract dir per `command-contracts.md` |
 
 Required on write means persisted output MUST include the field. Optional on read means absent
 values are valid input and MUST be filled from defaults during resolution.
@@ -181,7 +180,7 @@ on success.
 
 ## Reserved Keys
 
-CLI-managed field names: `schemaVersion`, `registry`, `targets`, `packages`, `global`.
+CLI-managed field names: `schemaVersion`, `registry`, `targets`, `packages`.
 
 - **top-level-ours:** owned at top level; `"@agents-repo"` SHOULD NOT duplicate them.
 - **namespace:** owned only inside `"@agents-repo"`; homonyms at top level are foreign.
@@ -196,9 +195,13 @@ CLI-managed field names: `schemaVersion`, `registry`, `targets`, `packages`, `gl
 - `packages` keys MUST be unique qualified ids.
 - `targets` MUST satisfy [Install targets](#install-targets) when present.
 - Managed `target` MUST NOT appear in the active gate target (`deprecated_field`).
-- `global` when true sets default **global extract scope** per `cli-protocol.md` and
-  `command-contracts.md`. It does not imply project lock updates when extract is global.
-- Flag `-g` forces global extract scope for that invocation and overrides `global: false`.
+- Global scope is selected only with `-g` / `--global` on supported commands; see [Global home](#global-home).
+
+## Global home
+
+Default directory: `~/.agents-repo/` (override with `AGENTS_REPO_HOME`). Global scope uses the same
+`agents.json` and `agents-lock.json` schema as project scope. `AGENTS_REPO_CONFIG` MUST NOT apply
+when `-g` is set.
 
 ## Canonical JSON Example
 

@@ -15,7 +15,6 @@ export const CLI_MANAGED_KEYS = [
   'registry',
   'targets',
   'packages',
-  'global',
 ] as const
 
 export type CliManagedKey = (typeof CLI_MANAGED_KEYS)[number]
@@ -28,10 +27,10 @@ export const AGENTS_JSON_FILENAME = 'agents.json'
 
 export const AGENTS_LOCK_FILENAME = 'agents-lock.json'
 
-export const AGENTS_GLOBAL_STATE_FILENAME = 'agents-global.json'
-
 export const GLOBAL_INSTALL_STATE_VERSION = 2
 
 export const ENV_AGENTS_REPO_CONFIG = 'AGENTS_REPO_CONFIG'
+
+export const ENV_AGENTS_REPO_HOME = 'AGENTS_REPO_HOME'
 
 export const ENV_AGENTS_REPO_REGISTRY_URL = 'AGENTS_REPO_REGISTRY_URL'

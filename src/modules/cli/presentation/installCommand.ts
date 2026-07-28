@@ -13,7 +13,6 @@ import {
 
 export interface InstallCommandOptions {
   readonly global?: boolean;
-  readonly target?: string;
   readonly yes?: boolean;
 }
 
@@ -22,8 +21,7 @@ export const registerInstallCommand = (program: Command): void => {
     .command('install [package-id]')
     .alias('i')
     .description('Install packages from the registry')
-    .option('-g, --global', 'Install to global directory without updating project config')
-    .option('--target <id>', 'Override install target for this invocation')
+    .option('-g, --global', 'Install using the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
     .action(async function installAction(
       this: Command,
@@ -34,7 +32,6 @@ export const registerInstallCommand = (program: Command): void => {
       const rootOpts = this.optsWithGlobals<{ yes?: boolean }>();
 
       const runOptions = {
-        target: options.target,
         global: options.global ?? false,
         yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
         dryRun: globals.dryRun,

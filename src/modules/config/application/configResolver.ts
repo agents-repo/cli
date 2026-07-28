@@ -3,7 +3,10 @@ import { ENV_AGENTS_REPO_REGISTRY_URL } from '../domain/configConstants.js'
 import type { ResolvedAgentsConfig } from '../domain/agentsConfig.js'
 import { ConfigValidationError } from '../domain/configErrors.js'
 import { AgentsJsonRepository } from '../infrastructure/agentsJsonRepository.js'
-import { resolveConfigPaths } from '../infrastructure/configPaths.js'
+import {
+  resolveGlobalConfigPaths,
+  resolveProjectConfigPaths,
+} from '../infrastructure/configPaths.js'
 import { extractCliManagedConfig } from './cliManagedSlice.js'
 import { ConflictDetector } from './conflictDetector.js'
 import { SchemaGate, getActiveGateTarget } from './schemaGate.js'
@@ -14,6 +17,7 @@ export interface ConfigResolverOptions {
   readonly env?: NodeJS.ProcessEnv
   readonly waiveConflicts?: boolean
   readonly requireTarget?: boolean
+  readonly globalScope?: boolean
 }
 
 export class ConfigResolver {
@@ -22,9 +26,12 @@ export class ConfigResolver {
   private readonly agentsJsonRepository = new AgentsJsonRepository()
 
   async resolve(options: ConfigResolverOptions = {}): Promise<ResolvedAgentsConfig> {
-    const cwd = options.cwd ?? process.cwd()
     const env = options.env ?? process.env
-    const { configPath, lockPath } = resolveConfigPaths(cwd, env)
+    const globalScope = options.globalScope === true
+
+    const { configPath, lockPath, configRoot } = globalScope
+      ? resolveGlobalConfigPaths(env)
+      : resolveProjectConfigPaths(options.cwd ?? process.cwd(), env)
 
     const rawDocument = await this.agentsJsonRepository.read(configPath)
     const gateMode = this.schemaGate.determineMode(rawDocument)
@@ -44,10 +51,17 @@ export class ConfigResolver {
     const registryUrlOverride = env[ENV_AGENTS_REPO_REGISTRY_URL]?.trim()
     if (registryUrlOverride) {
       registry = { ...registry, url: registryUrlOverride }
+      try {
+        const refFromUrl = new URL(registryUrlOverride).searchParams.get('ref')?.trim()
+        if (refFromUrl !== undefined && refFromUrl.length > 0) {
+          registry = { ...registry, ref: refFromUrl }
+        }
+      } catch {
+        // Keep configured ref when override is not a parseable URL.
+      }
     }
 
     const packages = managed.packages ?? {}
-    const global = managed.global ?? false
     const resolvedTargets = resolveTargetsFromManaged(managed)
 
     if (options.requireTarget && resolvedTargets === undefined) {
@@ -58,11 +72,11 @@ export class ConfigResolver {
       gateMode,
       configPath,
       lockPath,
+      configRoot,
       schemaVersion: managed.schemaVersion,
       registry,
       targets: resolvedTargets,
       packages,
-      global,
       warnings,
       rawDocument,
     }

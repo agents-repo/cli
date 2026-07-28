@@ -125,11 +125,6 @@ export class ConflictDetector {
         case 'targets':
           errors.push(...this.validateTargetsArray(value, path))
           break
-        case 'global':
-          if (typeof value !== 'boolean') {
-            errors.push(typeMismatch(path, 'global must be a boolean'))
-          }
-          break
         case 'registry':
           errors.push(...this.validateRegistry(value, path))
           break

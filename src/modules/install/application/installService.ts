@@ -5,7 +5,6 @@ export interface InstallServiceOptions {
   readonly cwd?: string
   readonly env?: NodeJS.ProcessEnv
   readonly packageId: string
-  readonly target?: string
   readonly global?: boolean
   readonly yes?: boolean
   readonly dryRun?: boolean
@@ -20,7 +19,6 @@ export class InstallService {
       cwd: options.cwd,
       env: options.env,
       packageId: options.packageId,
-      target: options.target,
       global: options.global,
       yes: options.yes,
       dryRun: options.dryRun,

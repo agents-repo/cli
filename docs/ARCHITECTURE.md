@@ -9,7 +9,7 @@ boundaries and webapp parity mappings are defined here and in
 | Module | Responsibility |
 | --- | --- |
 | `cli` | Commander setup, command registration, global flags |
-| `config` | `agents.json`, `agents-lock.json`, and global install state I/O |
+| `config` | `agents.json`, `agents-lock.json`, and global home config I/O |
 | `registry` | Registry index, manifest, and artifact URL resolution |
 | `install` | Download, verify, extract packages per install target |
 | `target` | Detect IDE/project install targets (`.cursor/`, `.github/`, etc.) |
@@ -47,17 +47,17 @@ application and infrastructure APIs consumed by commands.
 ## Current capabilities
 
 - **Config:** Schema-gated `agents.json` with `targets[]`, merge/conflict detection,
-  `agents-lock.json` and `agents-global.json` at **lockfileVersion / stateVersion 2**
-  (`byTarget` per package). Deprecated managed field `target` and unsupported lock/state
-  versions exit `3`.
-- **Init:** Variadic `--targets` / `--target` alias; ambiguous detection persists all
-  detected ids.
-- **Install / update:** Fan-out across configured targets (targets × packages); `--target`
-  overrides to one id; global `-g` supported.
-- **List:** One row per installed `(package, target)` from lock or global state.
+  `agents-lock.json` at **lockfileVersion 2** (`byTarget` per package). Deprecated managed field
+  `target` and unsupported lock versions exit `3`.
+- **Init:** Variadic `--targets` / `--target` alias; `init -g` for global home; ambiguous detection
+  persists all detected ids.
+- **Install / update:** Fan-out across configured `targets[]` (targets × packages); global `-g` uses
+  `~/.agents-repo/` config + lock.
+- **add-target:** Append install target ids to project `agents.json`.
+- **List:** One row per installed `(package, target)` from project or global lock.
 - **Registry:** Copy-adapted from webapp (`src/modules/registry/`); catalog search via
   `search`.
-- **Target detection:** Filesystem markers for `init` only (`src/modules/target/`).
+- **Target detection:** Filesystem markers for `init` and greenfield `install <package-id>`.
 
 Install commands pass `ResolvedAgentsConfig.registry` to `resolveRegistryFetchSourceConfig()`.
 
@@ -66,7 +66,7 @@ Registry module layout: `domain/`, `application/`, `infrastructure/` under
 
 ## Normative contracts
 
-- [global-install-state.md](../specs/global-install-state.md) — `agents-global.json` for global installs
+- [global-install-state.md](../specs/global-install-state.md) — global scope uses project lock schema
 - [config-schema.md](../specs/config-schema.md) — `agents.json` schema and schema gate
 - [lock-schema.md](../specs/lock-schema.md) — `agents-lock.json` lockfile format
 - [cli-protocol.md](../specs/cli-protocol.md) — install pipeline protocol

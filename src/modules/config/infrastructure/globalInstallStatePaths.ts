@@ -1,15 +1,6 @@
-import os from 'node:os'
-import path from 'node:path'
+import { resolveAgentsRepoHome } from './agentsRepoHome.js'
 
-import { AGENTS_GLOBAL_STATE_FILENAME } from '../domain/configConstants.js'
-
+/** @deprecated Global state uses agents.json + agents-lock.json under agents repo home. */
 export const resolveGlobalInstallConfigDir = (env: NodeJS.ProcessEnv = process.env): string => {
-  const homedir =
-    env.HOME?.trim() || env.USERPROFILE?.trim() || os.homedir()
-
-  return path.join(homedir, '.config', 'agents-repo')
-}
-
-export const resolveGlobalInstallStatePath = (env: NodeJS.ProcessEnv = process.env): string => {
-  return path.join(resolveGlobalInstallConfigDir(env), AGENTS_GLOBAL_STATE_FILENAME)
+  return resolveAgentsRepoHome(env)
 }

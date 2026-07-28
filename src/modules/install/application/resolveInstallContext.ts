@@ -20,17 +20,15 @@ export const buildInstallContext = async (options: {
   readonly resolved: ResolvedAgentsConfig
   readonly cwd: string
   readonly env: NodeJS.ProcessEnv
-  readonly targetOverride?: string
   readonly globalFlag?: boolean
 }): Promise<ResolvedInstallContext> => {
   const warnings = options.resolved.warnings.map((warning) => warning.message)
 
-  const targets = resolveInstallTargets(options.resolved, options.targetOverride)
+  const targets = resolveInstallTargets(options.resolved)
   const scope = resolveInstallScope({
     cwd: options.cwd,
     env: options.env,
     globalFlag: options.globalFlag,
-    configGlobal: options.resolved.global,
   })
 
   const catalogResult = await loadRegistryCatalog(options.resolved.registry)
@@ -50,7 +48,6 @@ export const buildInstallContext = async (options: {
 export const resolveInstallContext = async (options: {
   readonly cwd?: string
   readonly env?: NodeJS.ProcessEnv
-  readonly targetOverride?: string
   readonly globalFlag?: boolean
   readonly yes?: boolean
 }): Promise<ResolvedInstallContext> => {
@@ -67,7 +64,6 @@ export const resolveInstallContext = async (options: {
     resolved,
     cwd,
     env,
-    targetOverride: options.targetOverride,
     globalFlag: options.globalFlag,
   })
 }

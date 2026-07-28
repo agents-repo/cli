@@ -55,9 +55,6 @@ export class ConfigMerger {
     if (patch.targets !== undefined) {
       document.targets = patch.targets
     }
-    if (patch.global !== undefined) {
-      document.global = patch.global
-    }
 
     return this.canonicalizeRegistryUrl(document)
   }
@@ -83,10 +80,6 @@ export class ConfigMerger {
       if (force || document.targets === undefined) {
         document.targets = patch.targets
       }
-    }
-
-    if (patch.global !== undefined) {
-      document.global = this.mergeScalar(document.global, patch.global, force)
     }
 
     if (patch.packages !== undefined) {
@@ -131,10 +124,6 @@ export class ConfigMerger {
       if (force || result.targets === undefined) {
         result.targets = patch.targets
       }
-    }
-
-    if (patch.global !== undefined) {
-      result.global = this.mergeScalar(result.global, patch.global, force)
     }
 
     if (patch.packages !== undefined) {
@@ -213,13 +202,6 @@ export class ConfigMerger {
       }
     }
     return result
-  }
-
-  private mergeScalar<T>(existing: unknown, patch: T, force: boolean): T {
-    if (force || existing === undefined) {
-      return patch
-    }
-    return existing as T
   }
 
   private canonicalizeRegistryUrl<T extends Record<string, unknown>>(target: T): T {
