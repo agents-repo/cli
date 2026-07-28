@@ -41,6 +41,27 @@ describe('AddTargetService', () => {
     expect(config.targets).toEqual(['github-copilot', 'cursor'])
   })
 
+  it('ignores duplicate ids in the same add-target invocation', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-add-target-dup-args-'))
+    tempDirs.push(cwd)
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: DEFAULT_REGISTRY_CONFIG,
+        targets: ['cursor'],
+        packages: {},
+      }),
+    )
+
+    const service = new AddTargetService()
+    const result = await service.run({ cwd, targetIds: ['github-copilot', 'github-copilot'] })
+
+    expect(result.changed).toBe(true)
+    expect(result.warnings).toContain('duplicate add-target id ignored: github-copilot')
+    expect(result.targets).toEqual(['github-copilot', 'cursor'])
+  })
+
   it('rejects add-target when agents.json is missing', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-add-target-missing-config-'))
     tempDirs.push(cwd)

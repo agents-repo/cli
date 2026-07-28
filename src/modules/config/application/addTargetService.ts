@@ -56,7 +56,10 @@ export class AddTargetService {
       warnings.push(...detected.map((warning) => warning.message))
     }
 
-    const newIds = parseInstallTargetsArray(options.targetIds, 'add-target')
+    const { ids: newIds, warnings: duplicateArgWarnings } = this.parseAddTargetIds(
+      options.targetIds,
+    )
+    warnings.push(...duplicateArgWarnings)
     const activeTarget = getActiveGateTarget(rawDocument, gateMode)
     const managed = extractCliManagedConfig(activeTarget)
     const existing = resolveTargetsFromManaged(managed) ?? []
@@ -97,6 +100,29 @@ export class AddTargetService {
       targets: mergedTargets,
       warnings,
       changed: true,
+    }
+  }
+
+  private parseAddTargetIds(raw: readonly string[]): {
+    readonly ids: InstallTargetId[]
+    readonly warnings: string[]
+  } {
+    const warnings: string[] = []
+    const seen = new Set<string>()
+    const unique: string[] = []
+
+    for (const id of raw) {
+      if (seen.has(id)) {
+        warnings.push(`duplicate add-target id ignored: ${id}`)
+        continue
+      }
+      seen.add(id)
+      unique.push(id)
+    }
+
+    return {
+      ids: parseInstallTargetsArray(unique, 'add-target'),
+      warnings,
     }
   }
 }

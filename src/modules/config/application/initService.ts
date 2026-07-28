@@ -1,6 +1,7 @@
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import { ProjectTargetDetector } from '../../target/application/projectTargetDetector.js'
 import type { TargetDetectionResult } from '../../target/domain/targetDetection.js'
+import type { ConfigConflictRecord } from '../domain/configErrors.js'
 import { ConfigValidationError } from '../domain/configErrors.js'
 import type { InitResult } from '../domain/initResult.js'
 import { AgentsJsonRepository } from '../infrastructure/agentsJsonRepository.js'
@@ -82,20 +83,25 @@ export class InitService {
       targets: existingManaged.targets ?? namespaceManaged.targets,
     })
 
-    const resolvedTargets = await this.resolveTargets({
+    const resolved = await this.resolveTargets({
       cwd,
       force,
+      verbose: options.verbose ?? false,
       cliTargetIds: options.targetIds,
       existingTargets: effectiveTargets,
       topTargets: existingTargets,
       namespaceTargets,
     })
 
+    if (resolved.detectionWarnings.length > 0) {
+      warnings = [...warnings, ...resolved.detectionWarnings]
+    }
+
     const patch: {
       targets?: InstallTargetId[]
     } = {}
-    if (resolvedTargets !== undefined) {
-      patch.targets = resolvedTargets
+    if (resolved.targets !== undefined) {
+      patch.targets = resolved.targets
     }
 
     const merged = this.configMerger.merge(rawDocument, patch, { gateMode, force })
@@ -131,14 +137,19 @@ export class InitService {
   private async resolveTargets(options: {
     readonly cwd: string
     readonly force: boolean
+    readonly verbose: boolean
     readonly cliTargetIds?: readonly string[]
     readonly existingTargets?: InstallTargetId[]
     readonly topTargets?: InstallTargetId[]
     readonly namespaceTargets?: InstallTargetId[]
-  }): Promise<InstallTargetId[] | undefined> {
+  }): Promise<{
+    readonly targets: InstallTargetId[] | undefined
+    readonly detectionWarnings: readonly ConfigConflictRecord[]
+  }> {
     const {
       cwd,
       force,
+      verbose,
       cliTargetIds,
       existingTargets,
       topTargets,
@@ -160,22 +171,39 @@ export class InitService {
       }
 
       if (topTargets !== undefined && installTargetSetsEqual(topTargets, fromCli)) {
-        return undefined
+        return { targets: undefined, detectionWarnings: [] }
       }
 
-      return fromCli
+      return { targets: fromCli, detectionWarnings: [] }
     }
 
     if (topTargets !== undefined) {
-      return undefined
+      return { targets: undefined, detectionWarnings: [] }
     }
 
     if (namespaceTargets !== undefined) {
-      return namespaceTargets
+      return { targets: namespaceTargets, detectionWarnings: [] }
     }
 
     const detection = await this.targetDetector.detect(cwd)
-    return this.targetsFromDetection(detection)
+    const parsed = this.targetsFromDetection(detection)
+    const detectionWarnings =
+      verbose && detection.status === 'ambiguous'
+        ? this.buildAmbiguousDetectionWarnings(detection)
+        : []
+
+    return { targets: parsed, detectionWarnings }
+  }
+
+  private buildAmbiguousDetectionWarnings(
+    detection: TargetDetectionResult,
+  ): ConfigConflictRecord[] {
+    return detection.matches.map((match) => ({
+      code: 'type_mismatch',
+      path: 'targets',
+      message: `Detected install target ${match.target} (${match.markers.join(', ')})`,
+      severity: 'warning',
+    }))
   }
 
   private targetsFromDetection(detection: TargetDetectionResult): InstallTargetId[] {

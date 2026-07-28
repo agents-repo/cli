@@ -253,6 +253,9 @@ describe('InitService', () => {
     const result = await service.run({ cwd, verbose: true })
 
     expect(result.targets).toEqual(['claude-code', 'cursor'])
+    expect(result.warnings.some((warning) => warning.message.includes('Detected install target'))).toBe(
+      true,
+    )
   })
 
   it('treats an on-disk empty object as a bootstrap create', async () => {
