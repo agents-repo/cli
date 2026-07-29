@@ -14,6 +14,7 @@ import type { InstallTargetId } from '../../registry/domain/package.js'
 import {
   isConcreteRegistryRef,
   isManifestSha256Hex,
+  isValidLockIntegrity,
 } from '../domain/validators.js'
 import { AgentsLockRepository } from '../infrastructure/agentsLockRepository.js'
 import { isPlainObject } from '../infrastructure/jsonDocument.js'
@@ -41,6 +42,14 @@ export class LockFileService {
     }
 
     return `sha256-${manifestSha256Hex}`
+  }
+
+  parseIntegrityHex(integrity: string): string {
+    if (!isValidLockIntegrity(integrity)) {
+      throw new LockValidationError('Lock integrity must use sha256-<hex> format')
+    }
+
+    return integrity.slice('sha256-'.length)
   }
 
   mergePackageEntry(

@@ -99,6 +99,18 @@ Global scope (`-g`) MUST NOT modify project `agents-lock.json`. Global installs 
 | `install <pkg> -g` | Update global lock only |
 | `install` (bulk, `-g`) | Update global lock only |
 
+### Remove
+
+Successful `remove <package-id>` MUST delete the lock entry for that package id. When the lock
+`packages` map becomes empty, tooling MAY retain `resolvedRef` on the lock file or omit the lock
+file per repository write policy; MVP writers MUST keep a valid v2 document when the lock file
+remains.
+
+| Invocation | Lock behavior |
+| --- | --- |
+| `remove <pkg>` | Delete package entry from project lock |
+| `remove <pkg> -g` | Delete package entry from global lock only |
+
 ### Bulk install without lock
 
 When `agents-lock.json` is missing on bulk `install`, tooling MUST resolve from `agents.json`

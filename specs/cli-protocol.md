@@ -176,6 +176,8 @@ Unless `--no-save` or `--dry-run`, config and lock mutation follows:
 | `install` (bulk, `-g`) | Global home | Yes (global) | Yes (global) |
 | `update` (project) | Project cwd | Yes | Yes |
 | `update` (bulk, `-g`) | Global home | Yes (global) | Yes (global) |
+| `remove <pkg>` (project) | Project cwd | Yes | Yes |
+| `remove <pkg> -g` | Global home | Yes (global) | Yes (global) |
 | `ci` (post-MVP, project) | Project cwd | No | No |
 
 With `--no-save` or `--dry-run`, all rows skip config and lock writes. Global-scope rows MUST NOT
@@ -196,6 +198,32 @@ touch project config or lock files.
 
 `ci` MUST NOT run install-target detection and MUST NOT pick versions from manifest ranges. MVP does
 not implement `ci`; see `command-contracts.md` and [#16](https://github.com/agents-repo/cli/issues/16).
+
+## Remove command
+
+`remove <package-id>` uninstalls a package that is listed in `agents.json` `packages` and
+`agents-lock.json`. Tooling MUST NOT re-resolve semver ranges from `agents.json`; it MUST use lock
+`packages[<id>].version` and each `byTarget` slot's `artifact` and `integrity`.
+
+Remove MUST execute these steps in order:
+
+1. Load config and lock for [install scope](#install-scope) (`-g` uses global home paths).
+2. Validate `<package-id>` resolves to a catalog id present in `agents.json` `packages` and lock
+   `packages` (exit `3` when missing).
+3. Load registry catalog using lock `resolvedRef` (not config alias refs).
+4. For each `byTarget` slot on the lock entry:
+   - Build artifact URL for the locked version and `artifact` filename.
+   - Download the ZIP (including under `--dry-run` when enumerating paths).
+   - Verify SHA-256 against lock `integrity` (`sha256-<hex>`).
+   - List on-disk paths using the same ZIP entry mapping as install extract
+     (registry `install-targets.md` uninstall semantics).
+   - Unless `--dry-run`, delete listed files with orphan-safe rules (warn on missing or modified
+     files; `--force` MAY delete modified files).
+5. Unless `--no-save` or `--dry-run`, remove `packages[<id>]` from `agents.json` and delete the lock
+   entry. Global scope MUST NOT modify project config or lock.
+
+`--dry-run` MUST NOT delete files or mutate config/lock. `--no-save` MUST delete files but MUST NOT
+write `agents.json` or `agents-lock.json`.
 
 ## MVP Install Scope
 

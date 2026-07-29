@@ -26,10 +26,12 @@ npm run build
 node dist/bin/agents-repo.js <command>
 ```
 
-Commands (`init`, `install`, `update`, `search`, `list`, and `targets`) are available today. See
+Commands (`init`, `install`, `update`, `remove`, `search`, `list`, and `targets`) are
+available today. See
 [docs/commands/init.md](docs/commands/init.md),
 [docs/commands/install.md](docs/commands/install.md),
 [docs/commands/update.md](docs/commands/update.md),
+[docs/commands/remove.md](docs/commands/remove.md),
 [docs/commands/search.md](docs/commands/search.md),
 [docs/commands/list.md](docs/commands/list.md), and
 [docs/commands/targets.md](docs/commands/targets.md).
@@ -76,6 +78,7 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 | `init` | [docs/commands/init.md](docs/commands/init.md) |
 | `install` / `i` | [docs/commands/install.md](docs/commands/install.md) |
 | `update` / `up` | [docs/commands/update.md](docs/commands/update.md) |
+| `remove` / `rm` | [docs/commands/remove.md](docs/commands/remove.md) |
 | `search` / `find` | [docs/commands/search.md](docs/commands/search.md) |
 | `list` / `ls` | [docs/commands/list.md](docs/commands/list.md) |
 | `targets` | [docs/commands/targets.md](docs/commands/targets.md) |

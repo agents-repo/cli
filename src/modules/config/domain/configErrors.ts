@@ -22,6 +22,7 @@ export class ConfigParseError extends ConfigError {
 export type ConfigValidationCode =
   | 'type_mismatch'
   | 'package_not_configured'
+  | 'package_not_in_lock'
   | 'invalid_enum'
   | 'invalid_semver_range'
   | 'missing_target'

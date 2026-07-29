@@ -8,6 +8,7 @@ import { registerAddTargetCommand } from './addTargetCommand.js';
 import { registerInitCommand } from './initCommand.js';
 import { registerInstallCommand } from './installCommand.js';
 import { registerListCommand } from './listCommand.js';
+import { registerRemoveCommand } from './removeCommand.js';
 import { registerUpdateCommand } from './updateCommand.js';
 import { registerSearchCommand } from './searchCommand.js';
 import { registerTargetsCommand } from './targetsCommand.js';
@@ -64,6 +65,7 @@ export const createCliProgram = (): Command => {
   registerUpdateCommand(program);
   registerSearchCommand(program);
   registerListCommand(program);
+  registerRemoveCommand(program);
   registerTargetsCommand(program);
 
   return program;
