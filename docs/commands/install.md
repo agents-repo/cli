@@ -49,9 +49,9 @@ index alias defined in `packages/index.json`.
 When `agents.json` lists multiple `targets`, `install` (and `update`) installs each configured
 package once per target, updating lock `byTarget` slots.
 
-With `--verbose` and more than one configured target, stdout includes an additional per-package
-summary line after the per-target success lines (package id, version, target count, and target
-names). `--json` output is unchanged.
+With `--verbose` and fan-out across more than one install target, stdout includes an additional
+per-package summary line after the per-target success lines (package id, version, target count,
+and target names). `--json` output is unchanged.
 
 ### Version selection
 

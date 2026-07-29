@@ -51,6 +51,10 @@ describe('formatMultiTargetInstallSummary', () => {
       'Would update agents-repo/sample-agent@1.0.0 to 2 targets: cursor, github-copilot',
     );
   });
+
+  it('returns an empty string for an empty result group', () => {
+    expect(formatMultiTargetInstallSummary([], INSTALL_RESULT_ACTION_LABELS)).toBe('');
+  });
 });
 
 describe('formatMultiTargetInstallSummaries', () => {
@@ -68,6 +72,23 @@ describe('formatMultiTargetInstallSummaries', () => {
     expect(lines).toEqual([
       'Installed agents-repo/alpha@1.0.0 to 2 targets: cursor, github-copilot',
       'Installed agents-repo/zeta@1.0.0 to 2 targets: cursor, github-copilot',
+    ]);
+  });
+
+  it('emits separate lines per package id and version pair', () => {
+    const lines = formatMultiTargetInstallSummaries(
+      [
+        makeResult({ packageId: 'agents-repo/pkg', version: '1.0.0', target: 'cursor' }),
+        makeResult({ packageId: 'agents-repo/pkg', version: '1.0.0', target: 'github-copilot' }),
+        makeResult({ packageId: 'agents-repo/pkg', version: '2.0.0', target: 'cursor' }),
+        makeResult({ packageId: 'agents-repo/pkg', version: '2.0.0', target: 'github-copilot' }),
+      ],
+      INSTALL_RESULT_ACTION_LABELS,
+    );
+
+    expect(lines).toEqual([
+      'Installed agents-repo/pkg@1.0.0 to 2 targets: cursor, github-copilot',
+      'Installed agents-repo/pkg@2.0.0 to 2 targets: cursor, github-copilot',
     ]);
   });
 });

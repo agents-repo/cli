@@ -612,4 +612,28 @@ describe('update command multi-target verbose summary', () => {
     expect(plainResult.status).toBe(0);
     expect(plainResult.stdout).not.toContain('to 2 targets:');
   });
+
+  it('prints dry-run summary with --verbose and multiple targets', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-multitarget-dry-run-verbose-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const result = await runCliSubprocess(['--verbose', '--dry-run', 'update'], { cwd });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      'Would update agents-repo/sample-agent@1.0.0 to 2 targets: cursor, github-copilot',
+    );
+  });
 });
