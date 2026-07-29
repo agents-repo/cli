@@ -37,7 +37,8 @@ When `agents.json` resolves a non-empty `targets` list, `list` compares each loc
 package’s `byTarget` keys to that list. A configured target id with no matching
 `byTarget` slot for a package produces a warning (stderr in text mode, `warnings`
 in JSON). Listing still exits `0`. When no targets are configured after resolution,
-these warnings are omitted.
+these warnings are omitted. Warnings apply to every package entry in the lock, not only ids listed
+in `agents.json` `packages`.
 
 ### Global scope (`-g`)
 

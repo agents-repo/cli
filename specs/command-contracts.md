@@ -126,6 +126,11 @@ entry with the semver range from `agents.json` `packages` when present.
 Global scope (`-g`): reads `agents-lock.json` under `~/.agents-repo/`. Missing lock yields an
 empty list.
 
+When resolved `agents.json` includes a non-empty `targets` list, `list` MUST warn (non-fatal,
+exit `0`) for each lock package that lacks a `byTarget` slot for any configured target id.
+Warnings appear in stderr (text) and in the `warnings` array (`--json`). Omit these warnings when
+no targets are configured after resolution.
+
 Root `--json` emits a JSON object with `scope` (`project` or `global`), `rootPath`, `resolvedRef`
 (when the backing file exists), `warnings`, and `packages` (id, version, target, integrity,
 artifact, optional `range` in project scope).

@@ -78,7 +78,7 @@ export class ListInstalledService {
     entries: Record<string, PackageLockEntry>,
     configuredTargets: readonly InstallTargetId[] | undefined,
   ): string[] {
-    if (configuredTargets === undefined || configuredTargets.length === 0) {
+    if (configuredTargets === undefined) {
       return []
     }
 
