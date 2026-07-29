@@ -130,6 +130,12 @@ Change an existing target:
 agents-repo init --target github-copilot --force
 ```
 
+Configure multiple install targets (canonical ids):
+
+```bash
+agents-repo init --targets github-copilot cursor claude-code openai-codex
+```
+
 ## Related specs
 
 - [config-schema.md](../../specs/config-schema.md) — schema gate and merge rules

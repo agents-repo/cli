@@ -1,18 +1,21 @@
 # agents-repo CLI
 
 Official CLI for installing and managing agents-repo packages from the
-registry.
+open registry across supported install targets (GitHub Copilot, Cursor, Claude
+Code, and OpenAI Codex).
 
 ## Install / run
 
 ```bash
 npx agents-repo@latest --help
 npx agents-repo@latest init --targets cursor
+npx agents-repo@latest init --targets github-copilot claude-code openai-codex
 ```
 
 `--target` remains an alias for `--targets` on `init`. In a fresh project without
-detectable install markers, pass `--targets` (for
-example `cursor` or `github-copilot`); otherwise `init` may exit with code `3`.
+detectable install markers, pass `--targets` using a canonical id (for example
+`cursor`, `github-copilot`, `claude-code`, or `openai-codex`); otherwise `init`
+may exit with code `3`.
 
 After `install`, commit **`agents-lock.json`** (and **`agents.json`** when it
 changes) so installs stay reproducible. See
@@ -88,7 +91,7 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 
 | Tool | Path |
 | --- | --- |
-| Copilot | `.github/copilot-instructions.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
 | Cursor | `.cursor/rules/agents-cli.mdc` |
 
 Do not edit `.cursor/rules/agents-cli.mdc` directly. Run `npm run sync:cursor-rules`.

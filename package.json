@@ -9,6 +9,11 @@
     "agents-repo",
     "cli",
     "copilot",
+    "github-copilot",
+    "cursor",
+    "claude-code",
+    "openai-codex",
+    "codex",
     "registry"
   ],
   "type": "module",

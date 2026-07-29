@@ -56,7 +56,7 @@ cursor
   "rootPath": "/path/to/project",
   "gateMode": "top-level-ours",
   "warnings": [],
-  "targets": ["github-copilot", "cursor"]
+  "targets": ["github-copilot", "cursor", "claude-code", "openai-codex"]
 }
 ```
 
