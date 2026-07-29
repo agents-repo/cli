@@ -96,10 +96,13 @@ jobs:
           fi
 
       - name: Validate release App private key secret
-        if: ${{ secrets.RELEASE_APP_PRIVATE_KEY == '' }}
+        env:
+          RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
         run: |
-          echo "::error::Missing Actions secret RELEASE_APP_PRIVATE_KEY. See docs/npm-publishing.md#protected-main-and-release-automation."
-          exit 1
+          if [ -z "${RELEASE_APP_PRIVATE_KEY}" ]; then
+            echo "::error::Missing Actions secret RELEASE_APP_PRIVATE_KEY. See docs/npm-publishing.md#protected-main-and-release-automation."
+            exit 1
+          fi
 
       - name: Mint release GitHub App token
         id: release-app-token
