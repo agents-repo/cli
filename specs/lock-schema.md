@@ -107,7 +107,65 @@ ranges and write the lock (project scope, or global lock under `AGENTS_REPO_HOME
 ### Frozen install (post-MVP)
 
 `agents-repo ci` (post-MVP) installs exactly from the lock without semver re-resolution. The lock
-format MUST support that command; MVP does not implement it. See issue #16.
+format MUST support that command; MVP does not implement it. See
+[#16](https://github.com/agents-repo/cli/issues/16). Multi-target `agents.json` and lock v2
+`byTarget` rules are defined in this section and in `command-contracts.md` (see
+[#48](https://github.com/agents-repo/cli/issues/48)).
+
+#### Prerequisites
+
+- Tooling MUST read `agents-lock.json` with `lockfileVersion` `2` beside resolved project
+  `agents.json` (or `AGENTS_REPO_CONFIG` override). Missing lock MUST exit `3`.
+- Tooling MUST resolve `agents.json` `targets[]` from config only. `ci` MUST NOT run install-target
+  detection. When `targets` is missing or empty after resolution, tooling MUST exit `3` (same as
+  bulk `install` / `update`).
+- Post-MVP `ci` in this spec applies to **project scope** only. Global `ci -g` is out of scope
+  unless a follow-up issue extends these rules.
+
+#### Config and lock package sets
+
+Before any download or extract, tooling MUST validate that resolved `agents.json` `packages` and
+lock `packages` describe the same set of qualified package ids:
+
+- Every key in resolved `agents.json` `packages` MUST have a lock entry; otherwise exit `3`.
+- Every key in lock `packages` MUST appear in resolved `agents.json` `packages`; otherwise exit `3`
+  (config/lock drift).
+
+This is stricter than `list`, which still enumerates lock entries when config omits a range.
+
+#### Required `byTarget` slots (multi-target)
+
+For each `packageId` in resolved `agents.json` `packages` and each `targetId` in resolved
+`agents.json` `targets`, the lock entry `packages[packageId].byTarget[targetId]` MUST exist and
+MUST satisfy the [Target slot](#target-slot) constraints for `packages[packageId].version`.
+
+When any required slot is absent, tooling MUST exit `3` with a message that identifies the package
+and target (for example `missing byTarget slot for configured target <target-id>`). This is
+**fatal** on `ci`. Contrast `list`, which emits the same condition as a non-fatal warning and exits
+`0`.
+
+`byTarget` keys for install target ids **not** listed in resolved `agents.json` `targets` are not
+required for `ci` validation and MUST NOT be installed by `ci`. The lock MAY retain such slots from
+earlier installs; `list` MAY still show them.
+
+#### Version and range checks
+
+- Tooling MUST NOT semver re-resolve from `agents.json` `packages` ranges. Each install MUST use
+  lock `packages[<id>].version` and the per-target `artifact` and `integrity` from the required
+  `byTarget` slots.
+- When resolved `packages[<id>]` range does not accept lock `version`, tooling MUST exit `3` unless
+  `--force` is set (see `command-contracts.md`). `--force` MUST NOT waive missing required
+  `byTarget` slots or config/lock package-set mismatch.
+
+#### Registry and extract
+
+- Registry fetches MUST use lock `resolvedRef` (concrete ref) together with resolved `registry.url`
+  (including `AGENTS_REPO_REGISTRY_URL` override) to download the artifact named in each required
+  slot. Tooling MUST verify each slot `integrity` against the downloaded bytes and run the same ZIP
+  security checks as `install`.
+- Extract MUST fan out across the same `(packageId, targetId)` pairs as bulk `install`: one extract
+  per required slot into project scope (project cwd). `ci` MUST NOT mutate `agents.json` or
+  `agents-lock.json` on success.
 
 ## Validation Rules
 

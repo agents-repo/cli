@@ -172,6 +172,32 @@ in the `{ "selected": "<id>" }` stdout payload).
 `--interactive` without an interactive stdin TTY MUST exit `2` with an invalid-usage
 message. With `--json`, stdout MAY be piped; stdin MUST still be a TTY.
 
+### `ci` (post-MVP)
+
+Grammar: `ci` with no package arguments. Project scope only in the initial spec; global `ci -g` is
+reserved for a follow-up issue.
+
+`ci` performs a frozen install from `agents-lock.json` per `lock-schema.md` (no semver
+re-resolution). Tooling MUST resolve `agents.json`, validate config/lock package-set equality,
+require a `byTarget` slot for every `(packageId, targetId)` pair drawn from resolved `packages` and
+`targets`, then download, verify, and extract each required slot using lock `resolvedRef` and slot
+`artifact` / `integrity`. On success, tooling MUST NOT write `agents.json` or `agents-lock.json`.
+
+| Flag | Description |
+| --- | --- |
+| `--force` | Continue when a resolved `packages[<id>]` range does not accept lock `version` |
+| `--yes` / `-y` | Waive dual-definition config conflicts with warnings (same as other commands) |
+
+`--force` MUST NOT waive missing required `byTarget` slots or config/lock package-set mismatch.
+Those conditions MUST exit `3`.
+
+Missing or empty `targets` after resolution MUST exit `3`. Missing lock MUST exit `3`.
+
+Contrast `list`: incomplete `byTarget` for configured targets is a warning on `list` (exit `0`) and
+MUST be fatal on `ci` (exit `3`). See [#48](https://github.com/agents-repo/cli/issues/48).
+
+MVP MUST NOT implement `ci`. Tracking: [#16](https://github.com/agents-repo/cli/issues/16).
+
 ### Global install directory
 
 Global home: `~/.agents-repo/` (override with `AGENTS_REPO_HOME`). Global scope uses the same
@@ -184,6 +210,7 @@ Reserved for follow-up feature issues. MVP MUST NOT implement these interfaces.
 
 | Interface | Description | Tracking |
 | --- | --- | --- |
+| `ci` | Frozen lockfile install for CI pipelines (project scope) | [#16](https://github.com/agents-repo/cli/issues/16) |
 | `install <package-id>:<selector>` | Install one agent or flow by exact id | [#19](https://github.com/agents-repo/cli/issues/19) |
 | `--agents <id>` (repeatable) | Install listed agents from package | [#20](https://github.com/agents-repo/cli/issues/20) |
 | `--flows <id>` (repeatable) | Install listed flows from package | [#20](https://github.com/agents-repo/cli/issues/20) |

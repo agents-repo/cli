@@ -40,6 +40,9 @@ in JSON). Listing still exits `0`. When no targets are configured after resoluti
 these warnings are omitted. Warnings apply to every package entry in the lock, not only ids listed
 in `agents.json` `packages`.
 
+Planned [`ci`](ci.md) treats missing slots for configured targets as **fatal** (exit `3`), not
+warnings. See [lock-schema.md](../../specs/lock-schema.md) § Frozen install.
+
 ### Global scope (`-g`)
 
 `list -g` resolves global `agents.json` (when present) and reads `agents-lock.json` under
@@ -108,4 +111,5 @@ agents-repo --json list
 ## See also
 
 - [`install`](install.md) — install packages by id
+- [`ci`](ci.md) — planned lockfile install for CI (post-MVP)
 - [`search`](search.md) — search the registry catalog

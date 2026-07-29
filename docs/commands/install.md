@@ -49,6 +49,9 @@ index alias defined in `packages/index.json`.
 When `agents.json` lists multiple `targets`, `install` (and `update`) installs each configured
 package once per target, updating lock `byTarget` slots.
 
+Before relying on future [`ci`](ci.md) in pipelines, ensure every `(package, target)` pair has a
+lock slot (run bulk `install` or `update` after changing `targets` or `packages`).
+
 With `--verbose` and fan-out across more than one install target, stdout includes an additional
 per-package summary line after the per-target success lines (package id, version, target count,
 and target names). `--json` output is unchanged.
@@ -177,3 +180,4 @@ Errors use a single JSON object on stderr: `{"error":{"code":"...","message":"..
 - [command-contracts.md](../../specs/command-contracts.md) — flags and exit codes
 - [config-schema.md](../../specs/config-schema.md) — `agents.json` merge rules
 - [lock-schema.md](../../specs/lock-schema.md) — lockfile integrity fields
+- [ci.md](ci.md) — planned frozen install from lock (post-MVP)
