@@ -59,6 +59,10 @@ export class ListInstalledService {
       }
     }
 
+    const incompleteTargetWarnings = this.incompleteByTargetWarnings(
+      lock.packages,
+      resolved.targets,
+    )
     const packages = this.lockEntriesToListedPackages(lock.packages, resolved.packages)
 
     return {
@@ -66,8 +70,33 @@ export class ListInstalledService {
       rootPath,
       resolvedRef: lock.resolvedRef,
       packages,
-      warnings,
+      warnings: [...warnings, ...incompleteTargetWarnings],
     }
+  }
+
+  private incompleteByTargetWarnings(
+    entries: Record<string, PackageLockEntry>,
+    configuredTargets: readonly InstallTargetId[] | undefined,
+  ): string[] {
+    if (configuredTargets === undefined || configuredTargets.length === 0) {
+      return []
+    }
+
+    const packageIds = Object.keys(entries).sort((left, right) => left.localeCompare(right))
+    const warnings: string[] = []
+
+    for (const packageId of packageIds) {
+      const entry = entries[packageId]
+      for (const targetId of configuredTargets) {
+        if (entry.byTarget[targetId] === undefined) {
+          warnings.push(
+            `${packageId}: missing byTarget slot for configured target ${targetId}`,
+          )
+        }
+      }
+    }
+
+    return warnings
   }
 
   private lockEntriesToListedPackages(

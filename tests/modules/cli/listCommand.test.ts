@@ -146,6 +146,165 @@ describe('list command', () => {
     expect(stdout).toContain('agents-repo/sample-agent@1.0.0  target=cursor');
   });
 
+  it('warns when configured target is missing from lock byTarget', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-partial-target-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+    );
+    writeFileSync(
+      path.join(cwd, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
+        resolvedRef: 'v2.0.0',
+        packages: {
+          'agents-repo/sample-agent': {
+            version: '1.0.0',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'a'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const { stdout, stderr } = await runList(['list'], cwd);
+
+    expect(stdout).toContain('agents-repo/sample-agent@1.0.0  target=cursor');
+    expect(stderr).toContain(
+      'warning: agents-repo/sample-agent: missing byTarget slot for configured target github-copilot',
+    );
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  it('includes incomplete byTarget warnings in JSON output', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-partial-json-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+    );
+    writeFileSync(
+      path.join(cwd, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
+        resolvedRef: 'v2.0.0',
+        packages: {
+          'agents-repo/sample-agent': {
+            version: '1.0.0',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'a'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const { stdout, stderr } = await runList(['--json', 'list'], cwd);
+    const payload = JSON.parse(stdout.trim()) as { warnings: string[] };
+
+    expect(payload.warnings).toContain(
+      'agents-repo/sample-agent: missing byTarget slot for configured target github-copilot',
+    );
+    expect(stderr).toBe('');
+  });
+
+  it('does not warn when all configured targets are present in byTarget', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-complete-targets-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+    );
+    writeFileSync(
+      path.join(cwd, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
+        resolvedRef: 'v2.0.0',
+        packages: {
+          'agents-repo/sample-agent': {
+            version: '1.0.0',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'a'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+              'github-copilot': {
+                integrity: `sha256-${'b'.repeat(64)}`,
+                artifact: '1.0.0-github-copilot.zip',
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const { stderr } = await runList(['list'], cwd);
+
+    expect(stderr).toBe('');
+  });
+
+  it('does not emit byTarget warnings when config has no targets', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-no-targets-config-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+    );
+    writeFileSync(
+      path.join(cwd, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
+        resolvedRef: 'v2.0.0',
+        packages: {
+          'agents-repo/sample-agent': {
+            version: '1.0.0',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'a'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const { stderr } = await runList(['list'], cwd);
+
+    expect(stderr).toBe('');
+  });
+
   it('emits JSON with range when --json is set', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-json-'));
     tempDirs.push(cwd);
@@ -228,8 +387,61 @@ describe('list command', () => {
     const previousHome = process.env.HOME;
     process.env.HOME = homeDir;
     try {
-      const { stdout } = await runList(['list', '-g'], cwd);
+      const { stdout, stderr } = await runList(['list', '-g'], cwd);
       expect(stdout).toContain('agents-repo/sample-agent@1.0.0  target=cursor');
+      expect(stderr).toBe('');
+    } finally {
+      if (previousHome === undefined) {
+        delete process.env.HOME;
+      } else {
+        process.env.HOME = previousHome;
+      }
+    }
+  });
+
+  it('warns on incomplete byTarget for global list -g', async () => {
+    const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-global-partial-home-'));
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-global-partial-cwd-'));
+    tempDirs.push(homeDir);
+    tempDirs.push(cwd);
+
+    const globalDir = path.join(homeDir, '.agents-repo');
+    mkdirSync(globalDir, { recursive: true });
+    writeFileSync(
+      path.join(globalDir, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+    );
+    writeFileSync(
+      path.join(globalDir, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
+        resolvedRef: 'v2.0.0',
+        packages: {
+          'agents-repo/sample-agent': {
+            version: '1.0.0',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'b'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const previousHome = process.env.HOME;
+    process.env.HOME = homeDir;
+    try {
+      const { stderr } = await runList(['list', '-g'], cwd);
+      expect(stderr).toContain(
+        'warning: agents-repo/sample-agent: missing byTarget slot for configured target github-copilot',
+      );
     } finally {
       if (previousHome === undefined) {
         delete process.env.HOME;
