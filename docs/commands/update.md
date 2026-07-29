@@ -31,7 +31,7 @@ index alias defined in `packages/index.json`.
 | `--dry-run` | global | Resolve through artifact selection; no download, extract, or save |
 | `--no-save` | global | Skip `agents.json` and lock writes after a successful extract |
 | `--json` | global | Machine-readable success and error output |
-| `--verbose` | global | Detailed logging |
+| `--verbose` | global | Detailed logging; multi-target updates add per-package summary lines |
 
 `--dry-run` and `--no-save` are root-level flags (`agents-repo --dry-run update …`).
 
@@ -46,6 +46,10 @@ index alias defined in `packages/index.json`.
 
 When `agents.json` lists multiple `targets`, `update` refreshes each configured package once
 per target (same targets × packages loop as bulk `install`).
+
+With `--verbose` and more than one configured target, stdout includes an additional per-package
+summary line after the per-target success lines (package id, version, target count, and target
+names). `--json` output is unchanged.
 
 ### Version selection
 

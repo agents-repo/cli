@@ -16,6 +16,11 @@ import {
   makeInstallTestOtherManifest,
   withInstallTestArtifactSha256,
 } from '../../fixtures/installFixtures.js';
+import {
+  MULTI_TARGET_VERBOSE_UPDATE_SUMMARY,
+  startMultiTargetMockRegistry,
+  stopMockRegistryServer,
+} from '../../fixtures/multiTargetRegistryHttp.js';
 
 const nodeExecutable = process.execPath;
 const binPath = path.resolve(process.cwd(), 'dist/bin/agents-repo.js');
@@ -544,5 +549,67 @@ describe('update command semver refresh with mock registry', () => {
     expect(lock.packages['agents-repo/sample-agent'].byTarget.cursor.integrity).toBe(
       `sha256-${sha256110}`,
     );
+  });
+});
+
+describe('update command multi-target verbose summary', () => {
+  const tempDirs: string[] = [];
+  let mockServer: Server;
+  let mockBaseUrl: string;
+
+  beforeAll(async () => {
+    const started = await startMultiTargetMockRegistry();
+    mockServer = started.server;
+    mockBaseUrl = started.baseUrl;
+  });
+
+  afterAll(async () => {
+    await stopMockRegistryServer(mockServer);
+  });
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('prints per-package summary when --verbose and multiple targets', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-multitarget-verbose-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const verboseResult = await runCliSubprocess(['--verbose', 'update'], { cwd });
+
+    expect(verboseResult.status).toBe(0);
+    expect(verboseResult.stdout).toContain(MULTI_TARGET_VERBOSE_UPDATE_SUMMARY);
+
+    const plainCwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-multitarget-plain-'));
+    tempDirs.push(plainCwd);
+    writeFileSync(
+      path.join(plainCwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const plainResult = await runCliSubprocess(['update'], { cwd: plainCwd });
+    expect(plainResult.status).toBe(0);
+    expect(plainResult.stdout).not.toContain('to 2 targets:');
   });
 });

@@ -44,7 +44,12 @@ export const registerInstallCommand = (program: Command): void => {
           const results = await service.runAll(runOptions);
           const warnings = collectInstallResultWarnings(results);
           writeInstallResultWarnings(warnings, globals.json);
-          writeBulkInstallResultSuccess(results, globals.json, INSTALL_RESULT_ACTION_LABELS);
+          writeBulkInstallResultSuccess(
+            results,
+            globals.json,
+            INSTALL_RESULT_ACTION_LABELS,
+            globals.verbose,
+          );
           return;
         }
 
@@ -56,7 +61,12 @@ export const registerInstallCommand = (program: Command): void => {
 
         const warnings = collectInstallResultWarnings(results);
         writeInstallResultWarnings(warnings, globals.json);
-        writeBulkInstallResultSuccess(results, globals.json, INSTALL_RESULT_ACTION_LABELS);
+        writeBulkInstallResultSuccess(
+          results,
+          globals.json,
+          INSTALL_RESULT_ACTION_LABELS,
+          globals.verbose,
+        );
       } catch (error) {
         handleCliError(error);
       }

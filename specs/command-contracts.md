@@ -26,7 +26,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | `--help` | `-h` | Show help (all commands) |
 | `--version` | `-V` | Show CLI version (root program only) |
 | `--json` | | Machine-readable output |
-| `--verbose` | | Detailed logging |
+| `--verbose` | | Detailed logging; multi-target install/update add per-package summary lines |
 | `--yes` | `-y` | Non-interactive; continue past conflicts with warnings |
 | `--dry-run` | | Resolve through install step 7; no download, extract, or save |
 | `--no-save` | | Skip `agents.json` and lock writes |
