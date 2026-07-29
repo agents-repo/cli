@@ -79,6 +79,7 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 | `search` / `find` | [docs/commands/search.md](docs/commands/search.md) |
 | `list` / `ls` | [docs/commands/list.md](docs/commands/list.md) |
 | `targets` | [docs/commands/targets.md](docs/commands/targets.md) |
+| `ci` (planned) | [docs/commands/ci.md](docs/commands/ci.md) |
 
 ## IDE Agent Instructions
 
