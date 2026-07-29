@@ -12,28 +12,42 @@ import {
 } from './targetExtractPaths.js'
 import { scanTargetArtifactZipBuffer } from './zipSecurityScanner.js'
 
-export const listMappedZipFileEntries = (
+export interface ArtifactExtractPlan {
+  readonly absolutePaths: readonly string[]
+  readonly digestByRelativePath: ReadonlyMap<string, string>
+}
+
+const openScannedZip = (
   zipBytes: Buffer,
   targetId: InstallTargetId,
   version: string,
-): readonly string[] => {
+): AdmZip => {
   const issues = scanTargetArtifactZipBuffer(zipBytes, targetId, version)
   const blocking = issues.find((issue) => issue.severity === 'error')
   if (blocking !== undefined) {
     throw new InstallZipSecurityError(blocking.code, blocking.message)
   }
 
-  let zip: AdmZip
   try {
-    zip = new AdmZip(zipBytes)
+    return new AdmZip(zipBytes)
   } catch (error) {
     throw new InstallZipSecurityError(
       'ERR_ZIP_MALFORMED_ENTRY',
       `Cannot open ZIP artifact: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
+}
 
-  const mapped: string[] = []
+export const planArtifactExtractFromZip = (
+  zipBytes: Buffer,
+  targetId: InstallTargetId,
+  version: string,
+  extractRoot: string,
+): ArtifactExtractPlan => {
+  const zip = openScannedZip(zipBytes, targetId, version)
+  const resolvedRoot = path.resolve(extractRoot)
+  const digestByRelativePath = new Map<string, string>()
+  const absolutePaths: string[] = []
 
   for (const entry of zip.getEntries()) {
     const entryName = entry.entryName
@@ -58,7 +72,36 @@ export const listMappedZipFileEntries = (
       )
     }
 
-    mapped.push(mappedName)
+    const absolutePath = resolveContainedExtractPath(resolvedRoot, mappedName)
+    absolutePaths.push(absolutePath)
+    digestByRelativePath.set(
+      mappedName,
+      createHash('sha256').update(entry.getData()).digest('hex'),
+    )
+  }
+
+  return {
+    absolutePaths,
+    digestByRelativePath,
+  }
+}
+
+export const listMappedZipFileEntries = (
+  zipBytes: Buffer,
+  targetId: InstallTargetId,
+  version: string,
+): readonly string[] => {
+  const zip = openScannedZip(zipBytes, targetId, version)
+  const mapped: string[] = []
+
+  for (const entry of zip.getEntries()) {
+    const entryName = entry.entryName
+    if (entryName.endsWith('/')) {
+      continue
+    }
+
+    assertZipEntryPathSafe(entryName)
+    mapped.push(mapZipEntryToExtractPath(targetId, entryName))
   }
 
   return mapped
@@ -70,36 +113,16 @@ export const resolveArtifactExtractPaths = (
   version: string,
   extractRoot: string,
 ): readonly string[] => {
-  const resolvedRoot = path.resolve(extractRoot)
-  const relativePaths = listMappedZipFileEntries(zipBytes, targetId, version)
-
-  return relativePaths.map((relativePath) =>
-    resolveContainedExtractPath(resolvedRoot, relativePath),
-  )
+  return planArtifactExtractFromZip(zipBytes, targetId, version, extractRoot).absolutePaths
 }
 
-export const buildZipEntryDigestByMappedPath = (
+export const readZipEntryBytesForMappedPath = (
   zipBytes: Buffer,
   targetId: InstallTargetId,
   version: string,
-): ReadonlyMap<string, string> => {
-  const issues = scanTargetArtifactZipBuffer(zipBytes, targetId, version)
-  const blocking = issues.find((issue) => issue.severity === 'error')
-  if (blocking !== undefined) {
-    throw new InstallZipSecurityError(blocking.code, blocking.message)
-  }
-
-  let zip: AdmZip
-  try {
-    zip = new AdmZip(zipBytes)
-  } catch (error) {
-    throw new InstallZipSecurityError(
-      'ERR_ZIP_MALFORMED_ENTRY',
-      `Cannot open ZIP artifact: ${error instanceof Error ? error.message : String(error)}`,
-    )
-  }
-
-  const digests = new Map<string, string>()
+  mappedRelativePath: string,
+): Buffer | null => {
+  const zip = openScannedZip(zipBytes, targetId, version)
 
   for (const entry of zip.getEntries()) {
     const entryName = entry.entryName
@@ -109,9 +132,10 @@ export const buildZipEntryDigestByMappedPath = (
 
     assertZipEntryPathSafe(entryName)
     const mappedName = mapZipEntryToExtractPath(targetId, entryName)
-    const hex = createHash('sha256').update(entry.getData()).digest('hex')
-    digests.set(mappedName, hex)
+    if (mappedName === mappedRelativePath) {
+      return entry.getData()
+    }
   }
 
-  return digests
+  return null
 }

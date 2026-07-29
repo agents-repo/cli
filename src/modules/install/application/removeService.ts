@@ -1,16 +1,18 @@
 import { ConfigResolver } from '../../config/application/configResolver.js'
-import { ConfigValidationError } from '../../config/domain/configErrors.js'
+import { ConfigValidationError, LockValidationError } from '../../config/domain/configErrors.js'
 import { LockFileService } from '../../config/application/lockFileService.js'
 import { resolveAgentsRepoHome } from '../../config/infrastructure/agentsRepoHome.js'
 import { loadRegistryCatalog } from '../../registry/infrastructure/registryRepository.js'
 import { resolvePackageRef } from '../../registry/domain/package.js'
 import type { RemoveResult } from '../domain/removeResult.js'
-import {
-  buildZipEntryDigestByMappedPath,
-  resolveArtifactExtractPaths,
-} from '../infrastructure/artifactExtractPaths.js'
+import { planArtifactExtractFromZip } from '../infrastructure/artifactExtractPaths.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
-import { removeInstalledFiles } from '../infrastructure/packageRemover.js'
+import {
+  isBlockingRemoveWarning,
+  removeInstalledFiles,
+  rollbackRemovedSlots,
+  type RestoreRemovedSlotInput,
+} from '../infrastructure/packageRemover.js'
 import { verifySha256 } from '../infrastructure/sha256Verifier.js'
 import { resolveInstallScope } from './installScope.js'
 import { planRemoveSlots } from './planRemoveSlots.js'
@@ -57,10 +59,7 @@ export class RemoveService {
 
     const lock = await this.lockFileService.read(resolved.lockPath)
     if (lock === null) {
-      throw new ConfigValidationError(
-        `Package ${options.packageId} is not present in agents-lock.json`,
-        'package_not_in_lock',
-      )
+      throw new LockValidationError('agents-lock.json is missing')
     }
 
     const catalogResult = await loadRegistryCatalog({
@@ -94,80 +93,96 @@ export class RemoveService {
     })
 
     const results: RemoveResult[] = []
+    const completedSlots: RestoreRemovedSlotInput[] = []
+    let blockingSkip = false
 
-    for (const plan of slotPlans) {
-      const slotWarnings = [...warnings]
-      const expectedHex = this.lockFileService.parseIntegrityHex(plan.slot.integrity)
+    try {
+      for (const plan of slotPlans) {
+        const slotWarnings = [...warnings]
+        const expectedHex = this.lockFileService.parseIntegrityHex(plan.slot.integrity)
 
-      const resultBase: RemoveResult = {
-        packageId: plan.packageId,
-        version: plan.version,
-        target: plan.target,
-        extractRoot: scope.extractRoot,
-        artifactUrl: plan.artifactUrl,
-        saved: false,
-        dryRun,
-        global: scope.global,
-        noSave,
-        warnings: slotWarnings,
-        deletedPaths: [],
-      }
+        const resultBase: RemoveResult = {
+          packageId: plan.packageId,
+          version: plan.version,
+          target: plan.target,
+          extractRoot: scope.extractRoot,
+          artifactUrl: plan.artifactUrl,
+          saved: false,
+          dryRun,
+          global: scope.global,
+          noSave,
+          warnings: slotWarnings,
+          deletedPaths: [],
+        }
 
-      if (dryRun) {
         const zipBytes = await downloadArtifact(plan.artifactUrl)
         verifySha256(zipBytes, expectedHex)
-        const paths = resolveArtifactExtractPaths(
+        const extractPlan = planArtifactExtractFromZip(
           zipBytes,
           plan.target,
           plan.version,
           scope.extractRoot,
         )
+
+        if (dryRun) {
+          results.push({
+            ...resultBase,
+            deletedPaths: extractPlan.absolutePaths,
+            warnings: [
+              ...slotWarnings,
+              `Dry run: would remove ${extractPlan.absolutePaths.length} file(s) for target ${plan.target}`,
+            ],
+          })
+          continue
+        }
+
+        const { deletedPaths, warnings: removeWarnings } = await removeInstalledFiles(
+          extractPlan.absolutePaths,
+          scope.extractRoot,
+          plan.target,
+          extractPlan.digestByRelativePath,
+          { force },
+        )
+
+        if (removeWarnings.some(isBlockingRemoveWarning)) {
+          blockingSkip = true
+        }
+
+        completedSlots.push({
+          zipBytes,
+          targetId: plan.target,
+          version: plan.version,
+          extractRoot: scope.extractRoot,
+          deletedPaths,
+        })
+
         results.push({
           ...resultBase,
-          deletedPaths: paths,
-          warnings: [
-            ...slotWarnings,
-            `Dry run: would remove ${paths.length} file(s) for target ${plan.target}`,
-          ],
+          deletedPaths,
+          warnings: [...slotWarnings, ...removeWarnings],
         })
-        continue
       }
 
-      const zipBytes = await downloadArtifact(plan.artifactUrl)
-      verifySha256(zipBytes, expectedHex)
-      const paths = resolveArtifactExtractPaths(
-        zipBytes,
-        plan.target,
-        plan.version,
-        scope.extractRoot,
-      )
-      const digestMap = buildZipEntryDigestByMappedPath(zipBytes, plan.target, plan.version)
-      const { deletedPaths, warnings: removeWarnings } = await removeInstalledFiles(
-        paths,
-        scope.extractRoot,
-        plan.target,
-        digestMap,
-        { force },
-      )
+      const shouldPersist = !noSave && !dryRun && !blockingSkip && results.length > 0
 
-      results.push({
-        ...resultBase,
-        deletedPaths,
-        warnings: [...slotWarnings, ...removeWarnings],
-      })
+      if (shouldPersist && scope.persistScopeConfig) {
+        try {
+          await this.removePersistence.remove(resolved, qualifiedId)
+        } catch (error) {
+          await rollbackRemovedSlots(completedSlots)
+          throw error
+        }
+      }
+
+      const saved = shouldPersist && scope.persistScopeConfig
+
+      return results.map((result) => ({
+        ...result,
+        saved,
+      }))
+    } catch (error) {
+      await rollbackRemovedSlots(completedSlots)
+      throw error
     }
-
-    const shouldPersist = !noSave && !dryRun && results.length > 0
-
-    if (shouldPersist && scope.persistScopeConfig) {
-      await this.removePersistence.remove(resolved, qualifiedId)
-    }
-
-    const saved = shouldPersist && scope.persistScopeConfig
-
-    return results.map((result) => ({
-      ...result,
-      saved,
-    }))
   }
 }

@@ -220,10 +220,14 @@ Remove MUST execute these steps in order:
    - Unless `--dry-run`, delete listed files with orphan-safe rules (warn on missing or modified
      files; `--force` MAY delete modified files).
 5. Unless `--no-save` or `--dry-run`, remove `packages[<id>]` from `agents.json` and delete the lock
-   entry. Global scope MUST NOT modify project config or lock.
+   entry. Global scope MUST NOT modify project config or lock. Tooling MUST NOT update config or
+   lock when any target reports a blocking skip (modified file without `--force`, non-file path, or
+   missing digest for a planned path).
 
 `--dry-run` MUST NOT delete files or mutate config/lock. `--no-save` MUST delete files but MUST NOT
-write `agents.json` or `agents-lock.json`.
+write `agents.json` or `agents-lock.json`. When a later target fails after earlier targets were
+deleted, tooling MUST restore deleted files from the locked artifact ZIP before surfacing the error.
+Config MUST be updated before the lock file on successful persistence.
 
 ## MVP Install Scope
 

@@ -14,6 +14,8 @@ export class RemovePersistence {
       return
     }
 
+    await this.removePackageFromConfig.remove(resolved, packageId)
+
     const packages: AgentsLockDocument['packages'] = { ...existingLock.packages }
     delete packages[packageId]
 
@@ -24,6 +26,5 @@ export class RemovePersistence {
     }
 
     await this.lockFileService.write(resolved.lockPath, lockDocument)
-    await this.removePackageFromConfig.remove(resolved, packageId)
   }
 }

@@ -204,7 +204,7 @@ describe('remove command subprocess with mock registry', () => {
 
     const result = await runCliSubprocess(['remove', 'agents-repo/sample-agent'], { cwd });
     expect(result.status).toBe(3);
-    expect(result.stderr).toContain('not present in agents-lock.json');
+    expect(result.stderr).toContain('agents-lock.json is missing');
   });
 
   it('dry-run does not delete files or update lock', async () => {
@@ -227,5 +227,151 @@ describe('remove command subprocess with mock registry', () => {
     expect(result.stdout).toContain('Would remove');
     expect(readFileSync(skillPath, 'utf8')).toContain('name: sample');
     expect(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toBe(lockBefore);
+  });
+
+  it('does not update config when --no-save is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-remove-no-save-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
+
+    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    const configBefore = readFileSync(path.join(cwd, 'agents.json'), 'utf8');
+    const lockBefore = readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8');
+
+    const result = await runCliSubprocess(
+      ['--no-save', 'remove', 'agents-repo/sample-agent'],
+      { cwd },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('(not saved)');
+    expect(() => readFileSync(skillPath, 'utf8')).toThrow();
+    expect(readFileSync(path.join(cwd, 'agents.json'), 'utf8')).toBe(configBefore);
+    expect(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toBe(lockBefore);
+  });
+
+  it('removes globally without touching project config or lock', async () => {
+    const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-remove-home-'));
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-remove-global-'));
+    tempDirs.push(cwd);
+    tempDirs.push(homeDir);
+
+    writeInstallConfig(cwd, mockBaseUrl);
+    const globalRoot = path.join(homeDir, '.agents-repo');
+    mkdirSync(globalRoot, { recursive: true });
+    writeFileSync(
+      path.join(globalRoot, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+      'utf8',
+    );
+
+    const env = { ...process.env, HOME: homeDir };
+
+    await runCliSubprocess(['install', '-g', 'agents-repo/sample-agent'], { cwd, env });
+
+    const globalSkill = path.join(globalRoot, '.cursor/skills/sample/SKILL.md');
+    expect(readFileSync(globalSkill, 'utf8')).toContain('name: sample');
+
+    const removeResult = await runCliSubprocess(
+      ['remove', '-g', 'agents-repo/sample-agent'],
+      { cwd, env },
+    );
+    expect(removeResult.status).toBe(0);
+    expect(() => readFileSync(globalSkill, 'utf8')).toThrow();
+    expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
+
+    const globalLock = JSON.parse(
+      readFileSync(path.join(globalRoot, 'agents-lock.json'), 'utf8'),
+    ) as { packages: Record<string, unknown> };
+    expect(globalLock.packages['agents-repo/sample-agent']).toBeUndefined();
+  });
+
+  it('exits 3 when package is not configured in agents.json', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-remove-not-configured-'));
+    tempDirs.push(cwd);
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: {},
+      }),
+      'utf8',
+    );
+    writeFileSync(
+      path.join(cwd, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
+        resolvedRef: 'v2.0.0',
+        packages: {
+          'agents-repo/sample-agent': {
+            version: '1.0.0',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${sha256}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
+          },
+        },
+      }),
+      'utf8',
+    );
+
+    const result = await runCliSubprocess(['remove', 'agents-repo/sample-agent'], { cwd });
+    expect(result.status).toBe(3);
+    expect(result.stderr).toContain('not listed in agents.json packages');
+  });
+
+  it('keeps config when a modified file is skipped without --force', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-remove-modified-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
+
+    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    writeFileSync(skillPath, 'user edited this file', 'utf8');
+
+    const result = await runCliSubprocess(['remove', 'agents-repo/sample-agent'], { cwd });
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain('Skipped modified file');
+    expect(readFileSync(skillPath, 'utf8')).toBe('user edited this file');
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      packages: Record<string, string>;
+    };
+    expect(config.packages['agents-repo/sample-agent']).toBe('^1.0.0');
+  });
+
+  it('removes modified files when --force is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-remove-force-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
+
+    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    writeFileSync(skillPath, 'user edited this file', 'utf8');
+
+    const result = await runCliSubprocess(
+      ['remove', '--force', 'agents-repo/sample-agent'],
+      { cwd },
+    );
+    expect(result.status).toBe(0);
+    expect(() => readFileSync(skillPath, 'utf8')).toThrow();
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      packages: Record<string, string>;
+    };
+    expect(config.packages['agents-repo/sample-agent']).toBeUndefined();
   });
 });
