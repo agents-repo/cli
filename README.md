@@ -26,12 +26,13 @@ npm run build
 node dist/bin/agents-repo.js <command>
 ```
 
-Commands (`init`, `install`, `update`, `search`, and `list`) are available today. See
+Commands (`init`, `install`, `update`, `search`, `list`, and `targets`) are available today. See
 [docs/commands/init.md](docs/commands/init.md),
 [docs/commands/install.md](docs/commands/install.md),
 [docs/commands/update.md](docs/commands/update.md),
-[docs/commands/search.md](docs/commands/search.md), and
-[docs/commands/list.md](docs/commands/list.md).
+[docs/commands/search.md](docs/commands/search.md),
+[docs/commands/list.md](docs/commands/list.md), and
+[docs/commands/targets.md](docs/commands/targets.md).
 
 ## Stack
 
@@ -77,6 +78,7 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 | `update` / `up` | [docs/commands/update.md](docs/commands/update.md) |
 | `search` / `find` | [docs/commands/search.md](docs/commands/search.md) |
 | `list` / `ls` | [docs/commands/list.md](docs/commands/list.md) |
+| `targets` | [docs/commands/targets.md](docs/commands/targets.md) |
 
 ## IDE Agent Instructions
 

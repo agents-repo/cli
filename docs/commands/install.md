@@ -38,6 +38,7 @@ index alias defined in `packages/index.json`.
 
 - Install targets come from `agents.json` `targets[]` only (no `--target` on `install`).
 - Bulk `install` / `update` require existing `targets` in config; otherwise exit `3`.
+  Inspect configured targets with **`agents-repo targets`** (read-only).
 - Greenfield **`install <package-id>`** (no manifest or `{}` only): run target detection (same as
   `init`); on failure exit `3` with a message to run `init --targets <id...>`.
 - To add targets after init, use **`add-target <id...>`** (or until documented otherwise,

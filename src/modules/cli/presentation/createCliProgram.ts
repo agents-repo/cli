@@ -10,6 +10,7 @@ import { registerInstallCommand } from './installCommand.js';
 import { registerListCommand } from './listCommand.js';
 import { registerUpdateCommand } from './updateCommand.js';
 import { registerSearchCommand } from './searchCommand.js';
+import { registerTargetsCommand } from './targetsCommand.js';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -63,6 +64,7 @@ export const createCliProgram = (): Command => {
   registerUpdateCommand(program);
   registerSearchCommand(program);
   registerListCommand(program);
+  registerTargetsCommand(program);
 
   return program;
 };
