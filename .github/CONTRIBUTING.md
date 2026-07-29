@@ -124,7 +124,7 @@ npm run check:secrets
 Unit test conventions are in [docs/testing.md](../docs/testing.md).
 
 This repository uses a Husky pre-commit hook that runs `npm run lint:all`,
-`npm run test:sync`, and `npm run sync:cursor-rules -- --check`.
+`npm run test:sync`, and `npm run sync:ide-instructions -- --check`.
 
 Note: `LICENSE` is intentionally excluded from workspace markdownlint checks.
 
@@ -135,19 +135,38 @@ Note: `LICENSE` is intentionally excluded from workspace markdownlint checks.
 3. Include `Closes #<issue-number>` in `## Related Issues` for standard tasks.
 4. List validation commands you ran and include evidence.
 
-## IDE deployment mirrors
+## IDE setup
 
-| Path | Source |
-| --- | --- |
-| `.cursor/rules/agents-cli.mdc` | `.github/copilot-instructions.md` |
+### Project guidelines (repo-specific)
 
-Regenerate after editing `copilot-instructions.md`:
+| Install target | Path | Source |
+| --- | --- | --- |
+| GitHub Copilot | `.github/copilot-instructions.md` | **Canonical** — edit here |
+| Cursor | `.cursor/rules/agents-cli.mdc` | Mirrored from copilot-instructions |
+| Claude Code | `CLAUDE.md` | Mirrored from copilot-instructions |
+| OpenAI Codex | `AGENTS.md` | Mirrored from copilot-instructions |
+
+Regenerate mirrors after editing `copilot-instructions.md`:
 
 ```bash
-npm run sync:cursor-rules
+npm run sync:ide-instructions
 ```
 
-Do not edit `.cursor/rules/` directly.
+Do not edit `.cursor/rules/`, `CLAUDE.md`, or `AGENTS.md` directly.
+
+### Registry workflow packages (CLI)
+
+Install and refresh catalog packages with the [agents-repo CLI](https://github.com/agents-repo/cli):
+
+```bash
+npx agents-repo init --targets github-copilot claude-code cursor openai-codex
+npx agents-repo install    # bulk sync from agents.json
+npx agents-repo update       # refresh within semver ranges
+```
+
+Commit `agents.json`, `agents-lock.json`, and extracted paths (`.github/agents/`,
+`.cursor/skills/`, `.claude/agents/`, `.agents/skills/`). Do not hand-edit extracted
+package files.
 
 ## AI Collaboration
 

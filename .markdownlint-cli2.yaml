@@ -15,3 +15,5 @@ ignores:
   - "node_modules/**"
   - "dist/**"
   - "LICENSE"
+  - ".cursor/skills/**"
+  - ".agents/skills/**"

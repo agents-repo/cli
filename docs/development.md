@@ -65,7 +65,7 @@ node dist/bin/agents-repo.js --version
 ```
 
 Pre-commit hooks run `npm run lint:all`, `npm run test:sync`, and
-`npm run sync:cursor-rules -- --check` through Husky.
+`npm run sync:ide-instructions -- --check` through Husky.
 
 ## Project Layout
 

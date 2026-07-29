@@ -68,7 +68,7 @@ Before handoff on a task branch, agents MUST complete the organization
 norm, run the **Validation** commands above, perform a self-review, and update
 the **draft** PR with evidence. Agents MUST NOT mark pull requests ready for
 review. After editing `.github/copilot-instructions.md`, run
-`npm run sync:cursor-rules`.
+`npm run sync:ide-instructions`.
 
 ## Documentation Standard
 
@@ -138,5 +138,5 @@ For long issue or PR bodies, prefer `--body-file` over inline quoted text.
 After editing `.github/copilot-instructions.md`, regenerate the Cursor rule:
 
 ```bash
-npm run sync:cursor-rules
+npm run sync:ide-instructions
 ```
