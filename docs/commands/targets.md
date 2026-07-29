@@ -45,7 +45,9 @@ Config warnings appear in the `warnings` array (JSON) or on stderr as
 
 ```text
 github-copilot
+claude-code
 cursor
+openai-codex
 ```
 
 **JSON (`--json`):**
@@ -56,7 +58,7 @@ cursor
   "rootPath": "/path/to/project",
   "gateMode": "top-level-ours",
   "warnings": [],
-  "targets": ["github-copilot", "cursor"]
+  "targets": ["github-copilot", "claude-code", "cursor", "openai-codex"]
 }
 ```
 
