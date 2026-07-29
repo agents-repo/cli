@@ -57,7 +57,7 @@ for that package.
 | `0` | Success |
 | `3` | Package not in `agents.json` or lock, or config validation error |
 
-See [command-contracts](../specs/command-contracts.md) for the full exit code table.
+See [command-contracts.md](../../specs/command-contracts.md) for the full exit code table.
 
 ## See also
 

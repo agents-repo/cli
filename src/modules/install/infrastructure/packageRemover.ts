@@ -6,6 +6,7 @@ import type { InstallTargetId } from '../../registry/domain/package.js'
 import { InstallRuntimeError } from '../domain/installErrors.js'
 import { readZipEntryBytesForMappedPath } from './artifactExtractPaths.js'
 import { installTargetPruneBoundary } from './installTargetPruneBoundary.js'
+import { assertAbsolutePathWithinExtractRoot } from './targetExtractPaths.js'
 
 export interface RemoveFilesOptions {
   readonly force?: boolean
@@ -97,6 +98,7 @@ export const removeInstalledFiles = async (
   const resolvedRoot = path.resolve(extractRoot)
 
   for (const absolutePath of filePaths) {
+    assertAbsolutePathWithinExtractRoot(resolvedRoot, absolutePath)
     const relative = path.relative(resolvedRoot, absolutePath).split(path.sep).join('/')
     const expectedHex = expectedHexByRelativePath.get(relative)
 

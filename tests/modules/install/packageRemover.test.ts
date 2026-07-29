@@ -10,6 +10,7 @@ import {
   removeInstalledFiles,
   restoreRemovedSlotFiles,
 } from '../../../src/modules/install/infrastructure/packageRemover.js';
+import { InstallRuntimeError } from '../../../src/modules/install/domain/installErrors.js';
 
 describe('packageRemover', () => {
   const tempDirs: string[] = [];
@@ -88,5 +89,20 @@ describe('packageRemover', () => {
     });
 
     expect(readFileSync(targetPath, 'utf8')).toContain('name: sample');
+  });
+
+  it('refuses to delete paths outside extractRoot', async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'agents-remover-outside-'));
+    tempDirs.push(root);
+    const zipBytes = buildCursorSkillZip();
+    const plan = planArtifactExtractFromZip(zipBytes, 'cursor', '1.0.0', root);
+    const outsidePath = path.join(os.tmpdir(), 'agents-remover-outside-target.txt');
+    writeFileSync(outsidePath, 'outside', 'utf8');
+
+    await expect(
+      removeInstalledFiles([outsidePath], root, 'cursor', plan.digestByRelativePath),
+    ).rejects.toBeInstanceOf(InstallRuntimeError);
+
+    rmSync(outsidePath, { force: true });
   });
 });
