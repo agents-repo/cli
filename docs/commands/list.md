@@ -33,10 +33,19 @@ range for the package, it is included in `--json` output as `range`.
 
 Missing lock file: exit `0` with an empty list.
 
+When `agents.json` resolves a non-empty `targets` list, `list` compares each lock
+package’s `byTarget` keys to that list. A configured target id with no matching
+`byTarget` slot for a package produces a warning (stderr in text mode, `warnings`
+in JSON). Listing still exits `0`. When no targets are configured after resolution,
+these warnings are omitted. Warnings apply to every package entry in the lock, not only ids listed
+in `agents.json` `packages`.
+
 ### Global scope (`-g`)
 
 `list -g` resolves global `agents.json` (when present) and reads `agents-lock.json` under
 `~/.agents-repo/` (or `AGENTS_REPO_HOME`). Missing lock: exit `0` with an empty list.
+Incomplete `byTarget` warnings use the same rules as project scope, based on global
+`agents.json` `targets`.
 
 ### Output
 
