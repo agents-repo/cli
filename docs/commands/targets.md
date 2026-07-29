@@ -27,8 +27,10 @@ options when root flags are placed after `targets`.
 (schema gate, conflict detection, managed field extraction). It does **not**
 download packages, read the lock file, or write config.
 
-- When `targets[]` is absent or empty after resolution, exit `0` with an empty
-  list (text: `No install targets configured.`; JSON: `"targets": []`).
+- When `targets` is **absent** after resolution (including no `agents.json` / greenfield),
+  exit `0` with an empty list (text: `No install targets configured.`; JSON:
+  `"targets": []`). An explicit empty `targets: []` in config is invalid and exits `3`,
+  same as other commands.
 - Deprecated managed field `target` (singular) exits `3` (`deprecated_field`), same
   as other commands.
 - Bulk `install` / `update` still require configured targets and exit `3` when
@@ -42,8 +44,8 @@ Config warnings appear in the `warnings` array (JSON) or on stderr as
 **Text (default):** one install target id per line (canonical order):
 
 ```text
-cursor
 github-copilot
+cursor
 ```
 
 **JSON (`--json`):**
@@ -54,7 +56,7 @@ github-copilot
   "rootPath": "/path/to/project",
   "gateMode": "top-level-ours",
   "warnings": [],
-  "targets": ["cursor", "github-copilot"]
+  "targets": ["github-copilot", "cursor"]
 }
 ```
 

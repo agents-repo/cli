@@ -12,6 +12,19 @@ import {
 } from '../../fixtures/agentsJson/index.js'
 
 describe('ShowResolvedTargetsService', () => {
+  it('returns empty targets when agents.json is missing (greenfield)', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-targets-svc-greenfield-'))
+
+    const service = new ShowResolvedTargetsService()
+    const result = await service.run({ cwd, env: {} })
+
+    expect(result.scope).toBe('project')
+    expect(result.rootPath).toBe(cwd)
+    expect(result.gateMode).toBe('greenfield')
+    expect(result.targets).toEqual([])
+    expect(result.warnings).toEqual([])
+  })
+
   it('returns canonical targets from project agents.json', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-targets-svc-'))
     const configPath = path.join(cwd, 'agents.json')

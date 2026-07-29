@@ -138,8 +138,9 @@ artifact, optional `range` in project scope).
 
 `targets` resolves `agents.json` through the schema gate and prints effective `targets[]` only.
 It MUST NOT read `agents-lock.json`, fetch registry data, or write config. When `targets` is
-absent after resolution, tooling MUST exit `0` with an empty `targets` list (contrast bulk
-`install` / `update`, which exit `3` when targets are missing).
+absent after resolution (including greenfield / no config file), tooling MUST exit `0` with an
+empty `targets` list. An explicit empty `targets: []` in config is invalid and MUST exit `3`
+(contrast bulk `install` / `update`, which exit `3` when targets are missing after resolution).
 
 Root `--json` emits a JSON object with `scope` (`project` or `global`), `rootPath`, `gateMode`,
 `warnings`, and `targets` (canonical install target id order).

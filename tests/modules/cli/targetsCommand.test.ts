@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetCliGlobals } from '../../../src/modules/cli/application/cliGlobals.js';
 import { createCliProgram } from '../../../src/modules/cli/presentation/createCliProgram.js';
+import { conflictingTopLevelConfig } from '../../fixtures/agentsJson/index.js';
 
 const nodeExecutable = process.execPath;
 const binPath = path.resolve(process.cwd(), 'dist/bin/agents-repo.js');
@@ -250,5 +251,17 @@ describe('targets command subprocess', () => {
 
     expect(result.status).toBe(3);
     expect(result.stderr).toMatch(/deprecated/i);
+  });
+
+  it('exits 4 for dual-definition conflicts without --yes', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-targets-conflict-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(path.join(cwd, 'agents.json'), JSON.stringify(conflictingTopLevelConfig));
+
+    const result = await runCliSubprocess(['targets'], { cwd });
+
+    expect(result.status).toBe(4);
+    expect(result.stderr).toContain('dual definition');
   });
 });
