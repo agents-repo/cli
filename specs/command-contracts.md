@@ -48,6 +48,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | `search` | `find` | MVP |
 | `list` | `ls` | MVP |
 | `update` | `up` | MVP |
+| `remove` | `rm` | MVP |
 
 ## Command-Specific Flags
 
@@ -113,6 +114,27 @@ With no arguments, `update` refreshes every entry in `packages` using the same s
 install pipeline as bulk `install` (highest satisfying manifest version per range). `update` is the
 explicit npm/skills parity name; behavior MAY converge with bulk `install` unless a future spec
 change documents a difference.
+
+### `remove`
+
+| Flag | Description |
+| --- | --- |
+| `--global` / `-g` | Global scope; same config/lock paths as `install -g` |
+| `--no-save` | Skip `agents.json` and lock writes after file deletion |
+| `--dry-run` | Download locked artifacts and list paths to delete; no delete or save |
+| `--yes` / `-y` | Non-interactive; waive conflicts with warnings |
+| `--force` | Delete files even when on-disk content no longer matches the locked artifact |
+
+Grammar: `remove <package-id>` where `<package-id>` is a qualified id or index alias.
+The package MUST exist in resolved `agents.json` `packages` and in `agents-lock.json`; otherwise
+tooling MUST exit `3` with structured code `package_not_configured` or `package_not_in_lock`.
+
+Tooling MUST derive delete paths from each lock `byTarget` slot for the package (locked version and
+artifact filename). Tooling MUST NOT re-resolve semver ranges from `agents.json` during remove.
+See `cli-protocol.md` and registry `install-targets.md` uninstall semantics.
+
+Root `--json` emits a JSON object with aggregated `warnings` and `packages` (per-target results with
+`deletedPaths`, `saved`, `dryRun`, and related fields).
 
 ### `list`
 

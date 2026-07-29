@@ -1,6 +1,7 @@
 import path from 'node:path'
 
 import type { InstallTargetId } from '../../registry/domain/package.js'
+import { InstallRuntimeError } from '../domain/installErrors.js'
 
 const AGENTS_DIR = 'agents'
 const GITHUB_AGENTS_DIR = '.github/agents'
@@ -47,4 +48,20 @@ export const resolveContainedExtractPath = (extractRoot: string, relativePath: s
   }
 
   return destination
+}
+
+export const assertAbsolutePathWithinExtractRoot = (
+  extractRoot: string,
+  absolutePath: string,
+): void => {
+  const resolvedRoot = path.resolve(extractRoot)
+  const destination = path.resolve(absolutePath)
+  const rootPrefix = resolvedRoot.endsWith(path.sep) ? resolvedRoot : `${resolvedRoot}${path.sep}`
+
+  if (destination !== resolvedRoot && !destination.startsWith(rootPrefix)) {
+    throw new InstallRuntimeError(
+      'path_traversal',
+      `Refusing to remove outside extract root: ${destination}`,
+    )
+  }
 }
