@@ -45,7 +45,9 @@ Config warnings appear in the `warnings` array (JSON) or on stderr as
 
 ```text
 github-copilot
+claude-code
 cursor
+openai-codex
 ```
 
 **JSON (`--json`):**
