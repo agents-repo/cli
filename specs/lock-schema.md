@@ -162,7 +162,7 @@ earlier installs; `list` MAY still show them.
 - Registry fetches MUST use lock `resolvedRef` (concrete ref) together with resolved `registry.url`
   (including `AGENTS_REPO_REGISTRY_URL` override) to download the artifact named in each required
   slot. Tooling MUST verify each slot `integrity` against the downloaded bytes and run the same ZIP
-  security checks as `install`.
+  security scan as `install`.
 - Extract MUST fan out across the same `(packageId, targetId)` pairs as bulk `install`: one extract
   per required slot into project scope (project cwd). `ci` MUST NOT mutate `agents.json` or
   `agents-lock.json` on success.
