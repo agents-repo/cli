@@ -27,6 +27,66 @@ export const formatInstallResultSuccess = (
   return `${action} ${result.packageId}@${result.version} for target ${result.target} into ${result.extractRoot}${saveSuffix}`;
 };
 
+const collectDistinctInstallTargets = (
+  results: readonly InstallResult[],
+): InstallResult['target'][] => {
+  const targets = new Set<InstallResult['target']>();
+  for (const result of results) {
+    targets.add(result.target);
+  }
+  return [...targets].sort((left, right) => left.localeCompare(right));
+};
+
+const packageVersionGroupKey = (result: InstallResult): string =>
+  `${result.packageId}\u0000${result.version}`;
+
+const groupInstallResultsByPackageAndVersion = (
+  results: readonly InstallResult[],
+): InstallResult[][] => {
+  const groups = new Map<string, InstallResult[]>();
+
+  for (const result of results) {
+    const key = packageVersionGroupKey(result);
+    const existing = groups.get(key);
+    if (existing === undefined) {
+      groups.set(key, [result]);
+      continue;
+    }
+    existing.push(result);
+  }
+
+  return [...groups.keys()]
+    .sort((left, right) => left.localeCompare(right))
+    .map((key) => groups.get(key) ?? [])
+    .filter((group) => group.length > 0);
+};
+
+export const formatMultiTargetInstallSummary = (
+  packageResults: readonly InstallResult[],
+  labels: InstallResultActionLabels,
+): string => {
+  if (packageResults.length === 0) {
+    return '';
+  }
+
+  const first = packageResults[0];
+  const action = first.dryRun ? labels.dryRun : labels.applied;
+  const targets = [...new Set(packageResults.map((result) => result.target))].sort((left, right) =>
+    left.localeCompare(right),
+  );
+  const targetLabel = targets.length === 1 ? 'target' : 'targets';
+  return `${action} ${first.packageId}@${first.version} to ${targets.length} ${targetLabel}: ${targets.join(', ')}`;
+};
+
+export const formatMultiTargetInstallSummaries = (
+  results: readonly InstallResult[],
+  labels: InstallResultActionLabels,
+): string[] => {
+  return groupInstallResultsByPackageAndVersion(results)
+    .map((group) => formatMultiTargetInstallSummary(group, labels))
+    .filter((line) => line.length > 0);
+};
+
 export const installResultToJson = (result: InstallResult): Record<string, unknown> => ({
   packageId: result.packageId,
   version: result.version,
@@ -88,6 +148,7 @@ export const writeBulkInstallResultSuccess = (
   results: readonly InstallResult[],
   json: boolean,
   labels: InstallResultActionLabels,
+  verbose = false,
 ): void => {
   if (json) {
     const warnings = collectInstallResultWarnings(results);
@@ -101,5 +162,11 @@ export const writeBulkInstallResultSuccess = (
 
   for (const result of results) {
     process.stdout.write(`${formatInstallResultSuccess(result, labels)}\n`);
+  }
+
+  if (verbose && collectDistinctInstallTargets(results).length > 1) {
+    for (const summary of formatMultiTargetInstallSummaries(results, labels)) {
+      process.stdout.write(`${summary}\n`);
+    }
   }
 };

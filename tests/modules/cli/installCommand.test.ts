@@ -17,6 +17,10 @@ import {
   withInstallTestArtifactSha256,
 } from '../../fixtures/installFixtures.js';
 import { conflictingTopLevelConfig } from '../../fixtures/agentsJson/index.js';
+import {
+  startMultiTargetMockRegistry,
+  stopMockRegistryServer,
+} from '../../fixtures/multiTargetRegistryHttp.js';
 
 const nodeExecutable = process.execPath;
 const binPath = path.resolve(process.cwd(), 'dist/bin/agents-repo.js');
@@ -586,5 +590,120 @@ describe('install command subprocess with mock registry', () => {
     expect(
       readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/other/SKILL.md'), 'utf8'),
     ).toContain('name: other');
+  });
+});
+
+describe('install command multi-target verbose summary', () => {
+  const tempDirs: string[] = [];
+  let mockServer: Server;
+  let mockBaseUrl: string;
+
+  beforeAll(async () => {
+    const started = await startMultiTargetMockRegistry();
+    mockServer = started.server;
+    mockBaseUrl = started.baseUrl;
+  });
+
+  afterAll(async () => {
+    await stopMockRegistryServer(mockServer);
+  });
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('prints per-package summary when --verbose and multiple targets', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-multitarget-verbose-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const verboseResult = await runCliSubprocess(['--verbose', 'install'], { cwd });
+
+    expect(verboseResult.status).toBe(0);
+    expect(verboseResult.stdout).toContain(
+      'Installed agents-repo/sample-agent@1.0.0 to 2 targets: cursor, github-copilot',
+    );
+
+    const plainCwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-multitarget-plain-'));
+    tempDirs.push(plainCwd);
+    writeFileSync(
+      path.join(plainCwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const plainResult = await runCliSubprocess(['install'], { cwd: plainCwd });
+    expect(plainResult.status).toBe(0);
+    expect(plainResult.stdout).not.toContain('to 2 targets:');
+  });
+
+  it('prints summary for install <package-id> with --verbose', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-multitarget-pkg-verbose-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const result = await runCliSubprocess(
+      ['--verbose', 'install', 'agents-repo/sample-agent'],
+      { cwd },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      'Installed agents-repo/sample-agent@1.0.0 to 2 targets: cursor, github-copilot',
+    );
+  });
+
+  it('prints dry-run summary with --verbose and multiple targets', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-multitarget-dry-run-verbose-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const result = await runCliSubprocess(['--verbose', '--dry-run', 'install'], { cwd });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      'Would install agents-repo/sample-agent@1.0.0 to 2 targets: cursor, github-copilot',
+    );
   });
 });
