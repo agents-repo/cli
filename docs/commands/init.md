@@ -133,7 +133,7 @@ agents-repo init --target github-copilot --force
 Configure multiple install targets (canonical ids):
 
 ```bash
-agents-repo init --targets github-copilot cursor claude-code openai-codex
+agents-repo init --targets github-copilot claude-code cursor openai-codex
 ```
 
 ## Related specs

@@ -1,8 +1,8 @@
 # agents-repo CLI
 
-Official CLI for installing and managing agents-repo packages from the
-open registry across supported install targets (GitHub Copilot, Cursor, Claude
-Code, and OpenAI Codex).
+Official CLI for installing and managing agents-repo packages from the open
+registry for supported install targets: GitHub Copilot, Cursor, Claude Code,
+and OpenAI Codex.
 
 ## Install / run
 
