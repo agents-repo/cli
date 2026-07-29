@@ -57,34 +57,50 @@ export const startMultiTargetMockRegistry = async (): Promise<MultiTargetMockReg
     ],
   };
 
-  const server = createServer((request, response) => {
-    const url = request.url ?? '/';
+  const requestPathname = (requestUrl: string): string => {
+    try {
+      return new URL(requestUrl, 'http://127.0.0.1').pathname;
+    } catch {
+      const [pathOnly] = requestUrl.split('?');
+      return pathOnly ?? requestUrl;
+    }
+  };
 
-    if (url.includes('/packages/index.json')) {
+  const sampleManifestPath = '/packages/agents-repo/sample-agent/versions/manifest.json';
+  const sampleMetadataPath = '/packages/agents-repo/sample-agent/versions/1.0.0/metadata.json';
+  const cursorArtifactPath =
+    '/packages/agents-repo/sample-agent/versions/1.0.0/1.0.0-cursor.zip';
+  const copilotArtifactPath =
+    '/packages/agents-repo/sample-agent/versions/1.0.0/1.0.0-github-copilot.zip';
+
+  const server = createServer((request, response) => {
+    const pathname = requestPathname(request.url ?? '/');
+
+    if (pathname === '/packages/index.json') {
       response.writeHead(200, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify(multiTargetCatalog));
       return;
     }
 
-    if (url.includes('/agents-repo/sample-agent/versions/manifest.json')) {
+    if (pathname === sampleManifestPath) {
       response.writeHead(200, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify(manifest));
       return;
     }
 
-    if (url.includes('/agents-repo/sample-agent/') && url.includes('/metadata.json')) {
+    if (pathname === sampleMetadataPath) {
       response.writeHead(200, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify(makeMultiTargetInstallTestMetadata()));
       return;
     }
 
-    if (url.includes('1.0.0-cursor.zip')) {
+    if (pathname === cursorArtifactPath) {
       response.writeHead(200);
       response.end(cursorZipBytes);
       return;
     }
 
-    if (url.includes('1.0.0-github-copilot.zip')) {
+    if (pathname === copilotArtifactPath) {
       response.writeHead(200);
       response.end(copilotZipBytes);
       return;
@@ -107,7 +123,7 @@ export const startMultiTargetMockRegistry = async (): Promise<MultiTargetMockReg
 
   return {
     server,
-    baseUrl: `http://127.0.0.1:${address.port}/?ref=v2.0.0`,
+    baseUrl: `http://127.0.0.1:${address.port}/`,
   };
 };
 
