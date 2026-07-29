@@ -55,6 +55,7 @@ application and infrastructure APIs consumed by commands.
   `~/.agents-repo/` config + lock.
 - **add-target:** Append install target ids to project `agents.json`.
 - **List:** One row per installed `(package, target)` from project or global lock.
+- **Targets:** Read-only `targets[]` from resolved `agents.json` (project or global scope).
 - **Registry:** Copy-adapted from webapp (`src/modules/registry/`); catalog search via
   `search`.
 - **Target detection:** Filesystem markers for `init` and greenfield `install <package-id>`.
@@ -79,5 +80,6 @@ Registry module layout: `domain/`, `application/`, `infrastructure/` under
 - [commands/install.md](commands/install.md) — `install` command usage
 - [commands/update.md](commands/update.md) — `update` command usage
 - [commands/list.md](commands/list.md) — `list` command usage
+- [commands/targets.md](commands/targets.md) — `targets` command usage
 - [architecture/ddd-decision.md](architecture/ddd-decision.md)
 - [development.md](development.md)

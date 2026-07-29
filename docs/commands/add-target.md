@@ -20,6 +20,8 @@ agents-repo add-target <id...> [options]
 - New ids are merged into `targets[]` in canonical order.
 - Duplicate ids: exit `0`, emit a warning, no file write.
 
+Inspect current targets with **`agents-repo targets`**.
+
 ## Related specs
 
 - [command-contracts.md](../../specs/command-contracts.md)
