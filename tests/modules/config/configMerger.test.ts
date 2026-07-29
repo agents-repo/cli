@@ -8,13 +8,13 @@ describe('ConfigMerger', () => {
   const merger = new ConfigMerger()
 
   it('writes greenfield top-level canonical document', () => {
-    const document = merger.merge(null, { target: 'cursor' }, { gateMode: 'greenfield' })
+    const document = merger.merge(null, { targets: ['cursor'] }, { gateMode: 'greenfield' })
 
     expect(document).toEqual({
       schemaVersion: '1.0.0',
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
-      target: 'cursor',
+      targets: ['cursor'],
     })
   })
 
@@ -26,17 +26,17 @@ describe('ConfigMerger', () => {
       registry: DEFAULT_REGISTRY_CONFIG,
     }
 
-    const document = merger.merge(existing, { target: 'cursor' }, { gateMode: 'top-level-ours' })
+    const document = merger.merge(existing, { targets: ['cursor'] }, { gateMode: 'top-level-ours' })
 
     expect(document.customTool).toEqual({ enabled: true })
-    expect(document.target).toBe('cursor')
+    expect(document.targets).toEqual(['cursor'])
   })
 
   it('writes only @agents-repo subtree in namespace mode', () => {
     const existing = { customTool: { enabled: true } }
     const document = merger.merge(
       existing,
-      { target: 'cursor', packages: { 'agents-repo/hello-agent': '^1.0.0' } },
+      { targets: ['cursor'], packages: { 'agents-repo/hello-agent': '^1.0.0' } },
       { gateMode: 'namespace' },
     )
 
@@ -44,7 +44,7 @@ describe('ConfigMerger', () => {
     expect(document.schemaVersion).toBeUndefined()
     expect(document['@agents-repo']).toMatchObject({
       schemaVersion: '1.0.0',
-      target: 'cursor',
+      targets: ['cursor'],
       packages: { 'agents-repo/hello-agent': '^1.0.0' },
       registry: DEFAULT_REGISTRY_CONFIG,
     })
@@ -52,11 +52,11 @@ describe('ConfigMerger', () => {
 
   it('defaults required write fields for namespace target-only patch', () => {
     const existing = { customTool: { enabled: true } }
-    const document = merger.merge(existing, { target: 'cursor' }, { gateMode: 'namespace' })
+    const document = merger.merge(existing, { targets: ['cursor'] }, { gateMode: 'namespace' })
 
     expect(document['@agents-repo']).toEqual({
       schemaVersion: '1.0.0',
-      target: 'cursor',
+      targets: ['cursor'],
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
     })
@@ -69,14 +69,14 @@ describe('ConfigMerger', () => {
       packages: {},
     }
 
-    const document = merger.merge(existing, { target: 'cursor' }, { gateMode: 'top-level-ours' })
+    const document = merger.merge(existing, { targets: ['cursor'] }, { gateMode: 'top-level-ours' })
 
     expect(document.registry).toEqual({
       url: 'https://legacy.example',
       ref: 'v2.x',
     })
     expect(document.registryUrl).toBeUndefined()
-    expect(document.target).toBe('cursor')
+    expect(document.targets).toEqual(['cursor'])
   })
 
   it('preserves explicit registry.ref when migrating registryUrl in namespace mode', () => {
@@ -89,12 +89,12 @@ describe('ConfigMerger', () => {
       },
     }
 
-    const document = merger.merge(existing, { target: 'cursor' }, { gateMode: 'namespace' })
+    const document = merger.merge(existing, { targets: ['cursor'] }, { gateMode: 'namespace' })
 
     const namespaceBlock = document['@agents-repo']
     expect(namespaceBlock).toMatchObject({
       schemaVersion: '1.0.0',
-      target: 'cursor',
+      targets: ['cursor'],
       registry: {
         url: 'https://legacy.example',
         ref: 'v3.x',
@@ -106,32 +106,32 @@ describe('ConfigMerger', () => {
 
   it('rejects greenfield merge when existing document is not empty', () => {
     expect(() =>
-      merger.merge({ customTool: { enabled: true } }, { target: 'cursor' }, { gateMode: 'greenfield' }),
+      merger.merge({ customTool: { enabled: true } }, { targets: ['cursor'] }, { gateMode: 'greenfield' }),
     ).toThrow(ConfigValidationError)
   })
 
   it('writes greenfield top-level output when existing is null regardless of gateMode', () => {
-    const document = merger.merge(null, { target: 'cursor' }, { gateMode: 'namespace' })
+    const document = merger.merge(null, { targets: ['cursor'] }, { gateMode: 'namespace' })
 
     expect(document).toEqual({
       schemaVersion: '1.0.0',
       registry: DEFAULT_REGISTRY_CONFIG,
       packages: {},
-      target: 'cursor',
+      targets: ['cursor'],
     })
   })
 
-  it('does not overwrite existing target without force', () => {
+  it('does not overwrite existing targets without force', () => {
     const existing = {
       schemaVersion: '1.0.0',
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
       registry: DEFAULT_REGISTRY_CONFIG,
     }
 
-    const document = merger.merge(existing, { target: 'claude-code' }, { gateMode: 'top-level-ours' })
+    const document = merger.merge(existing, { targets: ['claude-code'] }, { gateMode: 'top-level-ours' })
 
-    expect(document.target).toBe('cursor')
+    expect(document.targets).toEqual(['cursor'])
   })
 
   it('merges packages at key level without overwriting existing keys', () => {

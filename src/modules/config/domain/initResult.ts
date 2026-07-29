@@ -5,7 +5,7 @@ import type { SchemaGateMode } from './agentsConfig.js'
 export interface InitResult {
   readonly configPath: string
   readonly gateMode: SchemaGateMode
-  readonly target: InstallTargetId | undefined
+  readonly targets: readonly InstallTargetId[] | undefined
   readonly warnings: readonly ConfigConflictRecord[]
   readonly created: boolean
 }

@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { AGENTS_LOCK_FILENAME } from '../domain/configConstants.js'
 import { ConfigParseError } from '../domain/configErrors.js'
 import type { AgentsLockDocument } from '../domain/agentsLock.js'
+import { serializePackageLockEntryV2 } from '../domain/packageLockEntry.js'
 import { parseJsonDocument, stringifyJsonDocument } from './jsonDocument.js'
 
 export class AgentsLockRepository {
@@ -39,13 +40,7 @@ const sortLockPackages = (document: AgentsLockDocument): Record<string, unknown>
   )
   const packages: Record<string, unknown> = {}
   for (const key of sortedPackageKeys) {
-    const entry = document.packages[key]
-    packages[key] = {
-      version: entry.version,
-      target: entry.target,
-      integrity: entry.integrity,
-      artifact: entry.artifact,
-    }
+    packages[key] = serializePackageLockEntryV2(document.packages[key])
   }
 
   return {

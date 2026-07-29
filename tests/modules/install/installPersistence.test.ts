@@ -18,7 +18,7 @@ describe('resolveLockRef', () => {
         lockPath: path.join(configDir, 'agents-lock.json'),
         registry: DEFAULT_REGISTRY_CONFIG,
         packages: {},
-        global: false,
+        configRoot: configDir,
         warnings: [],
         rawDocument: null,
       },
@@ -43,7 +43,7 @@ describe('resolveLockRef', () => {
         lockPath: path.join(configDir, 'agents-lock.json'),
         registry: { url: 'https://example.test', ref: 'v2.3.1' },
         packages: {},
-        global: false,
+        configRoot: configDir,
         warnings: [],
         rawDocument: null,
       },
@@ -79,9 +79,10 @@ describe('InstallPersistence', () => {
       gateMode: 'greenfield',
       configPath,
       lockPath,
+      configRoot: cwd,
       registry: DEFAULT_REGISTRY_CONFIG,
+      targets: ['cursor'],
       packages: {},
-      global: false,
       warnings: [],
       rawDocument: null,
     }
@@ -107,7 +108,7 @@ describe('InstallPersistence', () => {
       packages: Record<string, { version: string }>
     }
 
-    expect(config.target).toBe('cursor')
+    expect(config.targets).toEqual(['cursor'])
     expect(config.packages).toEqual({ 'agents-repo/sample-agent': '^1.0.0' })
     expect(lock.resolvedRef).toBe('v2.0.0')
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0')
@@ -124,7 +125,7 @@ describe('InstallPersistence', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: DEFAULT_REGISTRY_CONFIG,
-        target: 'cursor',
+        targets: ['cursor'],
         packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     )
@@ -134,9 +135,9 @@ describe('InstallPersistence', () => {
       configPath,
       lockPath,
       registry: DEFAULT_REGISTRY_CONFIG,
-      target: 'cursor',
+      targets: ['cursor'],
       packages: { 'agents-repo/sample-agent': '^1.0.0' },
-      global: false,
+      configRoot: cwd,
       warnings: [],
       rawDocument: JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>,
     }
@@ -178,7 +179,7 @@ describe('InstallPersistence', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: DEFAULT_REGISTRY_CONFIG,
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -186,14 +187,17 @@ describe('InstallPersistence', () => {
     writeFileSync(
       lockPath,
       JSON.stringify({
-        lockfileVersion: 1,
+        lockfileVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/other-agent': {
             version: '2.0.0',
-            target: 'cursor',
-            integrity: `sha256-${'c'.repeat(64)}`,
-            artifact: '2.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'c'.repeat(64)}`,
+                artifact: '2.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),
@@ -204,9 +208,9 @@ describe('InstallPersistence', () => {
       configPath,
       lockPath,
       registry: DEFAULT_REGISTRY_CONFIG,
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
-      global: false,
+      configRoot: cwd,
       warnings: [],
       rawDocument: JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>,
     }
@@ -245,7 +249,7 @@ describe('InstallPersistence', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: DEFAULT_REGISTRY_CONFIG,
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -256,9 +260,9 @@ describe('InstallPersistence', () => {
       configPath,
       lockPath,
       registry: DEFAULT_REGISTRY_CONFIG,
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
-      global: false,
+      configRoot: cwd,
       warnings: [],
       rawDocument: JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>,
     }
@@ -285,15 +289,101 @@ describe('InstallPersistence', () => {
     expect(readFileSync(configPath, 'utf8')).toBe(originalConfig)
   })
 
-  it('writes global install state without touching project files', async () => {
+  it('writes multiple ad-hoc package ranges in one saveBulk', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-persist-multi-adhoc-'))
+    tempDirs.push(cwd)
+    const configPath = path.join(cwd, 'agents.json')
+    const lockPath = path.join(cwd, 'agents-lock.json')
+
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: DEFAULT_REGISTRY_CONFIG,
+        targets: ['cursor'],
+        packages: {},
+      }),
+    )
+
+    const resolved: ResolvedAgentsConfig = {
+      gateMode: 'top-level-ours',
+      configPath,
+      lockPath,
+      registry: DEFAULT_REGISTRY_CONFIG,
+      targets: ['cursor'],
+      packages: {},
+      configRoot: cwd,
+      warnings: [],
+      rawDocument: JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>,
+    }
+
+    const persistence = new InstallPersistence()
+    await persistence.saveBulk({
+      resolved,
+      resolvedRef: 'v2.0.0',
+      writeLock: true,
+      adHocPackageRanges: {
+        'agents-repo/foo': '^1.0.0',
+        'agents-repo/bar': '^2.0.0',
+      },
+      entries: [
+        {
+          packageId: 'agents-repo/foo',
+          version: '1.0.0',
+          target: 'cursor',
+          artifact: {
+            target: 'cursor',
+            file: '1.0.0-cursor.zip',
+            sha256: 'e'.repeat(64),
+          },
+        },
+        {
+          packageId: 'agents-repo/bar',
+          version: '2.0.0',
+          target: 'cursor',
+          artifact: {
+            target: 'cursor',
+            file: '2.0.0-cursor.zip',
+            sha256: 'f'.repeat(64),
+          },
+        },
+      ],
+    })
+
+    const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
+      packages: Record<string, string>
+    }
+    expect(config.packages).toEqual({
+      'agents-repo/foo': '^1.0.0',
+      'agents-repo/bar': '^2.0.0',
+    })
+  })
+
+  it('writes global install state under agents repo home without touching project cwd files', async () => {
     const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-install-global-state-home-'))
     tempDirs.push(homeDir)
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-global-state-'))
     tempDirs.push(cwd)
 
+    const globalRoot = path.join(homeDir, '.agents-repo')
+    const configPath = path.join(globalRoot, 'agents.json')
+    const lockPath = path.join(globalRoot, 'agents-lock.json')
+
+    const resolved: ResolvedAgentsConfig = {
+      gateMode: 'greenfield',
+      configPath,
+      lockPath,
+      configRoot: globalRoot,
+      registry: DEFAULT_REGISTRY_CONFIG,
+      targets: ['cursor'],
+      packages: {},
+      warnings: [],
+      rawDocument: null,
+    }
+
     const persistence = new InstallPersistence()
-    await persistence.saveGlobal({
-      env: { ...process.env, HOME: homeDir },
+    await persistence.save({
+      resolved,
       packageId: 'agents-repo/sample-agent',
       version: '1.0.0',
       target: 'cursor',
@@ -303,13 +393,13 @@ describe('InstallPersistence', () => {
         sha256: 'd'.repeat(64),
       },
       resolvedRef: 'v2.0.0',
+      adHocInstall: true,
     })
 
-    const statePath = path.join(homeDir, '.config', 'agents-repo', 'agents-global.json')
-    const state = JSON.parse(readFileSync(statePath, 'utf8')) as {
+    const lock = JSON.parse(readFileSync(lockPath, 'utf8')) as {
       packages: Record<string, { version: string }>
     }
-    expect(state.packages['agents-repo/sample-agent']?.version).toBe('1.0.0')
+    expect(lock.packages['agents-repo/sample-agent']?.version).toBe('1.0.0')
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
   })
 })

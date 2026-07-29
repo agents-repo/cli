@@ -26,8 +26,7 @@ index alias defined in `packages/index.json`.
 
 | Flag | Scope | Description |
 | --- | --- | --- |
-| `--target <id>` | update | Override install target for this invocation |
-| `--global` / `-g` | update | Global extract; same config/lock rules as bulk `install` with `-g` |
+| `--global` / `-g` | update | Global scope; config/lock under `~/.agents-repo/` |
 | `--yes` / `-y` | update / global | Waive dual-definition mismatches with warnings |
 | `--dry-run` | global | Resolve through artifact selection; no download, extract, or save |
 | `--no-save` | global | Skip `agents.json` and lock writes after a successful extract |
@@ -40,9 +39,13 @@ index alias defined in `packages/index.json`.
 
 ### Prerequisites
 
-- An install target must be available from `agents.json` or `--target`. Without
-  either, the command exits `3`.
+- Install targets come from `agents.json` `targets[]` only (no `--target` on `update`).
 - Packages to update must already appear under `packages` in `agents.json`.
+
+### Multi-target fan-out
+
+When `agents.json` lists multiple `targets`, `update` refreshes each configured package once
+per target (same targets × packages loop as bulk `install`).
 
 ### Version selection
 

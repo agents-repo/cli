@@ -1,20 +1,15 @@
-import path from 'node:path'
-
 import { ConfigResolver } from './configResolver.js'
-import { GlobalInstallStateService } from './globalInstallStateService.js'
 import { LockFileService } from './lockFileService.js'
 import type { PackageLockEntry } from '../domain/agentsLock.js'
-import {
-  resolveGlobalInstallConfigDir,
-  resolveGlobalInstallStatePath,
-} from '../infrastructure/globalInstallStatePaths.js'
+import { sortCanonicalInstallTargetIds } from '../domain/packageLockEntry.js'
+import type { InstallTargetId } from '../../registry/domain/package.js'
 
 export type ListInstallScope = 'project' | 'global'
 
 export interface ListedPackage {
   readonly id: string
   readonly version: string
-  readonly target: PackageLockEntry['target']
+  readonly target: InstallTargetId
   readonly integrity: string
   readonly artifact: string
   readonly range?: string
@@ -38,61 +33,26 @@ export interface ListInstalledServiceOptions {
 export class ListInstalledService {
   private readonly configResolver = new ConfigResolver()
   private readonly lockFileService = new LockFileService()
-  private readonly globalInstallStateService = new GlobalInstallStateService()
 
   async run(options: ListInstalledServiceOptions = {}): Promise<ListInstalledResult> {
     const cwd = options.cwd ?? process.cwd()
     const env = options.env ?? process.env
     const globalScope = options.global === true
 
-    if (globalScope) {
-      return this.runGlobal(env)
-    }
-
-    return this.runProject(cwd, env, options.yes ?? false)
-  }
-
-  private async runGlobal(env: NodeJS.ProcessEnv): Promise<ListInstalledResult> {
-    const statePath = resolveGlobalInstallStatePath(env)
-    const rootPath = resolveGlobalInstallConfigDir(env)
-    const state = await this.globalInstallStateService.read(statePath)
-
-    if (state === null) {
-      return {
-        scope: 'global',
-        rootPath,
-        packages: [],
-        warnings: [],
-      }
-    }
-
-    return {
-      scope: 'global',
-      rootPath,
-      resolvedRef: state.resolvedRef,
-      packages: this.lockEntriesToListedPackages(state.packages),
-      warnings: [],
-    }
-  }
-
-  private async runProject(
-    cwd: string,
-    env: NodeJS.ProcessEnv,
-    waiveConflicts: boolean,
-  ): Promise<ListInstalledResult> {
     const resolved = await this.configResolver.resolve({
       cwd,
       env,
-      waiveConflicts,
+      globalScope,
+      waiveConflicts: options.yes ?? false,
     })
 
     const warnings = resolved.warnings.map((warning) => warning.message)
-    const rootPath = path.dirname(resolved.configPath)
+    const rootPath = resolved.configRoot
     const lock = await this.lockFileService.read(resolved.lockPath)
 
     if (lock === null) {
       return {
-        scope: 'project',
+        scope: globalScope ? 'global' : 'project',
         rootPath,
         packages: [],
         warnings,
@@ -102,7 +62,7 @@ export class ListInstalledService {
     const packages = this.lockEntriesToListedPackages(lock.packages, resolved.packages)
 
     return {
-      scope: 'project',
+      scope: globalScope ? 'global' : 'project',
       rootPath,
       resolvedRef: lock.resolvedRef,
       packages,
@@ -115,18 +75,32 @@ export class ListInstalledService {
     declaredRanges?: Record<string, string>,
   ): ListedPackage[] {
     const ids = Object.keys(entries).sort((left, right) => left.localeCompare(right))
+    const listed: ListedPackage[] = []
 
-    return ids.map((id) => {
+    for (const id of ids) {
       const entry = entries[id]
-      const range = declaredRanges?.[id]
-      return {
-        id,
-        version: entry.version,
-        target: entry.target,
-        integrity: entry.integrity,
-        artifact: entry.artifact,
-        ...(range === undefined ? {} : { range }),
+      const targetIds = sortCanonicalInstallTargetIds(
+        Object.keys(entry.byTarget) as InstallTargetId[],
+      )
+
+      for (const target of targetIds) {
+        const slot = entry.byTarget[target]
+        if (slot === undefined) {
+          continue
+        }
+
+        const range = declaredRanges?.[id]
+        listed.push({
+          id,
+          version: entry.version,
+          target,
+          integrity: slot.integrity,
+          artifact: slot.artifact,
+          ...(range === undefined ? {} : { range }),
+        })
       }
-    })
+    }
+
+    return listed
   }
 }

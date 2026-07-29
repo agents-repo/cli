@@ -35,8 +35,9 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 
 | Variable | Effect |
 | --- | --- |
-| `AGENTS_REPO_CONFIG` | Absolute path to `agents.json`; lock file in same directory |
+| `AGENTS_REPO_CONFIG` | Absolute path to project `agents.json`; lock beside it (`-g` ignores) |
 | `AGENTS_REPO_REGISTRY_URL` | Overrides `registry.url` after file resolution |
+| `AGENTS_REPO_HOME` | Override global home directory (default `~/.agents-repo/`) |
 | `DEBUG` | Enables debug logging when set to a non-empty value |
 
 ## Command Aliases (MVP)
@@ -56,7 +57,8 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | --- | --- |
 | `--force` | Overwrite agents-repo-managed keys in the active schema gate target |
 | `--yes` / `-y` | Non-interactive merge; waive conflicts with warnings |
-| `--target <id>` | Set install target id |
+| `--targets <id...>` | Set one or more install target ids (canonical order on write) |
+| `--target <id...>` | Alias of `--targets` on `init` only |
 
 Merge semantics per `config-schema.md`.
 
@@ -64,8 +66,7 @@ Merge semantics per `config-schema.md`.
 
 | Flag | Description |
 | --- | --- |
-| `--global` / `-g` | Global extract scope; single-package: no project config/lock writes |
-| `--target <id>` | Override install target for this invocation |
+| `--global` / `-g` | Global scope: config and lock under `AGENTS_REPO_HOME` (`~/.agents-repo/`) |
 | `--no-save` | Skip `agents.json` and lock writes |
 | `--dry-run` | Resolve only; no download, extract, or save |
 | `--yes` / `-y` | Non-interactive; waive conflicts with warnings |
@@ -75,21 +76,30 @@ alias. Bulk: `install` with no arguments syncs all entries in `packages` (issue 
 
 **Ad-hoc install default:** when `install <package-id>` has no existing `packages` entry, step 6
 selects the highest `manifest.versions[]` entry (no range filter). Step 12 writes
-`packages[<id>] = ^<resolved-version>` in project scope (or bulk `global: true` exception) unless
-`--no-save` or `--dry-run`. Single-package global installs skip config writes.
+`packages[<id>] = ^<resolved-version>` unless `--no-save` or `--dry-run`. Greenfield ad-hoc installs
+also write `schemaVersion`, `registry`, and detected `targets[]`.
 
-**Global scope:** `-g` or resolved `global: true` extracts to `~/.config/agents-repo/`. Single-package
-global installs MUST NOT modify project `agents.json` or `agents-lock.json`. Bulk `install` with
-`global: true` MAY update `agents.json` `packages` but MUST NOT update the project lock.
+**Targets:** resolve `targets[]` from config only. Greenfield `install <package-id>` MAY run target
+detection before fan-out. Bulk `install` / `update` MUST NOT run detection.
 
-`-g` forces global extract scope even when config has `global: false`.
+**Global scope:** `-g` resolves and persists `agents.json` + `agents-lock.json` under
+`~/.agents-repo/` (or `AGENTS_REPO_HOME`). Project `agents.json` / `agents-lock.json` MUST NOT be
+modified when `-g` is set.
+
+### `add-target`
+
+| Flag | Description |
+| --- | --- |
+| `--yes` / `-y` | Non-interactive; waive dual-definition mismatches with warnings |
+
+Grammar: `add-target <id...>` appends install target ids to `agents.json` `targets[]` (project scope).
+Duplicate ids: exit `0`, emit warning, no config write.
 
 ### `update`
 
 | Flag | Description |
 | --- | --- |
-| `--global` / `-g` | Global extract scope; same lock/config rules as bulk `install` |
-| `--target <id>` | Override install target for this invocation |
+| `--global` / `-g` | Global scope; same config/lock paths as `install -g` |
 | `--no-save` | Skip `agents.json` and lock writes |
 | `--dry-run` | Resolve only; no download, extract, or save |
 | `--yes` / `-y` | Non-interactive; waive conflicts with warnings |
@@ -108,12 +118,12 @@ change documents a difference.
 
 | Flag | Description |
 | --- | --- |
-| `--global` / `-g` | List globally installed packages from `agents-global.json` |
+| `--global` / `-g` | List packages from global `agents-lock.json` under `AGENTS_REPO_HOME` |
 
 Project scope (default): reads `agents-lock.json` beside resolved `agents.json`. Supplements each
 entry with the semver range from `agents.json` `packages` when present.
 
-Global scope (`-g`): reads `~/.config/agents-repo/agents-global.json` only. Missing file yields an
+Global scope (`-g`): reads `agents-lock.json` under `~/.agents-repo/`. Missing lock yields an
 empty list.
 
 Root `--json` emits a JSON object with `scope` (`project` or `global`), `rootPath`, `resolvedRef`
@@ -144,11 +154,9 @@ message. With `--json`, stdout MAY be piped; stdin MUST still be a TTY.
 
 ### Global install directory
 
-Global extract target: `~/.config/agents-repo/` (XDG-friendly).
-
-Project `agents.json` and `agents-lock.json` remain at the config directory (project root by
-default). Single-package global installs MUST NOT modify them (npm `install -g` parity). Bulk
-`install` with `global: true` MAY update `agents.json` `packages` only; see `cli-protocol.md`.
+Global home: `~/.agents-repo/` (override with `AGENTS_REPO_HOME`). Global scope uses the same
+`agents.json` + `agents-lock.json` schema as project scope. `-g` MUST NOT modify project config or
+lock files.
 
 ## Deferred / Post-MVP Interfaces
 
@@ -169,7 +177,7 @@ After follow-up issues land, implementation MUST update this table with behavior
 | `0` | Success |
 | `1` | General or runtime failure (registry/network errors MAY use this code) |
 | `2` | Invalid usage or CLI flags |
-| `3` | Config or validation error (missing `target`, invalid semver, schema errors) |
+| `3` | Config or validation error (see config-schema and lock-schema validation tables) |
 | `4` | Conflict detected and not waived (`--yes` absent) |
 
 When `--yes` is present, conflicts downgrade to warnings; tooling MUST exit `0` on success.

@@ -52,11 +52,8 @@ export class ConfigMerger {
       packages: patch.packages ?? {},
     }
 
-    if (patch.target !== undefined) {
-      document.target = patch.target
-    }
-    if (patch.global !== undefined) {
-      document.global = patch.global
+    if (patch.targets !== undefined) {
+      document.targets = patch.targets
     }
 
     return this.canonicalizeRegistryUrl(document)
@@ -79,12 +76,10 @@ export class ConfigMerger {
       document.registry = this.mergeRegistry(document.registry, patch.registry, force)
     }
 
-    if (patch.target !== undefined) {
-      document.target = this.mergeScalar(document.target, patch.target, force)
-    }
-
-    if (patch.global !== undefined) {
-      document.global = this.mergeScalar(document.global, patch.global, force)
+    if (patch.targets !== undefined) {
+      if (force || document.targets === undefined) {
+        document.targets = patch.targets
+      }
     }
 
     if (patch.packages !== undefined) {
@@ -125,12 +120,10 @@ export class ConfigMerger {
       result.registry = this.mergeRegistry(result.registry, patch.registry, force)
     }
 
-    if (patch.target !== undefined) {
-      result.target = this.mergeScalar(result.target, patch.target, force)
-    }
-
-    if (patch.global !== undefined) {
-      result.global = this.mergeScalar(result.global, patch.global, force)
+    if (patch.targets !== undefined) {
+      if (force || result.targets === undefined) {
+        result.targets = patch.targets
+      }
     }
 
     if (patch.packages !== undefined) {
@@ -209,13 +202,6 @@ export class ConfigMerger {
       }
     }
     return result
-  }
-
-  private mergeScalar<T>(existing: unknown, patch: T, force: boolean): T {
-    if (force || existing === undefined) {
-      return patch
-    }
-    return existing as T
   }
 
   private canonicalizeRegistryUrl<T extends Record<string, unknown>>(target: T): T {

@@ -1,4 +1,5 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
 
 import { AGENTS_JSON_FILENAME } from '../domain/configConstants.js'
 import { ConfigParseError } from '../domain/configErrors.js'
@@ -28,6 +29,7 @@ export class AgentsJsonRepository {
   }
 
   async write(configPath: string, document: AgentsConfigDocument): Promise<void> {
+    await mkdir(path.dirname(configPath), { recursive: true })
     await writeFile(configPath, stringifyJsonDocument(document), 'utf8')
   }
 }

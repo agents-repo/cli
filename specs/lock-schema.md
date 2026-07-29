@@ -13,11 +13,10 @@ RFC 2119.
 
 | Version | Applies To | Status | Notes |
 | --- | --- | --- | --- |
-| `1` | lockfileVersion | current | Initial release |
+| `2` | lockfileVersion | current | `byTarget` map per package |
 
-MVP implementations MUST support `lockfileVersion` `1` only. Tooling MUST reject lock files whose
-`lockfileVersion` is outside its supported set (exit `3`). When this table lists a newer version
-and the implementation explicitly supports it, tooling MAY accept that version.
+Tooling MUST support `lockfileVersion` `2` only. New lock files MUST use `lockfileVersion` `2`.
+Tooling MUST reject lock files whose `lockfileVersion` is not `2` (exit `3`).
 
 ## Purpose
 
@@ -35,23 +34,30 @@ pairs with `agents.json` and SHOULD be committed to VCS.
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `lockfileVersion` | integer | yes | MUST be `1` for new lock files |
+| `lockfileVersion` | integer | yes | MUST be `2` for new lock files |
 | `resolvedRef` | string | yes | Concrete registry git ref after alias resolution |
-| `packages` | object | yes | Map qualified id → lock entry; see [Package Lock Entry](#package-lock-entry) |
+| `packages` | object | yes | Map qualified id → lock entry; see below |
 
 `resolvedRef` MUST be the concrete ref (e.g. `v2.3.1`), not a major-line alias (e.g. `v2.x`).
 
-## Package Lock Entry
+## Package Lock Entry (lockfileVersion 2)
 
 Each entry in `packages` MUST be an object with:
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `version` | string | yes | Exact resolved semver (`MAJOR.MINOR.PATCH`) |
-| `target` | string | yes | Install target id used for this install |
+| `version` | string | yes | Exact resolved semver (`MAJOR.MINOR.PATCH`) shared by all slots |
+| `byTarget` | object | yes | Map install target id → slot; see [Target slot](#target-slot) |
+
+### Target slot
+
+| Field | Type | Required | Constraints |
+| --- | --- | --- | --- |
 | `integrity` | string | yes | `sha256-<64-char-lowercase-hex>` |
 | `artifact` | string | yes | Artifact filename (e.g. `1.0.0-cursor.zip`) |
-| `resolved` | string | no | RFC 3339 last-resolution timestamp; omitted in MVP for lock stability |
+
+`byTarget` keys MUST be valid install target ids. Each slot `artifact` MUST equal
+`${version}-<target-id>.zip`. On write, keys SHOULD be serialized in canonical install-target order.
 
 ### Integrity format
 
@@ -67,6 +73,10 @@ tooling MUST NOT re-hash with a different algorithm or encoding.
 
 ## Behavioral Rules
 
+When merging a lock slot at a **new** package `version`, tooling MUST drop other `byTarget` slots
+for that package so every remaining slot matches the shared `version` and artifact naming
+(`${version}-<target-id>.zip`).
+
 ### Project scope
 
 After a successful project-scope `install`, tooling MUST update or create `agents-lock.json` in the
@@ -80,25 +90,19 @@ identical resolution produces identical lock content.
 
 ### Global scope
 
-Global extract scope (`-g` or resolved `global: true`) MUST NOT modify project `agents-lock.json`.
-There is no project global lockfile in MVP (npm `install -g` parity). Global install metadata
-is recorded in `agents-global.json` per `global-install-state.md`; that file is not a substitute
-for the project lock and is used by `list -g`.
+Global scope (`-g`) MUST NOT modify project `agents-lock.json`. Global installs persist
+`agents-lock.json` under `AGENTS_REPO_HOME` (`~/.agents-repo/` by default) with the same v2
+`byTarget` shape as project scope.
 
 | Invocation | Lock behavior |
 | --- | --- |
-| `install <pkg> -g` | No project lock write |
-| `install <pkg>` with `global: true` (no `-g`) | No project lock write |
-| `install` (bulk, `global: true`) | No project lock write |
-
-Bulk `install` when `global: true` is set in config: extract globally, update `agents.json`
-`packages` if needed, do not update the project lock. Config and lock may temporarily diverge until
-a project-scope install reconciles the lock.
+| `install <pkg> -g` | Update global lock only |
+| `install` (bulk, `-g`) | Update global lock only |
 
 ### Bulk install without lock
 
 When `agents-lock.json` is missing on bulk `install`, tooling MUST resolve from `agents.json`
-ranges and write the lock (project scope, unless `global: true`).
+ranges and write the lock (project scope, or global lock under `AGENTS_REPO_HOME` when `-g` is set).
 
 ### Frozen install (post-MVP)
 
@@ -109,22 +113,26 @@ format MUST support that command; MVP does not implement it. See issue #16.
 
 - `packages` keys MUST match qualified id format from `config-schema.md`.
 - `packages[<id>].version` MUST be an exact semver present in the resolved manifest.
-- `packages[<id>].artifact` MUST match the manifest artifact filename for the resolved version and
-  target.
-- `packages[<id>].integrity` MUST equal `sha256-` + manifest `artifacts[].sha256` for that artifact.
+- For each `byTarget` slot, `artifact` MUST match the manifest artifact filename for the resolved
+  version and install target id.
+- For each `byTarget` slot, `integrity` MUST equal `sha256-` + manifest `artifacts[].sha256` for
+  that artifact.
 
 ## Canonical JSON Example
 
 ```json
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 2,
   "resolvedRef": "v2.3.1",
   "packages": {
     "agents-repo/hello-agent": {
       "version": "1.0.0",
-      "target": "cursor",
-      "integrity": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "artifact": "1.0.0-cursor.zip"
+      "byTarget": {
+        "cursor": {
+          "integrity": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "artifact": "1.0.0-cursor.zip"
+        }
+      }
     }
   }
 }

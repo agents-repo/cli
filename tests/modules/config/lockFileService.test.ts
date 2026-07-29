@@ -8,7 +8,7 @@ import { LockFileService } from '../../../src/modules/config/application/lockFil
 import { LockValidationError, ConfigParseError } from '../../../src/modules/config/domain/configErrors.js'
 import { stringifyJsonDocument } from '../../../src/modules/config/infrastructure/jsonDocument.js'
 
-const validLock = {
+const v1LockOnDisk = {
   lockfileVersion: 1,
   resolvedRef: 'v2.3.1',
   packages: {
@@ -21,6 +21,32 @@ const validLock = {
   },
 } as const
 
+const normalizedHelloAgent = {
+  version: '1.0.0',
+  byTarget: {
+    cursor: {
+      integrity: 'sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      artifact: '1.0.0-cursor.zip',
+    },
+  },
+} as const
+
+const normalizedLockDocument = {
+  lockfileVersion: 2,
+  resolvedRef: 'v2.3.1',
+  packages: {
+    'agents-repo/hello-agent': normalizedHelloAgent,
+  },
+} as const
+
+const v2LockOnDisk = {
+  lockfileVersion: 2,
+  resolvedRef: 'v2.3.1',
+  packages: {
+    'agents-repo/hello-agent': normalizedHelloAgent,
+  },
+} as const
+
 describe('LockFileService', () => {
   const service = new LockFileService()
 
@@ -30,13 +56,21 @@ describe('LockFileService', () => {
     await expect(service.read(lockPath)).resolves.toBeNull()
   })
 
-  it('reads and validates a valid lock file', async () => {
+  it('rejects lockfileVersion 1', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')
-    await writeFile(lockPath, stringifyJsonDocument(validLock))
+    await writeFile(lockPath, stringifyJsonDocument(v1LockOnDisk))
+
+    await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
+  })
+
+  it('reads and validates a valid v2 lock file', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
+    const lockPath = path.join(cwd, 'agents-lock.json')
+    await writeFile(lockPath, stringifyJsonDocument(v2LockOnDisk))
 
     const document = await service.read(lockPath)
-    expect(document).toEqual(validLock)
+    expect(document).toEqual(normalizedLockDocument)
   })
 
   it('throws on unsupported lockfileVersion', async () => {
@@ -44,7 +78,7 @@ describe('LockFileService', () => {
     const lockPath = path.join(cwd, 'agents-lock.json')
     await writeFile(
       lockPath,
-      stringifyJsonDocument({ ...validLock, lockfileVersion: 2 }),
+      stringifyJsonDocument({ ...v1LockOnDisk, lockfileVersion: 99 }),
     )
 
     await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
@@ -56,10 +90,10 @@ describe('LockFileService', () => {
     await writeFile(
       lockPath,
       stringifyJsonDocument({
-        ...validLock,
+        ...v1LockOnDisk,
         packages: {
           'agents-repo/hello-agent': {
-            ...validLock.packages['agents-repo/hello-agent'],
+            ...v1LockOnDisk.packages['agents-repo/hello-agent'],
             version: '1.0.0-beta.1',
           },
         },
@@ -69,22 +103,21 @@ describe('LockFileService', () => {
     await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
 
-  it('accepts a valid RFC 3339 resolved timestamp', async () => {
+  it('rejects lockfileVersion 1 even when package entry includes resolved timestamp', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')
     const lockWithResolved = {
-      ...validLock,
+      ...v1LockOnDisk,
       packages: {
         'agents-repo/hello-agent': {
-          ...validLock.packages['agents-repo/hello-agent'],
+          ...v1LockOnDisk.packages['agents-repo/hello-agent'],
           resolved: '2026-07-21T06:45:00Z',
         },
       },
     }
     await writeFile(lockPath, stringifyJsonDocument(lockWithResolved))
 
-    const document = await service.read(lockPath)
-    expect(document).toEqual(lockWithResolved)
+    await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
 
   it('rejects invalid resolved timestamps', async () => {
@@ -93,10 +126,10 @@ describe('LockFileService', () => {
     await writeFile(
       lockPath,
       stringifyJsonDocument({
-        ...validLock,
+        ...v1LockOnDisk,
         packages: {
           'agents-repo/hello-agent': {
-            ...validLock.packages['agents-repo/hello-agent'],
+            ...v1LockOnDisk.packages['agents-repo/hello-agent'],
             resolved: 'not-a-date',
           },
         },
@@ -109,7 +142,7 @@ describe('LockFileService', () => {
   it('rejects major-line alias resolvedRef values', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')
-    await writeFile(lockPath, stringifyJsonDocument({ ...validLock, resolvedRef: 'v2.x' }))
+    await writeFile(lockPath, stringifyJsonDocument({ ...v1LockOnDisk, resolvedRef: 'v2.x' }))
 
     await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
@@ -117,7 +150,7 @@ describe('LockFileService', () => {
   it('rejects resolvedRef values with surrounding whitespace', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')
-    await writeFile(lockPath, stringifyJsonDocument({ ...validLock, resolvedRef: ' v2.3.1 ' }))
+    await writeFile(lockPath, stringifyJsonDocument({ ...v1LockOnDisk, resolvedRef: ' v2.3.1 ' }))
 
     await expect(service.read(lockPath)).rejects.toBeInstanceOf(LockValidationError)
   })
@@ -128,10 +161,10 @@ describe('LockFileService', () => {
     await writeFile(
       lockPath,
       stringifyJsonDocument({
-        ...validLock,
+        ...v1LockOnDisk,
         packages: {
           'agents-repo/hello-agent': {
-            ...validLock.packages['agents-repo/hello-agent'],
+            ...v1LockOnDisk.packages['agents-repo/hello-agent'],
             integrity: 'sha256-INVALID',
           },
         },
@@ -161,8 +194,8 @@ describe('LockFileService', () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
     const lockPath = path.join(cwd, 'agents-lock.json')
 
-    await service.write(lockPath, validLock)
+    await service.write(lockPath, normalizedLockDocument)
     const reread = await service.read(lockPath)
-    expect(reread).toEqual(validLock)
+    expect(reread).toEqual(normalizedLockDocument)
   })
 })

@@ -18,13 +18,13 @@ describe('ConflictDetector', () => {
     expect(result.errors.some((entry) => entry.code === 'type_mismatch')).toBe(true)
   })
 
-  it('reports invalid_enum for unsupported target', () => {
+  it('reports deprecated_field for managed target key', () => {
     const result = detector.detect(
-      { schemaVersion: '1.0.0', target: 'unknown-target' },
+      { schemaVersion: '1.0.0', target: 'cursor' },
       'top-level-ours',
     )
 
-    expect(result.errors.some((entry) => entry.code === 'invalid_enum')).toBe(true)
+    expect(result.errors.some((entry) => entry.code === 'deprecated_field')).toBe(true)
   })
 
   it('reports invalid_semver_range for bad package ranges', () => {
@@ -43,8 +43,8 @@ describe('ConflictDetector', () => {
     const result = detector.detect(
       {
         schemaVersion: '1.0.0',
-        target: 'cursor',
-        '@agents-repo': { target: 'claude-code' },
+        targets: ['cursor'],
+        '@agents-repo': { targets: ['claude-code'] },
       },
       'top-level-ours',
     )
@@ -56,7 +56,7 @@ describe('ConflictDetector', () => {
     const result = detector.detect(
       {
         schemaVersion: '1.0.0',
-        target: 'cursor',
+        targets: ['cursor'],
         '@agents-repo': { packages: [] },
       },
       'top-level-ours',
@@ -68,8 +68,8 @@ describe('ConflictDetector', () => {
   it('does not check dual_definition in namespace mode', () => {
     const result = detector.detect(
       {
-        target: 'cursor',
-        '@agents-repo': { target: 'claude-code' },
+        targets: ['cursor'],
+        '@agents-repo': { targets: ['claude-code'] },
       },
       'namespace',
     )
@@ -82,8 +82,8 @@ describe('ConflictDetector', () => {
       detector.detectOrThrow(
         {
           schemaVersion: '1.0.0',
-          target: 'cursor',
-          '@agents-repo': { target: 'claude-code' },
+          targets: ['cursor'],
+          '@agents-repo': { targets: ['claude-code'] },
         },
         'top-level-ours',
       ),
@@ -94,8 +94,8 @@ describe('ConflictDetector', () => {
     const warnings = detector.detectOrThrow(
       {
         schemaVersion: '1.0.0',
-        target: 'cursor',
-        '@agents-repo': { target: 'claude-code' },
+        targets: ['cursor'],
+        '@agents-repo': { targets: ['claude-code'] },
       },
       'top-level-ours',
       { waiveConflicts: true },
@@ -118,9 +118,9 @@ describe('ConflictDetector', () => {
       detector.detectOrThrow(
         {
           schemaVersion: '1.0.0',
-          target: 'cursor',
+          targets: ['cursor'],
           packages: [],
-          '@agents-repo': { target: 'claude-code' },
+          '@agents-repo': { targets: ['claude-code'] },
         },
         'top-level-ours',
       ),

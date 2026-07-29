@@ -23,8 +23,7 @@ index alias defined in `packages/index.json`.
 
 | Flag | Scope | Description |
 | --- | --- | --- |
-| `--target <id>` | install | Override install target for this invocation |
-| `--global` / `-g` | install | Global extract; single-package skips config/lock writes |
+| `--global` / `-g` | install | Global scope: config and lock under `~/.agents-repo/` |
 | `--yes` / `-y` | install / global | Waive dual-definition mismatches with warnings |
 | `--dry-run` | global | Resolve through artifact selection; no download, extract, or save |
 | `--no-save` | global | Skip `agents.json` and lock writes after a successful extract |
@@ -37,9 +36,17 @@ index alias defined in `packages/index.json`.
 
 ### Prerequisites
 
-- An install target must be available from `agents.json` or `--target`. Without
-  either, the command exits `3`.
-- Run `agents-repo init --target <id>` first when starting from an empty project.
+- Install targets come from `agents.json` `targets[]` only (no `--target` on `install`).
+- Bulk `install` / `update` require existing `targets` in config; otherwise exit `3`.
+- Greenfield **`install <package-id>`** (no manifest or `{}` only): run target detection (same as
+  `init`); on failure exit `3` with a message to run `init --targets <id...>`.
+- To add targets after init, use **`add-target <id...>`** (or until documented otherwise,
+  `init -y --targets <all-ids> --force`).
+
+### Multi-target fan-out
+
+When `agents.json` lists multiple `targets`, `install` (and `update`) installs each configured
+package once per target, updating lock `byTarget` slots.
 
 ### Version selection
 
@@ -59,11 +66,12 @@ metadata `compatibility.targets`, and manifest artifacts.
 
 | Scope | Extract root | Config / lock writes |
 | --- | --- | --- |
-| Project (default) | Project cwd | Updates config/lock unless `--no-save` / `--dry-run` |
-| Global (`-g`) | Global config dir | Skips project config on single-package install |
+| Project (default) | Project cwd | Project `agents.json` / `agents-lock.json` unless disabled |
+| Global (`-g`) | `~/.agents-repo/` | Global `agents.json` / `agents-lock.json` unless disabled |
 
-Ad-hoc project installs add `packages[<id>] = ^<resolved-version>` unless
-`--no-save` or `--dry-run`.
+Ad-hoc project installs add `packages[<id>] = ^<resolved-version>` unless `--no-save` or
+`--dry-run`. Greenfield ad-hoc installs also write `schemaVersion`, `registry`, and detected
+`targets[]`.
 
 ### Install pipeline
 
@@ -83,7 +91,8 @@ The command follows [`specs/cli-protocol.md`](../../specs/cli-protocol.md):
 
 | Variable | Effect |
 | --- | --- |
-| `AGENTS_REPO_CONFIG` | Absolute path to `agents.json` |
+| `AGENTS_REPO_CONFIG` | Absolute path to project `agents.json` (ignored when `-g` is set) |
+| `AGENTS_REPO_HOME` | Override global home directory (default `~/.agents-repo/`) |
 | `AGENTS_REPO_REGISTRY_URL` | Overrides `registry.url` after file resolution |
 
 ## Exit codes
@@ -121,16 +130,11 @@ agents-repo --dry-run install agents-repo/sample-agent
 # Would install agents-repo/sample-agent@1.0.0 for target cursor into /path/to/project
 ```
 
-Override target for one invocation:
+Install globally (persists under `~/.agents-repo/`):
 
 ```bash
-agents-repo install agents-repo/sample-agent --target github-copilot
-```
-
-Extract globally without updating project config:
-
-```bash
-agents-repo install -g agents-repo/sample-agent --target cursor
+agents-repo init -g --targets cursor
+agents-repo install -g agents-repo/sample-agent
 ```
 
 ### JSON output
@@ -158,9 +162,9 @@ With `--json`, successful installs print JSON on stdout:
 
 Errors use a single JSON object on stderr: `{"error":{"code":"...","message":"..."}}`.
 
-`saved` is `true` when install persistence ran: project `agents.json` / `agents-lock.json`
-for project scope, or `agents-global.json` for global scope (`-g`). It is `false` for
-`--dry-run`, `--no-save`, or when only extraction occurred without a save path.
+`saved` is `true` when install persistence ran for the active scope (`agents.json` /
+`agents-lock.json` under the project cwd or under `~/.agents-repo/` when `-g` is set). It is
+`false` for `--dry-run`, `--no-save`, or when only extraction occurred without a save path.
 
 ## Related specs
 

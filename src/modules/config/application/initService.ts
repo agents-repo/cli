@@ -1,14 +1,22 @@
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import { ProjectTargetDetector } from '../../target/application/projectTargetDetector.js'
 import type { TargetDetectionResult } from '../../target/domain/targetDetection.js'
+import type { ConfigConflictRecord } from '../domain/configErrors.js'
 import { ConfigValidationError } from '../domain/configErrors.js'
 import type { InitResult } from '../domain/initResult.js'
-import { isValidInstallTargetId } from '../domain/validators.js'
 import { AgentsJsonRepository } from '../infrastructure/agentsJsonRepository.js'
-import { resolveConfigPaths } from '../infrastructure/configPaths.js'
+import {
+  resolveGlobalConfigPaths,
+  resolveProjectConfigPaths,
+} from '../infrastructure/configPaths.js'
 import { extractCliManagedConfig } from './cliManagedSlice.js'
 import { ConfigMerger } from './configMerger.js'
 import { ConflictDetector } from './conflictDetector.js'
+import {
+  installTargetSetsEqual,
+  parseInstallTargetsArray,
+  resolveTargetsFromManaged,
+} from './resolveTargets.js'
 import { SchemaGate, getActiveGateTarget, getNamespaceBlock } from './schemaGate.js'
 
 export interface InitServiceOptions {
@@ -16,8 +24,10 @@ export interface InitServiceOptions {
   readonly env?: NodeJS.ProcessEnv
   readonly force?: boolean
   readonly yes?: boolean
-  readonly target?: string
+  /** Explicit target ids from CLI (`--targets` / `--target` variadic). */
+  readonly targetIds?: readonly string[]
   readonly verbose?: boolean
+  readonly globalScope?: boolean
 }
 
 export class InitService {
@@ -36,9 +46,10 @@ export class InitService {
     const env = options.env ?? process.env
     const force = options.force ?? false
     const yes = options.yes ?? false
-    const verbose = options.verbose ?? false
 
-    const { configPath } = resolveConfigPaths(cwd, env)
+    const { configPath } = options.globalScope === true
+      ? resolveGlobalConfigPaths(env)
+      : resolveProjectConfigPaths(cwd, env)
     const rawDocument = await this.agentsJsonRepository.read(configPath)
     const gateMode = this.schemaGate.determineMode(rawDocument)
     const created =
@@ -64,24 +75,33 @@ export class InitService {
         ? {}
         : extractCliManagedConfig(getNamespaceBlock(rawDocument) ?? {})
 
-    const topTarget = existingManaged.target
-    const namespaceTarget = namespaceManaged.target
-
-    const resolvedTarget = await this.resolveTarget({
-      cwd,
-      force,
-      verbose,
-      targetOption: options.target,
-      existingTarget: topTarget ?? namespaceTarget,
-      topTarget,
-      namespaceTarget,
+    const existingTargets = resolveTargetsFromManaged(existingManaged)
+    const namespaceTargets = resolveTargetsFromManaged(namespaceManaged)
+    const effectiveTargets = resolveTargetsFromManaged({
+      ...namespaceManaged,
+      ...existingManaged,
+      targets: existingManaged.targets ?? namespaceManaged.targets,
     })
 
+    const resolved = await this.resolveTargets({
+      cwd,
+      force,
+      verbose: options.verbose ?? false,
+      cliTargetIds: options.targetIds,
+      existingTargets: effectiveTargets,
+      topTargets: existingTargets,
+      namespaceTargets,
+    })
+
+    if (resolved.detectionWarnings.length > 0) {
+      warnings = [...warnings, ...resolved.detectionWarnings]
+    }
+
     const patch: {
-      target?: InstallTargetId
+      targets?: InstallTargetId[]
     } = {}
-    if (resolvedTarget !== undefined) {
-      patch.target = resolvedTarget
+    if (resolved.targets !== undefined) {
+      patch.targets = resolved.targets
     }
 
     const merged = this.configMerger.merge(rawDocument, patch, { gateMode, force })
@@ -93,84 +113,110 @@ export class InitService {
 
     await this.agentsJsonRepository.write(configPath, merged)
 
-    const finalTarget = resolvedTarget ?? topTarget ?? namespaceTarget
+    const mergedActive =
+      getActiveGateTarget(merged, gateMode)
+    const finalTargets = resolveTargetsFromManaged(extractCliManagedConfig(mergedActive))
 
     return {
       configPath,
       gateMode,
-      target: finalTarget,
+      targets: finalTargets,
       warnings: finalWarnings,
       created,
     }
   }
 
-  private async resolveTarget(options: {
+  private parseCliTargetIds(raw: readonly string[] | undefined): InstallTargetId[] | undefined {
+    if (raw === undefined || raw.length === 0) {
+      return undefined
+    }
+
+    return parseInstallTargetsArray(raw, '--targets')
+  }
+
+  private async resolveTargets(options: {
     readonly cwd: string
     readonly force: boolean
     readonly verbose: boolean
-    readonly targetOption?: string
-    readonly existingTarget?: InstallTargetId
-    readonly topTarget?: InstallTargetId
-    readonly namespaceTarget?: InstallTargetId
-  }): Promise<InstallTargetId | undefined> {
-    const { cwd, force, verbose, targetOption, existingTarget, topTarget, namespaceTarget } = options
+    readonly cliTargetIds?: readonly string[]
+    readonly existingTargets?: InstallTargetId[]
+    readonly topTargets?: InstallTargetId[]
+    readonly namespaceTargets?: InstallTargetId[]
+  }): Promise<{
+    readonly targets: InstallTargetId[] | undefined
+    readonly detectionWarnings: readonly ConfigConflictRecord[]
+  }> {
+    const {
+      cwd,
+      force,
+      verbose,
+      cliTargetIds,
+      existingTargets,
+      topTargets,
+      namespaceTargets,
+    } = options
 
-    if (targetOption !== undefined) {
-      if (!isValidInstallTargetId(targetOption)) {
-        throw new ConfigValidationError(
-          `Invalid install target id: ${targetOption}`,
-          'invalid_enum',
-        )
-      }
+    const fromCli = this.parseCliTargetIds(cliTargetIds)
 
-      if (existingTarget !== undefined && existingTarget !== targetOption && !force) {
+    if (fromCli !== undefined) {
+      if (
+        existingTargets !== undefined &&
+        !installTargetSetsEqual(existingTargets, fromCli) &&
+        !force
+      ) {
         throw new ConfigValidationError(
-          `Install target is already set to "${existingTarget}"; use --force to change it to "${targetOption}"`,
+          `Install targets are already set to [${existingTargets.join(', ')}]; use --force to change them`,
           'target_mismatch',
         )
       }
 
-      if (topTarget === targetOption) {
-        return undefined
+      if (topTargets !== undefined && installTargetSetsEqual(topTargets, fromCli)) {
+        return { targets: undefined, detectionWarnings: [] }
       }
 
-      return targetOption
+      return { targets: fromCli, detectionWarnings: [] }
     }
 
-    if (topTarget !== undefined) {
-      return undefined
+    if (topTargets !== undefined) {
+      return { targets: undefined, detectionWarnings: [] }
     }
 
-    if (namespaceTarget !== undefined) {
-      return namespaceTarget
+    if (namespaceTargets !== undefined) {
+      return { targets: namespaceTargets, detectionWarnings: [] }
     }
 
     const detection = await this.targetDetector.detect(cwd)
-    return this.targetFromDetection(detection, verbose)
+    const parsed = this.targetsFromDetection(detection)
+    const detectionWarnings =
+      verbose && detection.status === 'ambiguous'
+        ? this.buildAmbiguousDetectionWarnings(detection)
+        : []
+
+    return { targets: parsed, detectionWarnings }
   }
 
-  private targetFromDetection(
+  private buildAmbiguousDetectionWarnings(
     detection: TargetDetectionResult,
-    verbose: boolean,
-  ): InstallTargetId {
+  ): ConfigConflictRecord[] {
+    return detection.matches.map((match) => ({
+      code: 'type_mismatch',
+      path: 'targets',
+      message: `Detected install target ${match.target} (${match.markers.join(', ')})`,
+      severity: 'warning',
+    }))
+  }
+
+  private targetsFromDetection(detection: TargetDetectionResult): InstallTargetId[] {
     if (detection.status === 'single' && detection.suggestedTarget !== undefined) {
-      return detection.suggestedTarget
+      return [detection.suggestedTarget]
     }
 
     if (detection.status === 'ambiguous') {
-      const detectedList = detection.detected.join(', ')
-      const matchDetails = detection.matches
-        .map((match) => `${match.target} (${match.markers.join(', ')})`)
-        .join('; ')
-      const verboseSuffix = verbose ? ` Matches: ${matchDetails}.` : ''
-      throw new ConfigValidationError(
-        `Multiple install targets detected (${detectedList}); pass --target <id> to choose one.${verboseSuffix}`,
-        'missing_target',
-      )
+      return parseInstallTargetsArray(detection.detected, 'detected targets')
     }
 
     throw new ConfigValidationError(
-      'Install target could not be detected; pass --target <id> to set one.',
+      'Install target could not be detected; pass --targets <id...> to set one or more.',
       'missing_target',
     )
   }

@@ -37,7 +37,7 @@ describe('InstallService persistence rollback', () => {
           url: 'https://registry-proxy.example.workers.dev',
           ref: 'v2.0.0',
         },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     )
@@ -100,7 +100,7 @@ describe('InstallService persistence rollback', () => {
       return Promise.resolve(new Response('not found', { status: 404 }))
     })
 
-    vi.spyOn(InstallPersistence.prototype, 'save').mockRejectedValue(new Error('disk full'))
+    vi.spyOn(InstallPersistence.prototype, 'saveBulk').mockRejectedValue(new Error('disk full'))
 
     const service = new InstallService()
 

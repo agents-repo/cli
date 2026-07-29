@@ -14,7 +14,8 @@ agents-repo init [options]
 
 | Flag | Scope | Description |
 | --- | --- | --- |
-| `--target <id>` | init | Set install target id (for example `cursor`, `github-copilot`) |
+| `--targets <id...>` | init | Set one or more install target ids |
+| `--target <id...>` | init | Alias of `--targets` on `init` |
 | `--force` | init | Overwrite agents-repo-managed keys in the active schema gate target |
 | `--yes` / `-y` | init / global | Waive dual-definition mismatches with warnings |
 | `--verbose` | global | Include marker paths when target detection is ambiguous |
@@ -49,17 +50,17 @@ Foreign keys outside the active gate target are preserved.
 
 | Condition | Behavior |
 | --- | --- |
-| Existing managed `target`, no `--target` | Target left unchanged (idempotent re-init) |
-| `--target` matches existing | No change to target |
-| `--target` differs from existing, no `--force` | Exit `3` |
-| `--target` differs, with `--force` | Managed `target` updated |
-| No existing `target`, no `--target` | Run filesystem marker detection |
-| Top-level `target` missing, namespace has `target` | Propagate namespace `target` to top level |
+| Existing managed `targets`, no CLI override | Unchanged (idempotent) |
+| CLI override matches existing set | No change to targets |
+| CLI override differs from existing set, no `--force` | Exit `3` |
+| CLI override differs, with `--force` | Managed `targets` updated |
+| No existing targets, no CLI override | Run filesystem marker detection |
+| Top-level targets missing, namespace has targets | Propagate namespace targets to top level |
 | Detection finds one target | Use detected target |
-| Detection finds none or multiple | Exit `3`; pass `--target <id>` |
+| Detection finds multiple | Persist all detected targets (canonical order) |
+| Detection finds none | Exit `3`; pass `--targets <id...>` |
 
-Interactive target pickers are not implemented; ambiguous or missing detection
-requires `--target`.
+Interactive target pickers are not implemented.
 
 ### Conflicts and `--yes`
 
@@ -87,25 +88,28 @@ homonyms are foreign keys and dual-definition checks do not apply. With
 
 ## Examples
 
-Greenfield project with explicit target:
+Managed field `target` (single string) is rejected with exit `3` (`deprecated_field`);
+use `targets` only.
+
+Greenfield project with explicit targets:
 
 ```bash
 agents-repo init --target cursor
-# Created /path/to/project/agents.json (gate: greenfield, target: cursor)
+# Created /path/to/project/agents.json (gate: greenfield, targets: cursor)
 ```
 
 When conflicts are waived with `--yes`, the success line includes a warning count:
 
 ```bash
 agents-repo -y init --target cursor
-# Updated /path/to/project/agents.json (gate: top-level-ours, target: cursor, 1 warning(s))
+# Updated /path/to/project/agents.json (gate: top-level-ours, targets: cursor, 1 warning(s))
 ```
 
 Re-run on an existing config (no managed field changes):
 
 ```bash
 agents-repo init
-# Updated /path/to/project/agents.json (gate: top-level-ours, target: cursor)
+# Updated /path/to/project/agents.json (gate: top-level-ours, targets: cursor)
 ```
 
 Foreign-only `agents.json` (managed block added under `@agents-repo`):

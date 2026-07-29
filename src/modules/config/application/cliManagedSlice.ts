@@ -5,28 +5,38 @@ import { ConfigValidationError } from '../domain/configErrors.js'
 import type { CliManagedConfig } from '../domain/agentsConfig.js'
 import { isPlainObject } from '../infrastructure/jsonDocument.js'
 import { getRegistryRefDefault, getRegistryUrlAlias } from './schemaGate.js'
+import { parseInstallTargetsArray } from './resolveTargets.js'
 
 export const extractCliManagedConfig = (
   activeTarget: Record<string, unknown>,
 ): CliManagedConfig => {
+  if ('target' in activeTarget) {
+    throw new ConfigValidationError(
+      'agents.json managed field "target" is deprecated; use "targets" array instead',
+      'deprecated_field',
+    )
+  }
+
+  if ('global' in activeTarget) {
+    throw new ConfigValidationError(
+      'agents.json managed field "global" is removed; use install -g for global scope',
+      'deprecated_field',
+    )
+  }
+
   const managed: {
     schemaVersion?: string
     registry?: RegistryConfig
-    target?: InstallTargetId
+    targets?: InstallTargetId[]
     packages?: Record<string, string>
-    global?: boolean
   } = {}
 
   if (typeof activeTarget.schemaVersion === 'string') {
     managed.schemaVersion = activeTarget.schemaVersion
   }
 
-  if (typeof activeTarget.target === 'string') {
-    managed.target = activeTarget.target as InstallTargetId
-  }
-
-  if (typeof activeTarget.global === 'boolean') {
-    managed.global = activeTarget.global
+  if (activeTarget.targets !== undefined) {
+    managed.targets = parseInstallTargetsArray(activeTarget.targets, 'targets')
   }
 
   if (activeTarget.packages !== undefined) {

@@ -12,7 +12,6 @@ import {
 
 export interface UpdateCommandOptions {
   readonly global?: boolean;
-  readonly target?: string;
   readonly yes?: boolean;
 }
 
@@ -21,8 +20,7 @@ export const registerUpdateCommand = (program: Command): void => {
     .command('update [package-id]')
     .alias('up')
     .description('Update configured packages within semver ranges in agents.json')
-    .option('-g, --global', 'Update global installs without updating project lock')
-    .option('--target <id>', 'Override install target for this invocation')
+    .option('-g, --global', 'Update packages in the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
     .action(async function updateAction(
       this: Command,
@@ -33,7 +31,6 @@ export const registerUpdateCommand = (program: Command): void => {
       const rootOpts = this.optsWithGlobals<{ yes?: boolean }>();
 
       const runOptions = {
-        target: options.target,
         global: options.global ?? false,
         yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
         dryRun: globals.dryRun,

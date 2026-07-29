@@ -25,10 +25,12 @@ export type ConfigValidationCode =
   | 'invalid_enum'
   | 'invalid_semver_range'
   | 'missing_target'
+  | 'missing_config'
   | 'target_mismatch'
   | 'config_path_not_absolute'
   | 'config_path_not_agents_json'
   | 'invalid_merge_state'
+  | 'deprecated_field'
 
 export class ConfigValidationError extends ConfigError {
   readonly exitCode = 3 as const
@@ -63,6 +65,7 @@ export type ConfigConflictCode =
   | 'dual_definition_mismatch'
   | 'invalid_enum'
   | 'invalid_semver_range'
+  | 'deprecated_field'
 
 export class LockValidationError extends ConfigError {
   readonly exitCode = 3 as const

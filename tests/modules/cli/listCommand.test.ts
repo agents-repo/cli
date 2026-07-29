@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { spawn, type ChildProcess } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetCliGlobals } from '../../../src/modules/cli/application/cliGlobals.js';
 import { createCliProgram } from '../../../src/modules/cli/presentation/createCliProgram.js';
-import { GlobalInstallStateService } from '../../../src/modules/config/application/globalInstallStateService.js';
 import { ListInstalledService } from '../../../src/modules/config/application/listInstalledService.js';
 
 const nodeExecutable = process.execPath;
@@ -119,21 +118,24 @@ describe('list command', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     );
     writeFileSync(
       path.join(cwd, 'agents-lock.json'),
       JSON.stringify({
-        lockfileVersion: 1,
+        lockfileVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/sample-agent': {
             version: '1.0.0',
-            target: 'cursor',
-            integrity: `sha256-${'a'.repeat(64)}`,
-            artifact: '1.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'a'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),
@@ -153,21 +155,24 @@ describe('list command', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: { 'agents-repo/sample-agent': '^1.0.0' },
       }),
     );
     writeFileSync(
       path.join(cwd, 'agents-lock.json'),
       JSON.stringify({
-        lockfileVersion: 1,
+        lockfileVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/sample-agent': {
             version: '1.0.0',
-            target: 'cursor',
-            integrity: `sha256-${'a'.repeat(64)}`,
-            artifact: '1.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'a'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),
@@ -184,25 +189,37 @@ describe('list command', () => {
     expect(payload.packages[0]?.range).toBe('^1.0.0');
   });
 
-  it('lists global packages from agents-global.json', async () => {
+  it('lists global packages from agents-lock.json under agents repo home', async () => {
     const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-global-home-'));
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-cli-list-global-cwd-'));
     tempDirs.push(homeDir);
     tempDirs.push(cwd);
 
-    const globalDir = path.join(homeDir, '.config', 'agents-repo');
+    const globalDir = path.join(homeDir, '.agents-repo');
     mkdirSync(globalDir, { recursive: true });
     writeFileSync(
-      path.join(globalDir, 'agents-global.json'),
+      path.join(globalDir, 'agents.json'),
       JSON.stringify({
-        stateVersion: 1,
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: { 'agents-repo/sample-agent': '^1.0.0' },
+      }),
+    );
+    writeFileSync(
+      path.join(globalDir, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
         resolvedRef: 'v2.0.0',
         packages: {
           'agents-repo/sample-agent': {
             version: '1.0.0',
-            target: 'cursor',
-            integrity: `sha256-${'b'.repeat(64)}`,
-            artifact: '1.0.0-cursor.zip',
+            byTarget: {
+              cursor: {
+                integrity: `sha256-${'b'.repeat(64)}`,
+                artifact: '1.0.0-cursor.zip',
+              },
+            },
           },
         },
       }),
@@ -250,7 +267,7 @@ describe('list command subprocess', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     );
@@ -279,56 +296,29 @@ describe('ListInstalledService', () => {
     }
   });
 
-  it('rejects invalid global state files', async () => {
+  it('rejects invalid global lock files', async () => {
     const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-list-invalid-global-'));
     tempDirs.push(homeDir);
 
-    const globalDir = path.join(homeDir, '.config', 'agents-repo');
+    const globalDir = path.join(homeDir, '.agents-repo');
     mkdirSync(globalDir, { recursive: true });
     writeFileSync(
-      path.join(globalDir, 'agents-global.json'),
-      JSON.stringify({ stateVersion: 99, resolvedRef: 'v2.0.0', packages: {} }),
+      path.join(globalDir, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'https://example.test', ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: {},
+      }),
+    );
+    writeFileSync(
+      path.join(globalDir, 'agents-lock.json'),
+      JSON.stringify({ lockfileVersion: 99, resolvedRef: 'v2.0.0', packages: {} }),
     );
 
     const service = new ListInstalledService();
     await expect(
       service.run({ cwd: homeDir, env: { ...process.env, HOME: homeDir }, global: true }),
-    ).rejects.toThrow(/stateVersion/);
-  });
-});
-
-describe('GlobalInstallStateService', () => {
-  const tempDirs: string[] = [];
-
-  afterEach(() => {
-    for (const dir of tempDirs.splice(0)) {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it('upserts package entries deterministically', async () => {
-    const statePath = path.join(
-      mkdtempSync(path.join(os.tmpdir(), 'agents-global-state-')),
-      'agents-global.json',
-    );
-    tempDirs.push(path.dirname(statePath));
-
-    const service = new GlobalInstallStateService();
-    await service.upsertPackages(statePath, 'v2.0.0', [
-      {
-        packageId: 'agents-repo/foo',
-        entry: {
-          version: '1.0.0',
-          target: 'cursor',
-          integrity: `sha256-${'c'.repeat(64)}`,
-          artifact: '1.0.0-cursor.zip',
-        },
-      },
-    ]);
-
-    const raw = JSON.parse(readFileSync(statePath, 'utf8')) as {
-      packages: Record<string, { version: string }>;
-    };
-    expect(raw.packages['agents-repo/foo']?.version).toBe('1.0.0');
+    ).rejects.toThrow(/lockfileVersion/);
   });
 });

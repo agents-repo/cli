@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer, type Server } from 'node:http';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -77,8 +77,26 @@ const writeInstallConfig = (cwd: string, baseUrl: string): void => {
     JSON.stringify({
       schemaVersion: '1.0.0',
       registry: { url: baseUrl, ref: 'v2.0.0' },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
+    }),
+  );
+};
+
+const writeGlobalInstallConfig = (
+  homeDir: string,
+  baseUrl: string,
+  packages: Record<string, string> = {},
+): void => {
+  const globalRoot = path.join(homeDir, '.agents-repo');
+  mkdirSync(globalRoot, { recursive: true });
+  writeFileSync(
+    path.join(globalRoot, 'agents.json'),
+    JSON.stringify({
+      schemaVersion: '1.0.0',
+      registry: { url: baseUrl, ref: 'v2.0.0' },
+      targets: ['cursor'],
+      packages,
     }),
   );
 };
@@ -108,7 +126,7 @@ describe('install command subprocess', () => {
     const result = await runCliSubprocess(['install'], { cwd });
 
     expect(result.status).toBe(3);
-    expect(result.stderr).toContain('Install target is required');
+    expect(result.stderr).toMatch(/Install target (is required|could not be detected)/);
   });
 
   it('exits 3 when install target is missing for single package install', async () => {
@@ -118,7 +136,7 @@ describe('install command subprocess', () => {
     const result = await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
 
     expect(result.status).toBe(3);
-    expect(result.stderr).toContain('Install target is required');
+    expect(result.stderr).toMatch(/Install target (is required|could not be detected)/);
   });
 
   it('exits 0 when bulk install has an empty packages map', async () => {
@@ -130,7 +148,7 @@ describe('install command subprocess', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: 'https://example.test', ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {},
       }),
     );
@@ -148,7 +166,7 @@ describe('install command subprocess', () => {
     writeFileSync(path.join(cwd, 'agents.json'), JSON.stringify(conflictingTopLevelConfig));
 
     const result = await runCliSubprocess(
-      ['install', 'agents-repo/sample-agent', '--target', 'cursor'],
+      ['install', 'agents-repo/sample-agent'],
       { cwd },
     );
 
@@ -279,7 +297,7 @@ describe('install command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -309,7 +327,7 @@ describe('install command subprocess with mock registry', () => {
       JSON.stringify({
         schemaVersion: '1.0.0',
         registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-        target: 'cursor',
+        targets: ['cursor'],
         packages: {
           'agents-repo/sample-agent': '^1.0.0',
           'agents-repo/other-agent': '^1.0.0',
@@ -362,17 +380,34 @@ describe('install command subprocess with mock registry', () => {
     expect(result.status).toBe(0);
 
     const payload = JSON.parse(result.stdout.trim()) as {
-      packageId: string;
-      dryRun: boolean;
-      saved: boolean;
+      packages: Array<{ packageId: string; dryRun: boolean; saved: boolean }>;
       warnings: string[];
     };
-    expect(payload.packageId).toBe('agents-repo/sample-agent');
-    expect(payload.dryRun).toBe(true);
-    expect(payload.saved).toBe(false);
+    expect(payload.packages[0]?.packageId).toBe('agents-repo/sample-agent');
+    expect(payload.packages[0]?.dryRun).toBe(true);
+    expect(payload.packages[0]?.saved).toBe(false);
     expect(payload.warnings).toEqual([]);
     expect(result.stderr).not.toMatch(/^warning:/m);
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
+  });
+
+  it('bootstraps agents.json on greenfield install when targets are detected', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-greenfield-bootstrap-'));
+    tempDirs.push(cwd);
+    mkdirSync(path.join(cwd, '.cursor'), { recursive: true });
+
+    const result = await runCliSubprocess(['install', 'agents-repo/sample-agent'], {
+      cwd,
+      env: { ...process.env, AGENTS_REPO_REGISTRY_URL: mockBaseUrl },
+    });
+
+    expect(result.status).toBe(0);
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      targets: string[];
+      packages: Record<string, string>;
+    };
+    expect(config.targets).toEqual(['cursor']);
+    expect(config.packages['agents-repo/sample-agent']).toBe('^1.0.0');
   });
 
   it('installs into a project and updates config and lock files', async () => {
@@ -381,7 +416,7 @@ describe('install command subprocess with mock registry', () => {
     writeInstallConfig(cwd, mockBaseUrl);
 
     const result = await runCliSubprocess(
-      ['install', 'agents-repo/sample-agent', '--target', 'cursor'],
+      ['install', 'agents-repo/sample-agent'],
       { cwd },
     );
 
@@ -408,7 +443,7 @@ describe('install command subprocess with mock registry', () => {
     writeInstallConfig(cwd, mockBaseUrl);
 
     const result = await runCliSubprocess(
-      ['--no-save', 'install', 'agents-repo/sample-agent', '--target', 'cursor'],
+      ['--no-save', 'install', 'agents-repo/sample-agent'],
       { cwd },
     );
 
@@ -423,7 +458,7 @@ describe('install command subprocess with mock registry', () => {
     ).toEqual({
       schemaVersion: '1.0.0',
       registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
     });
   });
@@ -436,9 +471,10 @@ describe('install command subprocess with mock registry', () => {
 
     const configPath = path.join(cwd, 'agents.json');
     writeInstallConfig(cwd, mockBaseUrl);
+    writeGlobalInstallConfig(homeDir, mockBaseUrl);
 
     const result = await runCliSubprocess(
-      ['install', '-g', 'agents-repo/sample-agent', '--target', 'cursor'],
+      ['install', '-g', 'agents-repo/sample-agent'],
       {
         cwd,
         env: {
@@ -454,11 +490,11 @@ describe('install command subprocess with mock registry', () => {
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual({
       schemaVersion: '1.0.0',
       registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {},
     });
     expect(
-      readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
+      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
     ).toContain('name: sample');
   });
 
@@ -468,7 +504,7 @@ describe('install command subprocess with mock registry', () => {
     writeInstallConfig(cwd, mockBaseUrl);
 
     const installResult = await runCliSubprocess(
-      ['install', 'agents-repo/sample-agent', '--target', 'cursor'],
+      ['install', 'agents-repo/sample-agent'],
       { cwd },
     );
     expect(installResult.status).toBe(0);
@@ -478,25 +514,26 @@ describe('install command subprocess with mock registry', () => {
     expect(listResult.stdout).toContain('agents-repo/sample-agent@1.0.0  target=cursor');
   });
 
-  it('list -g reflects global install from agents-global.json', async () => {
+  it('list -g reflects global install from agents-lock.json in agents repo home', async () => {
     const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-install-then-list-global-home-'));
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-then-list-global-cwd-'));
     tempDirs.push(cwd);
     tempDirs.push(homeDir);
     writeInstallConfig(cwd, mockBaseUrl);
+    writeGlobalInstallConfig(homeDir, mockBaseUrl);
 
     const env = { ...process.env, HOME: homeDir };
     const installResult = await runCliSubprocess(
-      ['install', '-g', 'agents-repo/sample-agent', '--target', 'cursor'],
+      ['install', '-g', 'agents-repo/sample-agent'],
       { cwd, env },
     );
     expect(installResult.status).toBe(0);
 
-    const globalStatePath = path.join(homeDir, '.config', 'agents-repo', 'agents-global.json');
-    const globalState = JSON.parse(readFileSync(globalStatePath, 'utf8')) as {
+    const globalLockPath = path.join(homeDir, '.agents-repo', 'agents-lock.json');
+    const globalLock = JSON.parse(readFileSync(globalLockPath, 'utf8')) as {
       packages: Record<string, { version: string }>;
     };
-    expect(globalState.packages['agents-repo/sample-agent']?.version).toBe('1.0.0');
+    expect(globalLock.packages['agents-repo/sample-agent']?.version).toBe('1.0.0');
 
     const listResult = await runCliSubprocess(['list', '-g'], { cwd, env });
     expect(listResult.status).toBe(0);
@@ -513,13 +550,18 @@ describe('install command subprocess with mock registry', () => {
     const configBefore = {
       schemaVersion: '1.0.0',
       registry: { url: mockBaseUrl, ref: 'v2.0.0' },
-      target: 'cursor',
+      targets: ['cursor'],
       packages: {
         'agents-repo/sample-agent': '^1.0.0',
         'agents-repo/other-agent': '^1.0.0',
       },
     };
     writeFileSync(configPath, JSON.stringify(configBefore));
+    writeGlobalInstallConfig(
+      homeDir,
+      mockBaseUrl,
+      configBefore.packages,
+    );
 
     const result = await runCliSubprocess(['--json', 'install', '-g'], {
       cwd,
@@ -539,10 +581,10 @@ describe('install command subprocess with mock registry', () => {
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore);
     expect(
-      readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
+      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
     ).toContain('name: sample');
     expect(
-      readFileSync(path.join(homeDir, '.config/agents-repo/.cursor/skills/other/SKILL.md'), 'utf8'),
+      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/other/SKILL.md'), 'utf8'),
     ).toContain('name: other');
   });
 });

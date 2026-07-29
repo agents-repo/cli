@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 
 import { setCliGlobals } from '../application/cliGlobals.js';
+import { registerAddTargetCommand } from './addTargetCommand.js';
 import { registerInitCommand } from './initCommand.js';
 import { registerInstallCommand } from './installCommand.js';
 import { registerListCommand } from './listCommand.js';
@@ -57,6 +58,7 @@ export const createCliProgram = (): Command => {
     .exitOverride();
 
   registerInitCommand(program);
+  registerAddTargetCommand(program);
   registerInstallCommand(program);
   registerUpdateCommand(program);
   registerSearchCommand(program);

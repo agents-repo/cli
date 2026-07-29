@@ -8,9 +8,8 @@ export type SchemaGateMode = 'greenfield' | 'top-level-ours' | 'namespace'
 export interface CliManagedConfig {
   readonly schemaVersion?: string
   readonly registry?: RegistryConfig
-  readonly target?: InstallTargetId
+  readonly targets?: InstallTargetId[]
   readonly packages?: Record<string, string>
-  readonly global?: boolean
 }
 
 export type AgentsConfigDocument = Record<string, unknown>
@@ -19,11 +18,11 @@ export interface ResolvedAgentsConfig {
   readonly gateMode: SchemaGateMode
   readonly configPath: string
   readonly lockPath: string
+  readonly configRoot: string
   readonly schemaVersion?: string
   readonly registry: RegistryConfig
-  readonly target?: InstallTargetId
+  readonly targets?: InstallTargetId[]
   readonly packages: Record<string, string>
-  readonly global: boolean
   readonly warnings: readonly ConfigConflictRecord[]
   readonly rawDocument: AgentsConfigDocument | null
 }

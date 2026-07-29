@@ -6,13 +6,27 @@ import {
   ENV_AGENTS_REPO_CONFIG,
 } from '../domain/configConstants.js'
 import { ConfigValidationError } from '../domain/configErrors.js'
+import { resolveAgentsRepoHome } from './agentsRepoHome.js'
 
 export interface ConfigPaths {
   readonly configPath: string
   readonly lockPath: string
+  readonly configRoot: string
 }
 
-export const resolveConfigPaths = (cwd: string, env: NodeJS.ProcessEnv = process.env): ConfigPaths => {
+export const resolveGlobalConfigPaths = (env: NodeJS.ProcessEnv = process.env): ConfigPaths => {
+  const configRoot = resolveAgentsRepoHome(env)
+  return {
+    configRoot,
+    configPath: path.join(configRoot, AGENTS_JSON_FILENAME),
+    lockPath: path.join(configRoot, AGENTS_LOCK_FILENAME),
+  }
+}
+
+export const resolveProjectConfigPaths = (
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env,
+): ConfigPaths => {
   const configOverride = env[ENV_AGENTS_REPO_CONFIG]?.trim()
 
   if (configOverride) {
@@ -31,11 +45,20 @@ export const resolveConfigPaths = (cwd: string, env: NodeJS.ProcessEnv = process
     }
 
     const configPath = configOverride
-    const lockPath = path.join(path.dirname(configPath), AGENTS_LOCK_FILENAME)
-    return { configPath, lockPath }
+    const configRoot = path.dirname(configPath)
+    const lockPath = path.join(configRoot, AGENTS_LOCK_FILENAME)
+    return { configPath, lockPath, configRoot }
   }
 
   const configPath = path.join(cwd, AGENTS_JSON_FILENAME)
   const lockPath = path.join(cwd, AGENTS_LOCK_FILENAME)
+  return { configPath, lockPath, configRoot: cwd }
+}
+
+export const resolveConfigPaths = (
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Pick<ConfigPaths, 'configPath' | 'lockPath'> => {
+  const { configPath, lockPath } = resolveProjectConfigPaths(cwd, env)
   return { configPath, lockPath }
 }

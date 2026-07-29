@@ -1,30 +1,23 @@
-import os from 'node:os'
-import path from 'node:path'
+import { resolveAgentsRepoHome } from '../../config/infrastructure/agentsRepoHome.js'
 
 export interface InstallScope {
   readonly global: boolean
   readonly extractRoot: string
-  readonly mutateProjectConfig: boolean
+  readonly persistScopeConfig: boolean
 }
 
 export const resolveInstallScope = (options: {
   readonly cwd: string
   readonly env?: NodeJS.ProcessEnv
   readonly globalFlag?: boolean
-  readonly configGlobal?: boolean
 }): InstallScope => {
-  const global = options.globalFlag === true || options.configGlobal === true
-  const homedir =
-    options.env?.HOME?.trim() ||
-    options.env?.USERPROFILE?.trim() ||
-    os.homedir()
-  const extractRoot = global
-    ? path.join(homedir, '.config', 'agents-repo')
-    : options.cwd
+  const global = options.globalFlag === true
+  const env = options.env ?? process.env
+  const extractRoot = global ? resolveAgentsRepoHome(env) : options.cwd
 
   return {
     global,
     extractRoot,
-    mutateProjectConfig: !global,
+    persistScopeConfig: true,
   }
 }

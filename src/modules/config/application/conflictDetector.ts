@@ -6,11 +6,15 @@ import {
 import type { SchemaGateMode, AgentsConfigDocument } from '../domain/agentsConfig.js'
 import type { ConfigConflictRecord } from '../domain/configErrors.js'
 import { ConfigConflictError, ConfigValidationError } from '../domain/configErrors.js'
+import type { InstallTargetId } from '../../registry/domain/package.js'
 import {
   isQualifiedPackageId,
-  isValidInstallTargetId,
   isValidSemverRange,
 } from '../domain/validators.js'
+import {
+  installTargetSetsEqual,
+  parseInstallTargetsArray,
+} from './resolveTargets.js'
 import { isPlainObject, valuesAreEqual } from '../infrastructure/jsonDocument.js'
 import { getActiveGateTarget, getNamespaceBlock } from './schemaGate.js'
 
@@ -66,7 +70,8 @@ export class ConflictDetector {
         (entry) =>
           entry.code === 'type_mismatch' ||
           entry.code === 'invalid_enum' ||
-          entry.code === 'invalid_semver_range',
+          entry.code === 'invalid_semver_range' ||
+          entry.code === 'deprecated_field',
       )
       if (validationErrors.length > 0) {
         throwConflictAsValidationError(validationErrors[0])
@@ -93,6 +98,16 @@ export class ConflictDetector {
     const errors: ConfigConflictRecord[] = []
     const prefix = gateMode === 'namespace' ? `${AGENTS_REPO_NAMESPACE}.` : ''
 
+    if ('target' in activeTarget) {
+      errors.push({
+        code: 'deprecated_field',
+        path: `${prefix}target`,
+        message:
+          'agents.json managed field "target" is deprecated; use "targets" array instead',
+        severity: 'error',
+      })
+    }
+
     for (const key of CLI_MANAGED_KEYS) {
       if (!(key in activeTarget)) {
         continue
@@ -107,17 +122,8 @@ export class ConflictDetector {
             errors.push(typeMismatch(path, 'schemaVersion must be a string'))
           }
           break
-        case 'target':
-          if (typeof value !== 'string') {
-            errors.push(typeMismatch(path, 'target must be a string'))
-          } else if (!isValidInstallTargetId(value)) {
-            errors.push(invalidEnum(path, `target "${value}" is not a supported install target id`))
-          }
-          break
-        case 'global':
-          if (typeof value !== 'boolean') {
-            errors.push(typeMismatch(path, 'global must be a boolean'))
-          }
+        case 'targets':
+          errors.push(...this.validateTargetsArray(value, path))
           break
         case 'registry':
           errors.push(...this.validateRegistry(value, path))
@@ -177,6 +183,29 @@ export class ConflictDetector {
     return errors
   }
 
+  private validateTargetsArray(value: unknown, path: string): ConfigConflictRecord[] {
+    try {
+      parseInstallTargetsArray(value, path)
+      return []
+    } catch (error) {
+      if (error instanceof ConfigValidationError) {
+        const code =
+          error.code === 'type_mismatch' || error.code === 'invalid_enum'
+            ? error.code
+            : 'invalid_enum'
+        return [
+          {
+            code,
+            path,
+            message: error.message,
+            severity: 'error',
+          },
+        ]
+      }
+      throw error
+    }
+  }
+
   private detectDualDefinitionMismatches(raw: AgentsConfigDocument): ConfigConflictRecord[] {
     const namespaceBlock = getNamespaceBlock(raw)
     if (!namespaceBlock) {
@@ -191,7 +220,14 @@ export class ConflictDetector {
 
       const topLevelValue = raw[key]
       const namespaceValue = namespaceBlock[key]
-      if (!valuesAreEqual(topLevelValue, namespaceValue)) {
+      const mismatch =
+        key === 'targets' && Array.isArray(topLevelValue) && Array.isArray(namespaceValue)
+          ? !installTargetSetsEqual(
+              topLevelValue as InstallTargetId[],
+              namespaceValue as InstallTargetId[],
+            )
+          : !valuesAreEqual(topLevelValue, namespaceValue)
+      if (mismatch) {
         conflicts.push({
           code: 'dual_definition_mismatch',
           path: key,
@@ -245,9 +281,13 @@ const throwConflictAsValidationError = (conflict: ConfigConflictRecord): never =
   if (
     conflict.code === 'type_mismatch' ||
     conflict.code === 'invalid_enum' ||
-    conflict.code === 'invalid_semver_range'
+    conflict.code === 'invalid_semver_range' ||
+    conflict.code === 'deprecated_field'
   ) {
-    throw new ConfigValidationError(conflict.message, conflict.code)
+    throw new ConfigValidationError(
+      conflict.message,
+      conflict.code === 'deprecated_field' ? 'deprecated_field' : conflict.code,
+    )
   }
 
   throw new ConfigValidationError(conflict.message, 'type_mismatch')

@@ -1,15 +1,11 @@
-import type { InstallTargetId } from '../../registry/domain/package.js'
+import type { NormalizedPackageLockEntry } from './packageLockEntry.js'
 
-export interface PackageLockEntry {
-  readonly version: string
-  readonly target: InstallTargetId
-  readonly integrity: string
-  readonly artifact: string
-  readonly resolved?: string
-}
+export type PackageLockEntry = NormalizedPackageLockEntry
 
 export interface AgentsLockDocument {
   readonly lockfileVersion: number
   readonly resolvedRef: string
-  readonly packages: Record<string, PackageLockEntry>
+  readonly packages: Record<string, NormalizedPackageLockEntry>
 }
+
+export type { NormalizedPackageLockEntry, TargetLockSlot } from './packageLockEntry.js'

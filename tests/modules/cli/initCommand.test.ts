@@ -28,7 +28,7 @@ describe('init command subprocess', () => {
         unknown
       >;
 
-      expect(config.target).toBe('cursor');
+      expect(config.targets).toEqual(['cursor']);
       expect(config.schemaVersion).toBe('1.0.0');
     } finally {
       rmSync(cwd, { recursive: true, force: true });
@@ -104,7 +104,36 @@ describe('init command subprocess', () => {
     }
   });
 
-  it('exits 3 when multiple install targets are detected', () => {
+  it('creates agents.json under global home with init -g', () => {
+    const homeDir = mkdtempSync(path.join(os.tmpdir(), 'agents-init-cli-global-home-'));
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-init-cli-global-cwd-'));
+
+    try {
+      const stdout = execFileSync(
+        nodeExecutable,
+        [binPath, 'init', '-g', '--target', 'cursor'],
+        {
+          cwd,
+          encoding: 'utf8',
+          env: { ...process.env, HOME: homeDir },
+        },
+      );
+
+      expect(stdout).toContain('agents.json');
+      expect(stdout).toContain('cursor');
+      expect(() => readFileSync(path.join(cwd, 'agents.json'), 'utf8')).toThrow();
+
+      const config = JSON.parse(
+        readFileSync(path.join(homeDir, '.agents-repo', 'agents.json'), 'utf8'),
+      ) as { targets: string[] };
+      expect(config.targets).toEqual(['cursor']);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+      rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  it('persists all detected targets when multiple markers are present', () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-init-cli-ambiguous-'));
 
     try {
@@ -116,8 +145,11 @@ describe('init command subprocess', () => {
         encoding: 'utf8',
       });
 
-      expect(result.status).toBe(3);
-      expect(result.stderr).toContain('Multiple install targets detected');
+      expect(result.status).toBe(0);
+      const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+        targets: string[];
+      };
+      expect(config.targets).toEqual(['claude-code', 'cursor']);
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

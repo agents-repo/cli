@@ -4,16 +4,17 @@ export const SUPPORTED_CONFIG_SCHEMA_VERSIONS = [CONFIG_SCHEMA_VERSION] as const
 
 export type SupportedConfigSchemaVersion = (typeof SUPPORTED_CONFIG_SCHEMA_VERSIONS)[number]
 
-export const LOCKFILE_VERSION = 1
+export const LOCKFILE_VERSION = 2
+
+export const SUPPORTED_LOCKFILE_VERSIONS = [2] as const
 
 export const AGENTS_REPO_NAMESPACE = '@agents-repo'
 
 export const CLI_MANAGED_KEYS = [
   'schemaVersion',
   'registry',
-  'target',
+  'targets',
   'packages',
-  'global',
 ] as const
 
 export type CliManagedKey = (typeof CLI_MANAGED_KEYS)[number]
@@ -26,10 +27,8 @@ export const AGENTS_JSON_FILENAME = 'agents.json'
 
 export const AGENTS_LOCK_FILENAME = 'agents-lock.json'
 
-export const AGENTS_GLOBAL_STATE_FILENAME = 'agents-global.json'
-
-export const GLOBAL_INSTALL_STATE_VERSION = 1
-
 export const ENV_AGENTS_REPO_CONFIG = 'AGENTS_REPO_CONFIG'
+
+export const ENV_AGENTS_REPO_HOME = 'AGENTS_REPO_HOME'
 
 export const ENV_AGENTS_REPO_REGISTRY_URL = 'AGENTS_REPO_REGISTRY_URL'

@@ -81,7 +81,7 @@ describe('agents-repo bin', () => {
       });
 
       expect(result.status).toBe(3);
-      expect(result.stderr).toContain('Install target is required');
+      expect(result.stderr).toMatch(/Install target (is required|could not be detected)/);
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
