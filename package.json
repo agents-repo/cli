@@ -49,7 +49,7 @@
     "sync:ide-instructions": "node scripts/sync-ide-instructions.mjs",
     "agents:install": "npx agents-repo@1.13.0 install",
     "agents:update": "npx agents-repo@1.13.0 update",
-    "test:sync": "node --test test/sync-ide-instructions.test.mjs",
+    "test:sync": "node --test test/sync-ide-instructions.test.mjs test/validate-env.test.mjs",
     "check:secrets": "bash scripts/check-secrets.sh",
     "pretest": "tsc -p tsconfig.build.json",
     "test": "node --test test/*.test.mjs && vitest run",

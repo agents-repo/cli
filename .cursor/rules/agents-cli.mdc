@@ -142,7 +142,7 @@ See `.github/CONTRIBUTING.md` for conventional commit prefixes.
 
 For long issue or PR bodies, prefer `--body-file` over inline quoted text.
 
-After editing `.github/copilot-instructions.md`, regenerate the Cursor rule:
+After editing `.github/copilot-instructions.md`, regenerate IDE instruction mirrors:
 
 ```bash
 npm run sync:ide-instructions
