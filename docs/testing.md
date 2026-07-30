@@ -18,7 +18,7 @@ and the full validation list in [development.md](development.md#local-validation
 
 | Pattern | Runner | Purpose |
 | --- | --- | --- |
-| `test/*.test.mjs` | `node --test` | Tooling script tests (for example sync-cursor-rules) |
+| `test/*.test.mjs` | `node --test` | Tooling script tests (for example sync-ide-instructions) |
 | `tests/**/*.test.ts` | Vitest | Application and unit tests |
 
 Use `describe` / `it` with explicit imports from `vitest` (no globals).

@@ -66,7 +66,9 @@ npm ci
 | `npm run test` | Sync script tests + Vitest |
 | `npm run check:secrets` | Scan tracked files for secret patterns |
 | `npm run build` | Compile `src/bin/agents-repo.ts` to `dist/` |
-| `npm run sync:cursor-rules` | Regenerate `.cursor/rules/agents-cli.mdc` |
+| `npm run sync:ide-instructions` | Regenerate IDE instruction mirrors |
+| `npm run agents:install` | Install registry workflow packages from `agents.json` |
+| `npm run agents:update` | Refresh installed packages within semver ranges |
 
 Run the full PR baseline locally:
 
@@ -93,8 +95,24 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 | --- | --- |
 | GitHub Copilot | `.github/copilot-instructions.md` |
 | Cursor | `.cursor/rules/agents-cli.mdc` |
+| Claude Code | `CLAUDE.md` |
+| OpenAI Codex | `AGENTS.md` |
 
-Do not edit `.cursor/rules/agents-cli.mdc` directly. Run `npm run sync:cursor-rules`.
+Regenerate after editing `copilot-instructions.md`:
+
+```bash
+npm run sync:ide-instructions
+```
+
+Do not edit `.cursor/rules/agents-cli.mdc`, `CLAUDE.md`, or `AGENTS.md` directly.
+
+## Platform repository dogfooding
+
+Organization platform repositories (registry, webapp, cli, registry-proxy, and
+`.github`) commit `agents.json`, `agents-lock.json`, and CLI-extracted package
+paths alongside generated project-guideline mirrors. See
+[organization CONTRIBUTING — Registry workflow packages](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#registry-workflow-packages-cli)
+for the shared install and mirror workflow.
 
 ## Contributing
 

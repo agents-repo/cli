@@ -1,8 +1,3 @@
----
-description: CLI project guidelines (mirrors copilot-instructions.md)
-alwaysApply: true
----
-
 <!-- Generated: .github/copilot-instructions.md. Run npm run sync:ide-instructions -->
 
 # CLI Project Guidelines

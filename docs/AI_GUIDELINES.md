@@ -23,10 +23,10 @@ Keep AI-assisted implementation predictable, safe, and easy to review.
 - Update docs when behavior changes.
 - Do not merge to or push directly to `main`.
 
-After editing `.github/copilot-instructions.md`, regenerate the Cursor rule:
+After editing `.github/copilot-instructions.md`, regenerate IDE instruction mirrors:
 
 ```bash
-npm run sync:cursor-rules
+npm run sync:ide-instructions
 ```
 
 ## Verification Evidence
