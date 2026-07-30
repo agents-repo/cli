@@ -163,8 +163,12 @@ catalog proxy).
 Bootstrap only when `agents.json` is missing:
 
 ```bash
-npx agents-repo@1.13.0 init --targets github-copilot claude-code cursor openai-codex
+node scripts/run-published-agents-repo.mjs init \
+  --targets github-copilot claude-code cursor openai-codex
 ```
+
+In this repository, do not use bare `npx agents-repo@…` from the repo root:
+npm resolves it to the local `package.json` name and fails before `dist/` exists.
 
 Use the pinned npm scripts (same CLI version as CI):
 
