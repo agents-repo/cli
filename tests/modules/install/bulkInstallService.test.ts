@@ -321,6 +321,107 @@ describe('BulkInstallService', () => {
     expect(lock.packages['agents-repo/other-agent'].version).toBe('1.0.0')
   })
 
+  it('dedupes duplicate package refs without warnings (npm install parity)', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-dedupe-refs-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        targets: ['cursor'],
+        packages: {},
+      }),
+    )
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), 'a'.repeat(64))
+
+    const fetchSpy = mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
+      sampleZipBytes,
+      otherZipBytes: buildOtherCursorSkillZip(),
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+    const results = await service.runAll({
+      cwd,
+      packageIds: [
+        'agents-repo/sample-agent',
+        'sample-agent',
+        'agents-repo/sample-agent',
+      ],
+    })
+
+    expect(results).toHaveLength(1)
+    expect(results[0]?.packageId).toBe('agents-repo/sample-agent')
+    expect(results[0]?.warnings).toEqual([])
+    expect(fetchSpy.mock.calls.filter(([url]) => toFetchUrl(url).includes('.zip'))).toHaveLength(1)
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      packages: Record<string, string>
+    }
+    expect(Object.keys(config.packages)).toEqual(['agents-repo/sample-agent'])
+  })
+
+  it('installs configured and ad-hoc package ids in one variadic invocation', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-mixed-refs-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        targets: ['cursor'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    )
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const otherZipBytes = buildOtherCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const otherSha256 = createHash('sha256').update(otherZipBytes).digest('hex')
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), otherSha256)
+
+    mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
+      sampleZipBytes,
+      otherZipBytes,
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+    const results = await service.runAll({
+      cwd,
+      packageIds: ['agents-repo/sample-agent', 'agents-repo/other-agent'],
+    })
+
+    expect(results).toHaveLength(2)
+    expect(
+      results
+        .map((result) => result.packageId)
+        .sort((left, right) => left.localeCompare(right)),
+    ).toEqual(['agents-repo/other-agent', 'agents-repo/sample-agent'])
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      packages: Record<string, string>
+    }
+    expect(config.packages['agents-repo/sample-agent']).toBe('^1.0.0')
+    expect(config.packages['agents-repo/other-agent']).toBe('^1.0.0')
+  })
+
   it('dry-run resolves all packages without writing lock files', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-dry-run-'))
     tempDirs.push(cwd)

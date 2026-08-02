@@ -20,6 +20,9 @@ configured targets).
 `<package-id>` is a qualified id (for example `agents-repo/sample-agent`) or an
 index alias defined in `packages/index.json`.
 
+Repeating the same package in one command (including alias and qualified id for the same entry)
+installs it once with no extra warning, matching npm `install` behavior.
+
 ## Flags
 
 | Flag | Scope | Description |
@@ -150,9 +153,11 @@ agents-repo install -g agents-repo/sample-agent
 
 With `--json`, successful installs print JSON on stdout:
 
-- Single package: one object (fields below).
-- Bulk (no `package-id`): an object with top-level `warnings` (deduped) and
-  `packages` (array of per-package objects with empty `warnings`).
+- Explicit `package-id` arguments (one or more) and bulk `install` (no ids): an object with
+  top-level `warnings` (deduped) and `packages` (array of per-package result objects with empty
+  `warnings`).
+
+Example per-package fields inside `packages[]`:
 
 ```json
 {
@@ -166,6 +171,24 @@ With `--json`, successful installs print JSON on stdout:
   "global": false,
   "noSave": false,
   "warnings": []
+}
+```
+
+Bulk / multi-id `--json` wrapper:
+
+```json
+{
+  "warnings": [],
+  "packages": [
+    {
+      "packageId": "agents-repo/sample-agent",
+      "version": "1.0.0",
+      "target": "cursor",
+      "saved": true,
+      "dryRun": false,
+      "warnings": []
+    }
+  ]
 }
 ```
 

@@ -76,6 +76,10 @@ Merge semantics per `config-schema.md`.
 MVP argument grammar: `install <package-id>...` where each `<package-id>` is a qualified id or index
 alias (one or more). Bulk: `install` with no arguments syncs all entries in `packages` (issue #9).
 
+Duplicate package refs in one invocation (including alias and qualified id for the same package)
+MUST be collapsed to a single install per resolved qualified id, preserving first-seen order and
+without warnings (npm `install` parity).
+
 **Ad-hoc install default:** when `install <package-id>...` includes ids with no existing `packages`
 entry, step 6 selects the highest `manifest.versions[]` entry per id (no range filter). Step 12
 writes `packages[<id>] = ^<resolved-version>` for each new ad-hoc id unless `--no-save` or
