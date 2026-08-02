@@ -51,9 +51,10 @@ application and infrastructure APIs consumed by commands.
   `target` and unsupported lock versions exit `3`.
 - **Init:** Variadic `--targets` / `--target` alias; `init -g` for global home; ambiguous detection
   persists all detected ids.
-- **Install / update / remove / ci:** Fan-out across configured `targets[]` (targets × packages);
+- **Install / update / remove / ci / doctor:** Fan-out across configured `targets[]` (targets × packages);
   global `-g` uses `~/.agents-repo/` config + lock for install/update/remove. `ci` is project-scope
-  frozen install from the lock (no config/lock writes). `remove` uses lock slots to delete files.
+  frozen install from the lock (no config/lock writes). `doctor` is project-scope read-only
+  diagnostics (config, lock, registry, on-disk paths). `remove` uses lock slots to delete files.
 - **add-target:** Append install target ids to project `agents.json`.
 - **List:** One row per installed `(package, target)` from project or global lock.
 - **Targets:** Read-only `targets[]` from resolved `agents.json` (project or global scope).
@@ -82,6 +83,7 @@ Registry module layout: `domain/`, `application/`, `infrastructure/` under
 - [commands/update.md](commands/update.md) — `update` command usage
 - [commands/remove.md](commands/remove.md) — `remove` command usage
 - [commands/list.md](commands/list.md) — `list` command usage
+- [commands/doctor.md](commands/doctor.md) — `doctor` command usage
 - [commands/targets.md](commands/targets.md) — `targets` command usage
 - [architecture/ddd-decision.md](architecture/ddd-decision.md)
 - [development.md](development.md)
