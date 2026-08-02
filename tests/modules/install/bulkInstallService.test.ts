@@ -206,7 +206,7 @@ describe('BulkInstallService', () => {
     )
   })
 
-  it('writes a stable lock file when reinstalling after clearing extracted files', async () => {
+  it('writes a stable lock file when reinstalling with files already on disk', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-idempotent-'))
     tempDirs.push(cwd)
 
@@ -243,12 +243,53 @@ describe('BulkInstallService', () => {
     await service.runAll({ cwd })
     const lockAfterFirst = readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')
 
-    rmSync(path.join(cwd, '.cursor'), { recursive: true, force: true })
-
     await service.runAll({ cwd })
     const lockAfterSecond = readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')
 
     expect(lockAfterSecond).toBe(lockAfterFirst)
+  })
+
+  it('fails when a managed file was modified at the same lock version unless force is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-modified-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        targets: ['cursor'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    )
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+
+    mockDualPackageRegistryFetch(sampleManifest, makeInstallTestOtherManifest(), {
+      sampleZipBytes,
+      otherZipBytes: buildOtherCursorSkillZip(),
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+    await service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'] })
+
+    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md')
+    writeFileSync(skillPath, 'edited locally\n')
+
+    await expect(service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'] })).rejects.toMatchObject({
+      code: 'extract_modified',
+    })
+
+    await service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'], force: true })
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample')
   })
 
   it('returns no results when packages map is empty', async () => {

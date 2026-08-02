@@ -189,7 +189,6 @@ describe('ci command subprocess with mock registry', () => {
     expect(installResult.status).toBe(0);
 
     const lockBefore = readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8');
-    rmSync(path.join(cwd, '.cursor'), { recursive: true, force: true });
 
     const ciResult = await runCliSubprocess(['ci'], { cwd });
     expect(ciResult.status).toBe(0);
@@ -203,7 +202,6 @@ describe('ci command subprocess with mock registry', () => {
     writeDualPackageProject(cwd, mockBaseUrl);
 
     await runCliSubprocess(['install'], { cwd });
-    rmSync(path.join(cwd, '.cursor'), { recursive: true, force: true });
 
     const ciResult = await runCliSubprocess(['--json', 'ci'], { cwd });
     expect(ciResult.status).toBe(0);

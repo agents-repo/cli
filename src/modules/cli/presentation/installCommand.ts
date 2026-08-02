@@ -14,6 +14,7 @@ import {
 export interface InstallCommandOptions {
   readonly global?: boolean;
   readonly yes?: boolean;
+  readonly force?: boolean;
 }
 
 export const registerInstallCommand = (program: Command): void => {
@@ -23,6 +24,7 @@ export const registerInstallCommand = (program: Command): void => {
     .description('Install packages from the registry')
     .option('-g, --global', 'Install using the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
+    .option('--force', 'Overwrite files when content differs from the artifact at the same version')
     .action(async function installAction(
       this: Command,
       packageIds: string[],
@@ -34,6 +36,7 @@ export const registerInstallCommand = (program: Command): void => {
       const runOptions = {
         global: options.global ?? false,
         yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
+        force: options.force ?? false,
         dryRun: globals.dryRun,
         noSave: globals.noSave,
         preferOnline: globals.preferOnline,

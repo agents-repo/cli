@@ -135,6 +135,7 @@ export class CiInstallService {
             plan.target,
             plan.version,
             scope.extractRoot,
+            { overwriteOnMismatch: true },
           )
           extractedPathsAll.push(...extractedPaths)
           results.push(resultBase)

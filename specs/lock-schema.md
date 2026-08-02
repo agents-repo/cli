@@ -85,6 +85,9 @@ same directory as `agents.json` unless `--no-save`.
 When `agents.json` semver ranges allow a newer compatible version, `install` MAY update the
 corresponding lock entry.
 
+Re-installing at the same lock version MAY skip writing paths whose on-disk SHA-256 already matches
+the artifact being applied.
+
 `resolvedRef` MUST be updated at lock-write time. Tooling MUST NOT write `resolved` in MVP so
 identical resolution produces identical lock content.
 

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -98,14 +98,67 @@ describe('packageExtractor', () => {
     }
   })
 
-  it('rejects extraction when a destination file already exists', async () => {
-    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-existing-'))
+  it('skips extraction when destination files already match the artifact', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-idempotent-'))
 
     try {
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
+      const written = await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
+      expect(written).toEqual([])
+      const content = readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')
+      expect(content).toContain('name: sample')
+    } finally {
+      rmSync(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects extraction when a destination file was modified at the same version', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-modified-'))
+
+    try {
+      await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
+      const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md')
+      writeFileSync(skillPath, 'user-edited content\n')
+
       await expect(
         extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd),
-      ).rejects.toMatchObject({ code: 'extract_conflict' })
+      ).rejects.toMatchObject({ code: 'extract_modified' })
+    } finally {
+      rmSync(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('overwrites modified files when forceSameVersion is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-force-'))
+
+    try {
+      await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
+      const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md')
+      writeFileSync(skillPath, 'user-edited content\n')
+
+      await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd, {
+        forceSameVersion: true,
+      })
+      const content = readFileSync(skillPath, 'utf8')
+      expect(content).toContain('name: sample')
+    } finally {
+      rmSync(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('overwrites differing files when overwriteOnMismatch is set', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-overwrite-'))
+
+    try {
+      await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
+      const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md')
+      writeFileSync(skillPath, 'stale version bytes\n')
+
+      await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd, {
+        overwriteOnMismatch: true,
+      })
+      const content = readFileSync(skillPath, 'utf8')
+      expect(content).toContain('name: sample')
     } finally {
       rmSync(cwd, { recursive: true, force: true })
     }

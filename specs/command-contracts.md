@@ -74,6 +74,7 @@ Merge semantics per `config-schema.md`.
 | `--no-save` | Skip `agents.json` and lock writes |
 | `--dry-run` | Resolve only; no download, extract, or save |
 | `--yes` / `-y` | Non-interactive; waive conflicts with warnings |
+| `--force` | Overwrite managed files when on-disk content differs at the same lock version |
 
 MVP argument grammar: `install <package-id>...` where each `<package-id>` is a qualified id or index
 alias (one or more). Bulk: `install` with no arguments syncs all entries in `packages` (issue #9).
@@ -112,6 +113,7 @@ Duplicate ids: exit `0`, emit warning, no config write.
 | `--no-save` | Skip `agents.json` and lock writes |
 | `--dry-run` | Resolve only; no download, extract, or save |
 | `--yes` / `-y` | Non-interactive; waive conflicts with warnings |
+| `--force` | Overwrite managed files when on-disk content differs at the same lock version |
 
 Grammar: `update [package-id]` where optional `<package-id>` is a qualified id or index alias.
 When `<package-id>` is provided, it MUST already exist in resolved `agents.json` `packages`; otherwise
