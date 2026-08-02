@@ -64,7 +64,7 @@ describe('cliErrorHandling', () => {
   });
 
   it('writes stable registry error codes in json mode', () => {
-    setCliGlobals({ json: true, verbose: false, yes: false, dryRun: false, noSave: false });
+    setCliGlobals({ json: true, verbose: false, yes: false, dryRun: false, noSave: false, preferOnline: false });
     const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     writeCliError(new NoMatchingVersionError('agents-repo/demo', '^9.0.0'));
@@ -82,7 +82,7 @@ describe('cliErrorHandling', () => {
   });
 
   it('writes stable registry fetch error codes in json mode', () => {
-    setCliGlobals({ json: true, verbose: false, yes: false, dryRun: false, noSave: false });
+    setCliGlobals({ json: true, verbose: false, yes: false, dryRun: false, noSave: false, preferOnline: false });
     const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     writeCliError(new RegistryFetchError('Registry request failed with status 503', 503));
@@ -100,7 +100,7 @@ describe('cliErrorHandling', () => {
   });
 
   it('prefixes registry fetch errors with stable codes in text mode', () => {
-    setCliGlobals({ json: false, verbose: false, yes: false, dryRun: false, noSave: false });
+    setCliGlobals({ json: false, verbose: false, yes: false, dryRun: false, noSave: false, preferOnline: false });
     const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
     writeCliError(new RegistryFetchError('Registry request failed with status 503', 503));

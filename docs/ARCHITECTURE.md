@@ -51,8 +51,10 @@ application and infrastructure APIs consumed by commands.
   `target` and unsupported lock versions exit `3`.
 - **Init:** Variadic `--targets` / `--target` alias; `init -g` for global home; ambiguous detection
   persists all detected ids.
-- **Install / update / remove / ci / doctor:** Fan-out across configured `targets[]` (targets × packages);
-  global `-g` uses `~/.agents-repo/` config + lock for install/update/remove. `ci` is project-scope
+- **Install / update / remove / ci / doctor:** Fan-out across configured `targets[]`
+  (targets × packages); global `-g` uses `~/.agents-repo/` config + lock for install/update/remove.
+  Registry ZIP downloads use a read-through cache under `{AGENTS_REPO_HOME}/cache/` (see
+  [`specs/artifact-cache.md`](../specs/artifact-cache.md)). `ci` is project-scope
   frozen install from the lock (no config/lock writes). `doctor` is project-scope read-only
   diagnostics (config, lock, registry, on-disk paths). `remove` uses lock slots to delete files.
 - **add-target:** Append install target ids to project `agents.json`.
@@ -73,6 +75,7 @@ Registry module layout: `domain/`, `application/`, `infrastructure/` under
 - [config-schema.md](../specs/config-schema.md) — `agents.json` schema and schema gate
 - [lock-schema.md](../specs/lock-schema.md) — `agents-lock.json` lockfile format
 - [cli-protocol.md](../specs/cli-protocol.md) — install pipeline protocol
+- [artifact-cache.md](../specs/artifact-cache.md) — on-disk artifact cache
 - [command-contracts.md](../specs/command-contracts.md) — flags, exit codes, env overrides
 - [target-detection.md](../specs/target-detection.md) — install target detection (`init`)
 

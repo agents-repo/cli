@@ -120,9 +120,15 @@ packages/<namespace>/<package>/versions/<version>/<artifact-file>
 
 Base URL comes from resolved `registry.url` and `registry.ref`.
 
+Before network fetch, tooling SHOULD read verified artifact bytes from the on-disk cache per
+[`artifact-cache.md`](artifact-cache.md) unless `AGENTS_REPO_NO_CACHE` is set or `--prefer-online`
+is passed. Cache lookup uses the expected SHA-256 hex from the manifest entry or lock slot.
+
 ### 9. SHA-256 verify
 
-Downloaded bytes MUST match `artifacts[].sha256` (bare lowercase hex) from the manifest entry.
+Downloaded or cached bytes MUST match `artifacts[].sha256` (bare lowercase hex) from the manifest
+entry (or lock slot integrity). Verification MUST occur in the download/cache layer once per
+successful path; see [`artifact-cache.md`](artifact-cache.md).
 
 ### 10. ZIP security scan
 

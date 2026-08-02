@@ -30,6 +30,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | `--yes` | `-y` | Non-interactive; continue past conflicts with warnings |
 | `--dry-run` | | Resolve through install step 7; no download, extract, or save |
 | `--no-save` | | Skip `agents.json` and lock writes |
+| `--prefer-online` | | Fetch registry artifacts from the network instead of the local cache |
 
 ## Environment Overrides
 
@@ -38,6 +39,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | `AGENTS_REPO_CONFIG` | Absolute path to project `agents.json`; lock beside it (`-g` ignores) |
 | `AGENTS_REPO_REGISTRY_URL` | Overrides `registry.url` after file resolution |
 | `AGENTS_REPO_HOME` | Override global home directory (default `~/.agents-repo/`) |
+| `AGENTS_REPO_NO_CACHE` | When non-empty, disable artifact cache read and write |
 | `DEBUG` | Enables debug logging when set to a non-empty value |
 
 ## Command Aliases (MVP)

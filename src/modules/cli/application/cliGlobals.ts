@@ -4,6 +4,7 @@ export interface CliGlobals {
   yes: boolean;
   dryRun: boolean;
   noSave: boolean;
+  preferOnline: boolean;
 }
 
 const defaultGlobals: CliGlobals = {
@@ -12,6 +13,7 @@ const defaultGlobals: CliGlobals = {
   yes: false,
   dryRun: false,
   noSave: false,
+  preferOnline: false,
 };
 
 let currentGlobals: CliGlobals = { ...defaultGlobals };

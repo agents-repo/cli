@@ -5,6 +5,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BulkInstallService } from '../../../src/modules/install/application/bulkInstallService.js'
+import { ENV_AGENTS_REPO_NO_CACHE } from '../../../src/modules/config/domain/configConstants.js'
 import * as registrySourceConfig from '../../../src/modules/registry/infrastructure/registrySourceConfig.js'
 import {
   buildCursorSkillZip,
@@ -122,15 +123,23 @@ const mockRegistrySource = (): void => {
 
 describe('BulkInstallService', () => {
   const tempDirs: string[] = []
+  let previousNoCache: string | undefined
 
   beforeEach(() => {
     vi.restoreAllMocks()
+    previousNoCache = process.env[ENV_AGENTS_REPO_NO_CACHE]
+    process.env[ENV_AGENTS_REPO_NO_CACHE] = '1'
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
     for (const dir of tempDirs.splice(0)) {
       rmSync(dir, { recursive: true, force: true })
+    }
+    if (previousNoCache === undefined) {
+      delete process.env[ENV_AGENTS_REPO_NO_CACHE]
+    } else {
+      process.env[ENV_AGENTS_REPO_NO_CACHE] = previousNoCache
     }
   })
 

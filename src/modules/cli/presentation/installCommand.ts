@@ -36,6 +36,7 @@ export const registerInstallCommand = (program: Command): void => {
         yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
         dryRun: globals.dryRun,
         noSave: globals.noSave,
+        preferOnline: globals.preferOnline,
       };
 
       try {

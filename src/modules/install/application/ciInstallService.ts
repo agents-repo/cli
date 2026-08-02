@@ -6,7 +6,6 @@ import { resolvePackageInCatalog } from '../../registry/application/resolvePacka
 import type { RegistryPackage } from '../../registry/domain/package.js'
 import { loadRegistryCatalog } from '../../registry/infrastructure/registryRepository.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
-import { verifySha256 } from '../infrastructure/sha256Verifier.js'
 import {
   extractPackageArtifact,
   rollbackExtractedPaths,
@@ -27,6 +26,7 @@ export interface CiInstallServiceOptions {
   readonly yes?: boolean
   readonly dryRun?: boolean
   readonly force?: boolean
+  readonly preferOnline?: boolean
 }
 
 export class CiInstallService {
@@ -38,6 +38,7 @@ export class CiInstallService {
     const env = options.env ?? process.env
     const dryRun = options.dryRun === true
     const force = options.force === true
+    const preferOnline = options.preferOnline === true
 
     const resolved = await this.configResolver.resolve({
       cwd,
@@ -124,8 +125,11 @@ export class CiInstallService {
           }
 
           const expectedHex = this.lockFileService.parseIntegrityHex(plan.slot.integrity)
-          const zipBytes = await downloadArtifact(plan.artifactUrl)
-          verifySha256(zipBytes, expectedHex)
+          const zipBytes = await downloadArtifact(plan.artifactUrl, {
+            expectedSha256Hex: expectedHex,
+            preferOnline,
+            env,
+          })
           const extractedPaths = await extractPackageArtifact(
             zipBytes,
             plan.target,

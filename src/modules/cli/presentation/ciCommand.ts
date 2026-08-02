@@ -31,6 +31,7 @@ export const registerCiCommand = (program: Command): void => {
           yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
           dryRun: globals.dryRun,
           force: options.force ?? false,
+          preferOnline: globals.preferOnline,
         });
 
         const warnings = collectInstallResultWarnings(results);

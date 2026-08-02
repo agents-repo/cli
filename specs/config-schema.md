@@ -203,6 +203,9 @@ Default directory: `~/.agents-repo/` (override with `AGENTS_REPO_HOME`). Global 
 `agents.json` and `agents-lock.json` schema as project scope. `AGENTS_REPO_CONFIG` MUST NOT apply
 when `-g` is set.
 
+Artifact ZIP cache files live under `{agentsRepoHome}/cache/` per
+[`artifact-cache.md`](artifact-cache.md); relocating `AGENTS_REPO_HOME` relocates the cache.
+
 ## Canonical JSON Example
 
 ```json
