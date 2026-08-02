@@ -107,7 +107,7 @@ describe('InstallService persistence rollback', () => {
     await expect(
       service.run({
         cwd,
-        packageId: 'agents-repo/sample-agent',
+        packageIds: ['agents-repo/sample-agent'],
       }),
     ).rejects.toThrow('disk full')
 

@@ -441,6 +441,58 @@ describe('install command subprocess with mock registry', () => {
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0');
   });
 
+  it('installs multiple ad-hoc package ids and persists all packages ranges', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-multi-adhoc-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const result = await runCliSubprocess(
+      ['install', 'agents-repo/sample-agent', 'agents-repo/other-agent'],
+      { cwd },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
+    expect(result.stdout).toContain('Installed agents-repo/other-agent@1.0.0');
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      packages: Record<string, string>;
+    };
+    expect(config.packages['agents-repo/sample-agent']).toBe('^1.0.0');
+    expect(config.packages['agents-repo/other-agent']).toBe('^1.0.0');
+
+    const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
+      packages: Record<string, { version: string }>;
+    };
+    expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0');
+    expect(lock.packages['agents-repo/other-agent'].version).toBe('1.0.0');
+  });
+
+  it('dedupes duplicate package ids without warnings (npm install parity)', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-dedupe-refs-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const result = await runCliSubprocess(
+      [
+        'install',
+        'agents-repo/sample-agent',
+        'sample-agent',
+        'agents-repo/sample-agent',
+      ],
+      { cwd },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toMatch(/^warning:/m);
+    expect(result.stdout.match(/Installed agents-repo\/sample-agent@1.0.0/g)?.length).toBe(1);
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      packages: Record<string, string>;
+    };
+    expect(Object.keys(config.packages)).toEqual(['agents-repo/sample-agent']);
+  });
+
   it('extracts without saving when --no-save is set', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-no-save-'));
     tempDirs.push(cwd);

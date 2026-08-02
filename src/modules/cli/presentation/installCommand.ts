@@ -18,14 +18,14 @@ export interface InstallCommandOptions {
 
 export const registerInstallCommand = (program: Command): void => {
   program
-    .command('install [package-id]')
+    .command('install [package-id...]')
     .alias('i')
     .description('Install packages from the registry')
     .option('-g, --global', 'Install using the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
     .action(async function installAction(
       this: Command,
-      packageId: string | undefined,
+      packageIds: string[],
       options: InstallCommandOptions,
     ) {
       const globals = getCliGlobals();
@@ -39,7 +39,7 @@ export const registerInstallCommand = (program: Command): void => {
       };
 
       try {
-        if (packageId === undefined) {
+        if (packageIds.length === 0) {
           const service = new BulkInstallService();
           const results = await service.runAll(runOptions);
           const warnings = collectInstallResultWarnings(results);
@@ -55,7 +55,7 @@ export const registerInstallCommand = (program: Command): void => {
 
         const service = new InstallService();
         const results = await service.run({
-          packageId,
+          packageIds,
           ...runOptions,
         });
 

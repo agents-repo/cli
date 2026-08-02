@@ -125,7 +125,7 @@ describe('InstallService', () => {
     const service = new InstallService()
     const results = await service.run({
       cwd,
-      packageId: 'agents-repo/sample-agent',
+      packageIds: ['agents-repo/sample-agent'],
     })
     const result = results[0]
 
@@ -181,7 +181,7 @@ describe('InstallService', () => {
     const service = new InstallService()
     const results = await service.run({
       cwd,
-      packageId: 'agents-repo/sample-agent',
+      packageIds: ['agents-repo/sample-agent'],
       dryRun: true,
     })
     const result = results[0]
@@ -227,7 +227,7 @@ describe('InstallService', () => {
     await expect(
       service.run({
         cwd,
-        packageId: 'agents-repo/sample-agent',
+        packageIds: ['agents-repo/sample-agent'],
       }),
     ).rejects.toBeInstanceOf(PackageYankedError)
   })
@@ -271,7 +271,7 @@ describe('InstallService', () => {
     const service = new InstallService()
     const results = await service.run({
       cwd,
-      packageId: 'agents-repo/sample-agent',
+      packageIds: ['agents-repo/sample-agent'],
       dryRun: true,
     })
     const result = results[0]
@@ -315,7 +315,7 @@ describe('InstallService', () => {
     const service = new InstallService()
     const results = await service.run({
       cwd,
-      packageId: 'agents-repo/sample-agent',
+      packageIds: ['agents-repo/sample-agent'],
       noSave: true,
     })
     const result = results[0]
@@ -376,7 +376,7 @@ describe('InstallService', () => {
     await expect(
       service.run({
         cwd,
-        packageId: 'agents-repo/sample-agent',
+        packageIds: ['agents-repo/sample-agent'],
       }),
     ).rejects.toBeInstanceOf(InstallRuntimeError)
 

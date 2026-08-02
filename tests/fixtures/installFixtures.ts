@@ -35,6 +35,9 @@ export const makeDualPackageInstallCatalog = (
 ): RegistryCatalog => ({
   schemaVersion: '1.3.0',
   updatedAt: '2026-01-01T00:00:00.000Z',
+  aliases: {
+    'sample-agent': 'agents-repo/sample-agent',
+  },
   packages: [
     ...(makeInstallTestCatalog(options).packages),
     {
