@@ -2,7 +2,7 @@
 /**
  * Run a published agents-repo CLI release from this repository root.
  *
- * npm 12 `npx agents-repo@<version>` resolves to the local package.json (same
+ * npm 12 `npx agents-repo@latest` resolves to the local package.json (same
  * name/version) and fails before `dist/` is built. CI and npm scripts use this
  * helper to invoke the registry tarball instead.
  */
@@ -11,7 +11,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-const PUBLISHED_CLI_VERSION = '1.13.0';
+const PUBLISHED_CLI_DIST_TAG = 'latest';
 const args = process.argv.slice(2);
 
 const resolveNpmCliInvocation = (npmArgs) => {
@@ -36,7 +36,7 @@ const npmInstall = resolveNpmCliInvocation([
   'install',
   '--prefix',
   installRoot,
-  `agents-repo@${PUBLISHED_CLI_VERSION}`,
+  `agents-repo@${PUBLISHED_CLI_DIST_TAG}`,
 ]);
 execFileSync(npmInstall.command, npmInstall.args, { stdio: 'inherit' });
 
