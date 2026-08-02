@@ -25,8 +25,25 @@ export interface BulkInstallServiceOptions {
   readonly yes?: boolean
   readonly dryRun?: boolean
   readonly noSave?: boolean
+  /** Single package ref (for example `update <package-id>`). */
   readonly packageId?: string
+  /** One or more package refs (for example variadic `install <package-id>...`). */
+  readonly packageIds?: readonly string[]
   readonly enforceConfiguredOnly?: boolean
+}
+
+const resolveRequestedPackageRefs = (
+  options: BulkInstallServiceOptions,
+): readonly string[] | undefined => {
+  if (options.packageIds !== undefined && options.packageIds.length > 0) {
+    return options.packageIds
+  }
+
+  if (options.packageId !== undefined) {
+    return [options.packageId]
+  }
+
+  return undefined
 }
 
 export class BulkInstallService {
@@ -47,22 +64,29 @@ export class BulkInstallService {
     })
 
     const enforceConfiguredOnly = options.enforceConfiguredOnly === true
-    const requestedPackageId = options.packageId
+    const requestedPackageRefs = resolveRequestedPackageRefs(options)
+    const hasRequestedPackages =
+      requestedPackageRefs !== undefined && requestedPackageRefs.length > 0
 
     if (
       enforceConfiguredOnly &&
-      requestedPackageId !== undefined &&
+      hasRequestedPackages &&
       Object.keys(resolved.packages).length === 0
     ) {
       throw new ConfigValidationError(
-        `Package ${requestedPackageId} is not listed in agents.json packages`,
+        `Package ${requestedPackageRefs[0]} is not listed in agents.json packages`,
         'package_not_configured',
       )
     }
 
     let bootstrapWarnings: string[] = []
 
-    if (isGreenfieldInstallBootstrap(resolved, requestedPackageId)) {
+    if (
+      isGreenfieldInstallBootstrap(
+        resolved,
+        hasRequestedPackages ? requestedPackageRefs[0] : undefined,
+      )
+    ) {
       const detection = await detectGreenfieldInstallTargets(cwd)
       resolved = { ...resolved, targets: detection.targets }
       bootstrapWarnings = [...detection.warnings]
@@ -70,7 +94,7 @@ export class BulkInstallService {
 
     let packageIds = Object.keys(resolved.packages).sort((left, right) => left.localeCompare(right))
 
-    if (packageIds.length === 0 && requestedPackageId === undefined) {
+    if (packageIds.length === 0 && !hasRequestedPackages) {
       return []
     }
 
@@ -84,21 +108,31 @@ export class BulkInstallService {
     const { targets, scope, catalogResult, warnings: contextWarnings } = context
     const warnings = [...bootstrapWarnings, ...contextWarnings]
 
-    if (requestedPackageId !== undefined) {
-      const qualifiedId = resolvePackageRef(
-        requestedPackageId,
-        catalogResult.catalog.aliases,
-      )
+    if (hasRequestedPackages) {
+      const resolvedIds: string[] = []
+      const seenQualified = new Set<string>()
 
-      if (enforceConfiguredOnly && !Object.hasOwn(resolved.packages, qualifiedId)) {
-        throw new ConfigValidationError(
-          `Package ${qualifiedId} is not listed in agents.json packages`,
-          'package_not_configured',
+      for (const packageRef of requestedPackageRefs) {
+        const qualifiedId = resolvePackageRef(
+          packageRef,
+          catalogResult.catalog.aliases,
         )
+
+        if (enforceConfiguredOnly && !Object.hasOwn(resolved.packages, qualifiedId)) {
+          throw new ConfigValidationError(
+            `Package ${qualifiedId} is not listed in agents.json packages`,
+            'package_not_configured',
+          )
+        }
+
+        const pkg = resolvePackageInCatalog(catalogResult.catalog, packageRef)
+        if (!seenQualified.has(pkg.id)) {
+          seenQualified.add(pkg.id)
+          resolvedIds.push(pkg.id)
+        }
       }
 
-      const pkg = resolvePackageInCatalog(catalogResult.catalog, requestedPackageId)
-      packageIds = [pkg.id]
+      packageIds = resolvedIds
     }
 
     if (packageIds.length === 0) {

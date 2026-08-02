@@ -15,7 +15,8 @@ RFC 2119.
 
 ## Purpose
 
-This spec defines end-to-end **install** behavior for single-package, bulk, and `update` commands.
+This spec defines end-to-end **install** behavior for variadic ad-hoc installs, bulk sync, and
+`update` commands.
 Implementation is provided by the registry, config, and install modules.
 
 ## Update command
@@ -64,7 +65,7 @@ Install MUST execute these steps in order:
 - Apply `AGENTS_REPO_REGISTRY_URL` after file resolution.
 - Resolve install `targets` from config `targets` only (`install` / `update` MUST NOT accept
   `--target`).
-- Greenfield `install <package-id>` (no file or `{}` only) MAY run target detection before fan-out;
+- Greenfield `install <package-id>...` (no file or `{}` only) MAY run target detection before fan-out;
   bulk `install` / `update` MUST NOT run detection.
 - Missing resolved targets on bulk `install` / `update` MUST exit `3`.
 - `install` and `update` MUST fan out across all resolved targets (targets × packages).
@@ -98,8 +99,8 @@ index or artifacts. Store the concrete value in `agents-lock.json` `resolvedRef`
 
 - When `packages[<id>]` is present in the active gate target, use that semver range.
 - Select the **highest** version in `manifest.versions[]` satisfying the range.
-- When `packages[<id>]` is absent (ad-hoc `install <package-id>`), select the **highest** version in
-  `manifest.versions[]` with no range filter (npm `install <pkg>` latest semantics).
+- When `packages[<id>]` is absent (ad-hoc `install <package-id>...`), select the **highest**
+  version in `manifest.versions[]` with no range filter (npm `install <pkg>` latest semantics).
 - Manifest `latest` is a catalog hint only; it MUST NOT override the selection rules above.
 - Config writes for ad-hoc installs occur in step 12 per [install scope](#install-scope).
 
@@ -231,7 +232,7 @@ Config MUST be updated before the lock file on successful persistence.
 
 ## Install scope
 
-`install <package-id>` installs the **entire package** (all agents and flows in the target
+`install <package-id>...` installs the **entire package** (all agents and flows in the target
 artifact). Partial install of individual agents or flows (colon selector syntax or `--agents` /
 `--flows` flags) was considered in [#19](https://github.com/agents-repo/cli/issues/19) and
 [#20](https://github.com/agents-repo/cli/issues/20) and **dropped** to keep lock, config, and

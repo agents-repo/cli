@@ -268,6 +268,59 @@ describe('BulkInstallService', () => {
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
   })
 
+  it('installs multiple ad-hoc package ids and persists all packages ranges', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-multi-adhoc-'))
+    tempDirs.push(cwd)
+
+    const configPath = path.join(cwd, 'agents.json')
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        targets: ['cursor'],
+        packages: {},
+      }),
+    )
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const otherZipBytes = buildOtherCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const otherSha256 = createHash('sha256').update(otherZipBytes).digest('hex')
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), otherSha256)
+
+    mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
+      sampleZipBytes,
+      otherZipBytes,
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+    const results = await service.runAll({
+      cwd,
+      packageIds: ['agents-repo/sample-agent', 'agents-repo/other-agent'],
+    })
+
+    expect(results).toHaveLength(2)
+    expect(results.every((result) => result.saved)).toBe(true)
+
+    const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
+      packages: Record<string, string>
+    }
+    expect(config.packages['agents-repo/sample-agent']).toBe('^1.0.0')
+    expect(config.packages['agents-repo/other-agent']).toBe('^1.0.0')
+
+    const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
+      packages: Record<string, { version: string }>
+    }
+    expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0')
+    expect(lock.packages['agents-repo/other-agent'].version).toBe('1.0.0')
+  })
+
   it('dry-run resolves all packages without writing lock files', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-dry-run-'))
     tempDirs.push(cwd)

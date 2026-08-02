@@ -73,15 +73,16 @@ Merge semantics per `config-schema.md`.
 | `--dry-run` | Resolve only; no download, extract, or save |
 | `--yes` / `-y` | Non-interactive; waive conflicts with warnings |
 
-MVP argument grammar: `install <package-id>` where `<package-id>` is a qualified id or index
-alias. Bulk: `install` with no arguments syncs all entries in `packages` (issue #9).
+MVP argument grammar: `install <package-id>...` where each `<package-id>` is a qualified id or index
+alias (one or more). Bulk: `install` with no arguments syncs all entries in `packages` (issue #9).
 
-**Ad-hoc install default:** when `install <package-id>` has no existing `packages` entry, step 6
-selects the highest `manifest.versions[]` entry (no range filter). Step 12 writes
-`packages[<id>] = ^<resolved-version>` unless `--no-save` or `--dry-run`. Greenfield ad-hoc installs
-also write `schemaVersion`, `registry`, and detected `targets[]`.
+**Ad-hoc install default:** when `install <package-id>...` includes ids with no existing `packages`
+entry, step 6 selects the highest `manifest.versions[]` entry per id (no range filter). Step 12
+writes `packages[<id>] = ^<resolved-version>` for each new ad-hoc id unless `--no-save` or
+`--dry-run`. Greenfield ad-hoc installs also write `schemaVersion`, `registry`, and detected
+`targets[]`.
 
-**Targets:** resolve `targets[]` from config only. Greenfield `install <package-id>` MAY run target
+**Targets:** resolve `targets[]` from config only. Greenfield `install <package-id>...` MAY run target
 detection before fan-out. Bulk `install` / `update` MUST NOT run detection.
 
 **Global scope:** `-g` resolves and persists `agents.json` + `agents-lock.json` under

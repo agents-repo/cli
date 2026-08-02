@@ -8,13 +8,14 @@ extract into the project (or global directory), and update `agents.json` and
 ## Usage
 
 ```bash
-agents-repo install [package-id] [options]
-agents-repo i [package-id] [options]
+agents-repo install [package-id...] [options]
+agents-repo i [package-id...] [options]
 ```
 
 With **no** `package-id`, the command syncs every entry in the resolved
-`agents.json` `packages` map (npm-style bulk install). With a `package-id`, only
-that package is installed.
+`agents.json` `packages` map (npm-style bulk install). With one or more
+`package-id` values, only those packages are installed (each id is fan-out across
+configured targets).
 
 `<package-id>` is a qualified id (for example `agents-repo/sample-agent`) or an
 index alias defined in `packages/index.json`.
