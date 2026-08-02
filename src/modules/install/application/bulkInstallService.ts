@@ -125,7 +125,7 @@ export class BulkInstallService {
           )
         }
 
-        const pkg = resolvePackageInCatalog(catalogResult.catalog, packageRef)
+        const pkg = resolvePackageInCatalog(catalogResult.catalog, qualifiedId)
         if (!seenQualified.has(pkg.id)) {
           seenQualified.add(pkg.id)
           resolvedIds.push(pkg.id)
