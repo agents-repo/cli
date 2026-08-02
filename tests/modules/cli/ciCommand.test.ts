@@ -247,4 +247,64 @@ describe('ci command subprocess with mock registry', () => {
     expect(ciResult.status).toBe(3);
     expect(ciResult.stderr).toContain('agents-lock.json is missing');
   });
+
+  it('exits 3 with lock_validation_error in JSON stderr when lock is missing', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-ci-cli-no-lock-json-'));
+    tempDirs.push(cwd);
+    writeDualPackageProject(cwd, mockBaseUrl);
+
+    const ciResult = await runCliSubprocess(['--json', 'ci'], { cwd });
+    expect(ciResult.status).toBe(3);
+
+    const errorPayload = JSON.parse(ciResult.stderr.trim()) as {
+      error: { code: string; message: string };
+    };
+    expect(errorPayload.error.code).toBe('lock_validation_error');
+  });
+
+  it('exits 0 with --force when lock version is outside agents.json range', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-ci-cli-force-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: {
+          'agents-repo/sample-agent': '^2.0.0',
+        },
+      }),
+    );
+
+    writeFileSync(
+      path.join(cwd, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
+        resolvedRef: 'v2.0.0',
+        packages: {
+          'agents-repo/sample-agent': {
+            version: '1.0.0',
+            byTarget: {
+              cursor: {
+                artifact: '1.0.0-cursor.zip',
+                integrity: `sha256-${sha256}`,
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    const withoutForce = await runCliSubprocess(['ci'], { cwd });
+    expect(withoutForce.status).toBe(3);
+    expect(withoutForce.stderr).toContain('lock_version_range_mismatch');
+
+    rmSync(path.join(cwd, '.cursor'), { recursive: true, force: true });
+
+    const withForce = await runCliSubprocess(['ci', '--force'], { cwd });
+    expect(withForce.status).toBe(0);
+    expect(withForce.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
+  });
 });

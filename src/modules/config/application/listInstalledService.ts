@@ -3,7 +3,7 @@ import { LockFileService } from './lockFileService.js'
 import type { PackageLockEntry } from '../domain/agentsLock.js'
 import { sortCanonicalInstallTargetIds } from '../domain/packageLockEntry.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
-import { formatMissingByTargetSlotMessage } from '../../install/application/validateCiPrerequisites.js'
+import { formatMissingByTargetSlotMessage } from '../domain/lockInstallMessages.js'
 
 export type ListInstallScope = 'project' | 'global'
 

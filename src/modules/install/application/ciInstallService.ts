@@ -78,10 +78,7 @@ export class CiInstallService {
       for (const target of targets) {
         for (const packageId of packageIds) {
           const lockEntry = lock.packages[packageId]
-          const slot = lockEntry.byTarget[target]
-          if (slot === undefined) {
-            continue
-          }
+          const slot = lockEntry.byTarget[target]!
 
           const packageWarnings = [...warnings]
           const pkg = resolvePackageInCatalog(catalogResult.catalog, packageId)

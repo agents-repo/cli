@@ -2,12 +2,7 @@ import { ConfigValidationError } from '../../config/domain/configErrors.js'
 import type { AgentsLockDocument } from '../../config/domain/agentsLock.js'
 import type { ResolvedAgentsConfig } from '../../config/domain/agentsConfig.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
-
-export const formatMissingByTargetSlotMessage = (
-  packageId: string,
-  targetId: InstallTargetId,
-): string => `${packageId}: missing byTarget slot for configured target ${targetId}`
-
+import { formatMissingByTargetSlotMessage } from '../../config/domain/lockInstallMessages.js'
 export const validateCiConfigLockPackageSets = (
   resolved: ResolvedAgentsConfig,
   lock: AgentsLockDocument,
@@ -27,15 +22,6 @@ export const validateCiConfigLockPackageSets = (
       throw new ConfigValidationError(
         'agents.json packages and agents-lock.json packages must list the same package ids',
         'lock_config_package_drift',
-      )
-    }
-  }
-
-  for (const packageId of configIds) {
-    if (!Object.hasOwn(lock.packages, packageId)) {
-      throw new ConfigValidationError(
-        `Package ${packageId} is not present in agents-lock.json`,
-        'package_not_in_lock',
       )
     }
   }

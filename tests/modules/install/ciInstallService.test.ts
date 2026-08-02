@@ -12,11 +12,15 @@ import { CiInstallService } from '../../../src/modules/install/application/ciIns
 import * as registrySourceConfig from '../../../src/modules/registry/infrastructure/registrySourceConfig.js'
 import {
   buildCursorSkillZip,
+  buildGithubCopilotZip,
   buildOtherCursorSkillZip,
   makeDualPackageInstallCatalog,
+  makeInstallTestCatalog,
   makeInstallTestManifest,
   makeInstallTestMetadata,
   makeInstallTestOtherManifest,
+  makeMultiTargetInstallTestManifest,
+  makeMultiTargetInstallTestMetadata,
   withInstallTestArtifactSha256,
 } from '../../fixtures/installFixtures.js'
 
@@ -358,5 +362,255 @@ describe('CiInstallService', () => {
     await expect(ci.run({ cwd })).rejects.toMatchObject({
       code: 'missing_target',
     })
+  })
+
+  it('installs each configured target from lock on multi-target projects', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-ci-multitarget-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    )
+
+    const cursorZipBytes = buildCursorSkillZip()
+    const copilotZipBytes = buildGithubCopilotZip()
+    const cursorSha256 = createHash('sha256').update(cursorZipBytes).digest('hex')
+    const copilotSha256 = createHash('sha256').update(copilotZipBytes).digest('hex')
+
+    const baseManifest = makeMultiTargetInstallTestManifest()
+    const manifest = {
+      ...baseManifest,
+      versions: [
+        {
+          ...baseManifest.versions[0],
+          artifacts: [
+            {
+              target: 'cursor' as const,
+              file: '1.0.0-cursor.zip',
+              sha256: cursorSha256,
+            },
+            {
+              target: 'github-copilot' as const,
+              file: '1.0.0-github-copilot.zip',
+              sha256: copilotSha256,
+            },
+          ],
+        },
+      ],
+    }
+
+    const catalog = makeInstallTestCatalog()
+    const multiTargetCatalog = {
+      ...catalog,
+      packages: [
+        {
+          ...catalog.packages[0],
+          installTargets: [
+            { id: 'cursor', status: 'supported' as const },
+            { id: 'github-copilot', status: 'supported' as const },
+          ],
+        },
+      ],
+    }
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = toFetchUrl(input)
+
+      if (url.includes('packages/index.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(multiTargetCatalog), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/agents-repo/sample-agent/versions/manifest.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(manifest), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/agents-repo/sample-agent/') && url.includes('metadata.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(makeMultiTargetInstallTestMetadata()), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('1.0.0-cursor.zip')) {
+        return Promise.resolve(new Response(cursorZipBytes, { status: 200 }))
+      }
+
+      if (url.includes('1.0.0-github-copilot.zip')) {
+        return Promise.resolve(new Response(copilotZipBytes, { status: 200 }))
+      }
+
+      return Promise.resolve(new Response('not found', { status: 404 }))
+    })
+    mockRegistrySource()
+
+    await new BulkInstallService().runAll({ cwd })
+    rmSync(path.join(cwd, '.cursor'), { recursive: true, force: true })
+    rmSync(path.join(cwd, '.github'), { recursive: true, force: true })
+
+    const ci = new CiInstallService()
+    const results = await ci.run({ cwd })
+
+    expect(results).toHaveLength(2)
+    expect(results.map((result) => result.target).sort((left, right) => left.localeCompare(right))).toEqual([
+      'cursor',
+      'github-copilot',
+    ])
+    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain('name: sample')
+    expect(readFileSync(path.join(cwd, '.github/agents/sample.agent.md'), 'utf8')).toContain('name: sample')
+  })
+
+  it('does not install lock byTarget slots for targets omitted from agents.json', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-ci-orphan-slot-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        targets: ['cursor', 'github-copilot'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    )
+
+    const cursorZipBytes = buildCursorSkillZip()
+    const copilotZipBytes = buildGithubCopilotZip()
+    const cursorSha256 = createHash('sha256').update(cursorZipBytes).digest('hex')
+    const copilotSha256 = createHash('sha256').update(copilotZipBytes).digest('hex')
+
+    const baseManifest = makeMultiTargetInstallTestManifest()
+    const manifest = {
+      ...baseManifest,
+      versions: [
+        {
+          ...baseManifest.versions[0],
+          artifacts: [
+            {
+              target: 'cursor' as const,
+              file: '1.0.0-cursor.zip',
+              sha256: cursorSha256,
+            },
+            {
+              target: 'github-copilot' as const,
+              file: '1.0.0-github-copilot.zip',
+              sha256: copilotSha256,
+            },
+          ],
+        },
+      ],
+    }
+
+    const catalog = makeInstallTestCatalog()
+    const multiTargetCatalog = {
+      ...catalog,
+      packages: [
+        {
+          ...catalog.packages[0],
+          installTargets: [
+            { id: 'cursor', status: 'supported' as const },
+            { id: 'github-copilot', status: 'supported' as const },
+          ],
+        },
+      ],
+    }
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = toFetchUrl(input)
+
+      if (url.includes('packages/index.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(multiTargetCatalog), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/agents-repo/sample-agent/versions/manifest.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(manifest), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/agents-repo/sample-agent/') && url.includes('metadata.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(makeMultiTargetInstallTestMetadata()), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('1.0.0-cursor.zip')) {
+        return Promise.resolve(new Response(cursorZipBytes, { status: 200 }))
+      }
+
+      if (url.includes('1.0.0-github-copilot.zip')) {
+        return Promise.resolve(new Response(copilotZipBytes, { status: 200 }))
+      }
+
+      return Promise.resolve(new Response('not found', { status: 404 }))
+    })
+    mockRegistrySource()
+
+    await new BulkInstallService().runAll({ cwd })
+
+    const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
+      targets: string[]
+    }
+    config.targets = ['cursor']
+    writeFileSync(path.join(cwd, 'agents.json'), JSON.stringify(config))
+
+    rmSync(path.join(cwd, '.cursor'), { recursive: true, force: true })
+    rmSync(path.join(cwd, '.github'), { recursive: true, force: true })
+
+    const fetchSpy = vi.mocked(globalThis.fetch)
+    const copilotFetchCallsBefore = fetchSpy.mock.calls.filter((call) =>
+      toFetchUrl(call[0]).includes('1.0.0-github-copilot.zip'),
+    ).length
+
+    const ci = new CiInstallService()
+    const results = await ci.run({ cwd })
+
+    expect(results).toHaveLength(1)
+    expect(results[0]?.target).toBe('cursor')
+    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain('name: sample')
+    expect(() => readFileSync(path.join(cwd, '.github/agents/sample.agent.md'), 'utf8')).toThrow()
+
+    const copilotFetchCallsAfter = fetchSpy.mock.calls.filter((call) =>
+      toFetchUrl(call[0]).includes('1.0.0-github-copilot.zip'),
+    ).length
+    expect(copilotFetchCallsAfter).toBe(copilotFetchCallsBefore)
   })
 })
