@@ -72,7 +72,11 @@ export const downloadArtifact = async (
       try {
         return verifyOnce(cachedBytes)
       } catch {
-        await deleteBlob(blobPath)
+        try {
+          await deleteBlob(blobPath)
+        } catch {
+          // Best-effort stale entry removal; refetch from network below.
+        }
       }
     }
   }
@@ -81,7 +85,11 @@ export const downloadArtifact = async (
   const verifiedBytes = verifyOnce(networkBytes)
 
   if (canWriteCache) {
-    await writeBlobAtomic(blobPath, verifiedBytes)
+    try {
+      await writeBlobAtomic(blobPath, verifiedBytes)
+    } catch {
+      // Best-effort cache populate; verified bytes are still returned.
+    }
   }
 
   return verifiedBytes

@@ -5,8 +5,9 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { ENV_AGENTS_REPO_NO_CACHE } from '../../../src/modules/config/domain/configConstants.js'
-import { downloadArtifact } from '../../../src/modules/install/infrastructure/artifactDownloader.js'
 import { resolveContentBlobPath } from '../../../src/modules/install/infrastructure/artifactCachePaths.js'
+import * as artifactCacheStore from '../../../src/modules/install/infrastructure/artifactCacheStore.js'
+import { downloadArtifact } from '../../../src/modules/install/infrastructure/artifactDownloader.js'
 
 const sampleBytes = Buffer.from('sample-zip-bytes')
 const sampleSha256 = createHash('sha256').update(sampleBytes).digest('hex')
@@ -128,5 +129,34 @@ describe('downloadArtifact cache', () => {
     })
 
     expect(existsSync(path.join(tempHome, 'cache'))).toBe(false)
+  })
+
+  it('returns verified bytes when cache write fails', async () => {
+    vi.spyOn(artifactCacheStore, 'writeBlobAtomic').mockRejectedValue(new Error('disk full'))
+
+    const bytes = await downloadArtifact('https://example.test/artifact.zip', {
+      expectedSha256Hex: sampleSha256,
+      env: env(),
+    })
+
+    expect(bytes.equals(sampleBytes)).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('refetches when corrupt cache cannot be deleted', async () => {
+    const testEnv = env()
+    const blobPath = resolveContentBlobPath(path.join(tempHome, 'cache'), sampleSha256)
+    mkdirSync(path.dirname(blobPath), { recursive: true })
+    writeFileSync(blobPath, Buffer.from('corrupt'))
+
+    vi.spyOn(artifactCacheStore, 'deleteBlob').mockRejectedValue(new Error('permission denied'))
+
+    const bytes = await downloadArtifact('https://example.test/artifact.zip', {
+      expectedSha256Hex: sampleSha256,
+      env: testEnv,
+    })
+
+    expect(bytes.equals(sampleBytes)).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 })
