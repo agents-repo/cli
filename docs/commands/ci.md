@@ -1,16 +1,11 @@
-# `ci` command (planned)
-
-> **Post-MVP:** `agents-repo ci` is not implemented yet. This document describes the intended
-> behavior so CI pipelines and [#16](https://github.com/agents-repo/cli/issues/16) stay aligned
-> with lock v2 `byTarget` and multi-target `agents.json`. Normative rules live in
-> [`specs/lock-schema.md`](../../specs/lock-schema.md) and
-> [`specs/command-contracts.md`](../../specs/command-contracts.md).
+# `ci` command
 
 Install exactly from `agents-lock.json` in CI (npm `ci` parity): no semver re-resolution from
 `agents.json` ranges, strict validation of config vs lock, and fan-out across configured install
-targets.
+targets. Normative rules live in [`specs/lock-schema.md`](../../specs/lock-schema.md) and
+[`specs/command-contracts.md`](../../specs/command-contracts.md).
 
-## Usage (future)
+## Usage
 
 ```bash
 agents-repo [global-options] ci
@@ -19,7 +14,7 @@ agents-repo [global-options] ci
 Root flags such as `--json`, `--verbose`, and `--yes` / `-y` follow the same placement rules as
 other commands (before the subcommand).
 
-## Flags (planned)
+## Flags
 
 | Flag | Scope | Description |
 | --- | --- | --- |
@@ -28,6 +23,22 @@ other commands (before the subcommand).
 | `--json` | global | Machine-readable output |
 
 `--force` does **not** waive missing `byTarget` slots or config/lock package-set drift.
+
+## JSON output
+
+With `--json`, success stdout is one JSON object:
+
+```json
+{
+  "command": "ci",
+  "warnings": [],
+  "packages": []
+}
+```
+
+Each `packages[]` entry matches bulk install fields (`packageId`, `version`, `target`, and so on).
+Validation failures emit `{ "error": { "code", "message" } }` on stderr (for example
+`lock_config_package_drift`, `missing_by_target_slot`, `lock_version_range_mismatch`).
 
 ## Behavior
 
@@ -61,7 +72,7 @@ They may remain in the lock from earlier partial installs; `list` may still disp
 
 ### Contrast with `list`
 
-| Concern | `list` | `ci` (planned) |
+| Concern | `list` | `ci` |
 | --- | --- | --- |
 | Missing `byTarget` for configured target | Warning, exit `0` | Exit `3` |
 | Lock package not in `agents.json` `packages` | Still listed | Exit `3` |
@@ -77,7 +88,7 @@ They may remain in the lock from earlier partial installs; `list` may still disp
 Run [`install`](install.md) or [`update`](update.md) locally after changing targets or packages so
 every required `byTarget` slot exists before enabling `ci` in a pipeline.
 
-## Example (future GitHub Actions)
+## Example (GitHub Actions)
 
 ```yaml
 - name: Install agents from lock
@@ -97,5 +108,5 @@ Commit `agents-lock.json` (and `agents.json` when it changes) so CI reproduces t
 
 - [`install`](install.md) — multi-target fan-out and lock updates
 - [`list`](list.md) — incomplete `byTarget` warnings
-- [Issue #16](https://github.com/agents-repo/cli/issues/16) — implementation tracking
+- [Issue #16](https://github.com/agents-repo/cli/issues/16) — implementation tracking (shipped)
 - [Issue #48](https://github.com/agents-repo/cli/issues/48) — this documentation

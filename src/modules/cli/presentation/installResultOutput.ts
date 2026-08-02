@@ -15,6 +15,11 @@ export const UPDATE_RESULT_ACTION_LABELS: InstallResultActionLabels = {
   dryRun: 'Would update',
 };
 
+export const CI_RESULT_ACTION_LABELS: InstallResultActionLabels = {
+  applied: 'Installed',
+  dryRun: 'Would install',
+};
+
 export const formatInstallResultSuccess = (
   result: InstallResult,
   labels: InstallResultActionLabels,
@@ -157,6 +162,33 @@ export const writeBulkInstallResultSuccess = (
       warnings: [],
     }));
     process.stdout.write(`${JSON.stringify({ warnings, packages })}\n`);
+    return;
+  }
+
+  for (const result of results) {
+    process.stdout.write(`${formatInstallResultSuccess(result, labels)}\n`);
+  }
+
+  if (verbose && collectDistinctInstallTargets(results).length > 1) {
+    for (const summary of formatMultiTargetInstallSummaries(results, labels)) {
+      process.stdout.write(`${summary}\n`);
+    }
+  }
+};
+
+export const writeCiInstallResultSuccess = (
+  results: readonly InstallResult[],
+  json: boolean,
+  labels: InstallResultActionLabels,
+  verbose = false,
+): void => {
+  if (json) {
+    const warnings = collectInstallResultWarnings(results);
+    const packages = results.map((result) => ({
+      ...installResultToJson(result),
+      warnings: [],
+    }));
+    process.stdout.write(`${JSON.stringify({ command: 'ci', warnings, packages })}\n`);
     return;
   }
 

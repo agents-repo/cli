@@ -29,7 +29,7 @@ npm run build
 node dist/bin/agents-repo.js <command>
 ```
 
-Commands (`init`, `install`, `update`, `remove`, `search`, `suggest-agents`, `list`, and
+Commands (`init`, `install`, `update`, `remove`, `search`, `suggest-agents`, `list`, `ci`, and
 `targets`) are available today. See
 [docs/commands/init.md](docs/commands/init.md),
 [docs/commands/install.md](docs/commands/install.md),
@@ -37,7 +37,8 @@ Commands (`init`, `install`, `update`, `remove`, `search`, `suggest-agents`, `li
 [docs/commands/remove.md](docs/commands/remove.md),
 [docs/commands/search.md](docs/commands/search.md),
 [docs/commands/suggest-agents.md](docs/commands/suggest-agents.md),
-[docs/commands/list.md](docs/commands/list.md), and
+[docs/commands/list.md](docs/commands/list.md),
+[docs/commands/ci.md](docs/commands/ci.md), and
 [docs/commands/targets.md](docs/commands/targets.md).
 
 ## Stack
@@ -88,8 +89,8 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 | `search` / `find` | [docs/commands/search.md](docs/commands/search.md) |
 | `suggest-agents` / `suggest` | [docs/commands/suggest-agents.md](docs/commands/suggest-agents.md) |
 | `list` / `ls` | [docs/commands/list.md](docs/commands/list.md) |
+| `ci` | [docs/commands/ci.md](docs/commands/ci.md) |
 | `targets` | [docs/commands/targets.md](docs/commands/targets.md) |
-| `ci` (planned) | [docs/commands/ci.md](docs/commands/ci.md) |
 
 ## IDE Agent Instructions
 

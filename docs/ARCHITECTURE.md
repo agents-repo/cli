@@ -51,8 +51,9 @@ application and infrastructure APIs consumed by commands.
   `target` and unsupported lock versions exit `3`.
 - **Init:** Variadic `--targets` / `--target` alias; `init -g` for global home; ambiguous detection
   persists all detected ids.
-- **Install / update / remove:** Fan-out across configured `targets[]` (targets × packages);
-  global `-g` uses `~/.agents-repo/` config + lock. `remove` uses lock slots to delete files.
+- **Install / update / remove / ci:** Fan-out across configured `targets[]` (targets × packages);
+  global `-g` uses `~/.agents-repo/` config + lock for install/update/remove. `ci` is project-scope
+  frozen install from the lock (no config/lock writes). `remove` uses lock slots to delete files.
 - **add-target:** Append install target ids to project `agents.json`.
 - **List:** One row per installed `(package, target)` from project or global lock.
 - **Targets:** Read-only `targets[]` from resolved `agents.json` (project or global scope).

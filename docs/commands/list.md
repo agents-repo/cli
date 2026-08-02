@@ -111,5 +111,5 @@ agents-repo --json list
 ## See also
 
 - [`install`](install.md) — install packages by id
-- [`ci`](ci.md) — planned lockfile install for CI (post-MVP)
+- [`ci`](ci.md) — lockfile install for CI
 - [`search`](search.md) — search the registry catalog

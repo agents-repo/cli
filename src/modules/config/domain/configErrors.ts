@@ -32,6 +32,9 @@ export type ConfigValidationCode =
   | 'config_path_not_agents_json'
   | 'invalid_merge_state'
   | 'deprecated_field'
+  | 'lock_config_package_drift'
+  | 'missing_by_target_slot'
+  | 'lock_version_range_mismatch'
 
 export class ConfigValidationError extends ConfigError {
   readonly exitCode = 3 as const
