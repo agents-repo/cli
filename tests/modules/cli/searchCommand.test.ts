@@ -77,6 +77,28 @@ describe('search command', () => {
     );
   });
 
+  it('dispatches the s npm parity alias like search', async () => {
+    runMock.mockResolvedValue({
+      query: 'sample',
+      packages: sampleRegistryCatalog.packages,
+      indexUrl: 'https://example.test/index.json',
+      updatedAt: sampleRegistryCatalog.updatedAt,
+      warnings: [],
+    });
+
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+    await withConfigOverride(async () => {
+      const program = createCliProgram();
+      await program.parseAsync(['s', 'sample'], { from: 'user' });
+    });
+
+    expect(runMock).toHaveBeenCalledWith({ query: 'sample', yes: false });
+    expect(stdoutSpy.mock.calls.map((call) => String(call[0])).join('')).toContain(
+      'agents-repo/sample-agent@1.0.0',
+    );
+  });
+
   it('emits JSON with packages array when --json is set', async () => {
     runMock.mockResolvedValue({
       query: 'cursor',

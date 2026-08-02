@@ -86,4 +86,55 @@ describe('agents-repo bin', () => {
       rmSync(cwd, { recursive: true, force: true });
     }
   });
+
+  it('runs install npm parity alias add', () => {
+    const cwd = mkdtempSync(join(os.tmpdir(), 'agents-install-add-alias-'));
+
+    try {
+      const result = spawnSync(nodeExecutable, [binPath, 'add', 'agents-repo/sample-agent'], {
+        cwd,
+        encoding: 'utf8',
+      });
+
+      expect(result.status).toBe(3);
+      expect(result.stderr).toMatch(/Install target (is required|could not be detected)/);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('runs update npm parity alias upgrade', () => {
+    const cwd = mkdtempSync(join(os.tmpdir(), 'agents-update-upgrade-alias-'));
+
+    try {
+      const result = spawnSync(
+        nodeExecutable,
+        [binPath, 'upgrade', 'agents-repo/sample-agent'],
+        { cwd, encoding: 'utf8' },
+      );
+
+      expect(result.status).toBe(3);
+      expect(result.stderr).toMatch(/not configured|agents\.json|package_not_configured|Install target/);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('runs remove npm parity alias uninstall', () => {
+    const cwd = mkdtempSync(join(os.tmpdir(), 'agents-remove-uninstall-alias-'));
+
+    try {
+      const result = spawnSync(nodeExecutable, [binPath, 'uninstall', 'agents-repo/sample-agent'], {
+        cwd,
+        encoding: 'utf8',
+      });
+
+      expect(result.status).toBe(3);
+      expect(result.stderr).toMatch(
+        /not configured|agents\.json|package_not_configured|agents-lock\.json/,
+      );
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
 });

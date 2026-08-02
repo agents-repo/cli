@@ -9,6 +9,8 @@ remove the package from config and lock unless disabled.
 ```bash
 agents-repo remove <package-id> [options]
 agents-repo rm <package-id> [options]
+agents-repo uninstall <package-id> [options]
+agents-repo unlink <package-id> [options]
 ```
 
 `<package-id>` is a qualified id (for example `agents-repo/sample-agent`) or an

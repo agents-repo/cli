@@ -47,11 +47,20 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | Command | Alias | Status |
 | --- | --- | --- |
 | `install` | `i` | MVP |
+| `install` | `add` | MVP (npm parity) |
+| `install` | `inst` | MVP (npm parity) |
 | `search` | `find` | MVP |
+| `search` | `s` | MVP (npm parity) |
+| `search` | `se` | MVP (npm parity) |
 | `suggest-agents` | `suggest` | post-MVP |
 | `list` | `ls` | MVP |
 | `update` | `up` | MVP |
+| `update` | `upgrade` | MVP (npm parity) |
 | `remove` | `rm` | MVP |
+| `remove` | `uninstall` | MVP (npm parity) |
+| `remove` | `unlink` | MVP (npm parity; UX alias only — see [npm CLI parity](../docs/npm-cli-parity.md)) |
+
+For npm reference aliases not implemented here, see [docs/npm-cli-parity.md](../docs/npm-cli-parity.md).
 
 ## Command-Specific Flags
 

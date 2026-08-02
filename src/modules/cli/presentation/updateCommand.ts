@@ -19,7 +19,7 @@ export interface UpdateCommandOptions {
 export const registerUpdateCommand = (program: Command): void => {
   program
     .command('update [package-id]')
-    .alias('up')
+    .aliases(['up', 'upgrade'])
     .description('Update configured packages within semver ranges in agents.json')
     .option('-g, --global', 'Update packages in the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')

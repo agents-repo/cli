@@ -20,7 +20,7 @@ export interface InstallCommandOptions {
 export const registerInstallCommand = (program: Command): void => {
   program
     .command('install [package-id...]')
-    .alias('i')
+    .aliases(['i', 'add', 'inst'])
     .description('Install packages from the registry')
     .option('-g, --global', 'Install using the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
