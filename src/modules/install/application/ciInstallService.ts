@@ -3,6 +3,7 @@ import { LockFileService } from '../../config/application/lockFileService.js'
 import { LockValidationError } from '../../config/domain/configErrors.js'
 import { evaluatePackageStatusPolicy } from '../../registry/application/packageStatusPolicy.js'
 import { resolvePackageInCatalog } from '../../registry/application/resolvePackageInCatalog.js'
+import type { RegistryPackage } from '../../registry/domain/package.js'
 import { loadRegistryCatalog } from '../../registry/infrastructure/registryRepository.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
 import { verifySha256 } from '../infrastructure/sha256Verifier.js'
@@ -73,6 +74,17 @@ export class CiInstallService {
 
     const results: InstallResult[] = []
     const extractedPathsAll: string[] = []
+    const catalogPackages = new Map<string, RegistryPackage>()
+    const resolveCatalogPackage = (packageId: string): RegistryPackage => {
+      const cached = catalogPackages.get(packageId)
+      if (cached !== undefined) {
+        return cached
+      }
+
+      const pkg = resolvePackageInCatalog(catalogResult.catalog, packageId)
+      catalogPackages.set(packageId, pkg)
+      return pkg
+    }
 
     try {
       for (const target of targets) {
@@ -81,13 +93,13 @@ export class CiInstallService {
           const slot = lockEntry.byTarget[target]!
 
           const packageWarnings = [...warnings]
-          const pkg = resolvePackageInCatalog(catalogResult.catalog, packageId)
+          const pkg = resolveCatalogPackage(packageId)
           const statusPolicy = evaluatePackageStatusPolicy(pkg.status, pkg.id)
           packageWarnings.push(...statusPolicy.warnings)
 
           const plan = planFrozenInstallSlot({
             catalogResult,
-            packageId,
+            pkg,
             version: lockEntry.version,
             target,
             slot,
