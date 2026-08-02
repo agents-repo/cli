@@ -31,6 +31,7 @@ installs it once with no extra warning, matching npm `install` behavior.
 | `--yes` / `-y` | install / global | Waive dual-definition mismatches with warnings |
 | `--dry-run` | global | Resolve through artifact selection; no download, extract, or save |
 | `--no-save` | global | Skip `agents.json` and lock writes after a successful extract |
+| `--prefer-online` | global | Fetch registry ZIPs from the network instead of the local cache |
 | `--json` | global | Machine-readable success and error output |
 | `--verbose` | global | Detailed logging; multi-target installs add per-package summary lines |
 
@@ -93,7 +94,7 @@ The command follows [`specs/cli-protocol.md`](../../specs/cli-protocol.md):
 2. Resolve registry ref (including major-line aliases such as `v2.x`)
 3. Fetch catalog, manifest, and metadata
 4. Pick version and artifact for the install target
-5. Download ZIP, verify SHA-256, run ZIP security scan
+5. Download ZIP (read-through artifact cache when enabled), verify SHA-256, run ZIP security scan
 6. Extract using registry install-target path rules
 7. Persist config and lock when allowed
 
@@ -105,7 +106,12 @@ The command follows [`specs/cli-protocol.md`](../../specs/cli-protocol.md):
 | --- | --- |
 | `AGENTS_REPO_CONFIG` | Absolute path to project `agents.json` (ignored when `-g` is set) |
 | `AGENTS_REPO_HOME` | Override global home directory (default `~/.agents-repo/`) |
+| `AGENTS_REPO_NO_CACHE` | When non-empty, disable artifact cache read and write |
 | `AGENTS_REPO_REGISTRY_URL` | Overrides `registry.url` after file resolution |
+
+Verified registry ZIP artifacts are cached under `{AGENTS_REPO_HOME}/cache/` (npm-style
+content-addressed blobs). See [`specs/artifact-cache.md`](../../specs/artifact-cache.md).
+Install `--dry-run` does not download and does not write the cache.
 
 ## Exit codes
 

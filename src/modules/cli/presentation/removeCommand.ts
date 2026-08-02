@@ -38,6 +38,7 @@ export const registerRemoveCommand = (program: Command): void => {
         dryRun: globals.dryRun,
         noSave: globals.noSave,
         force: options.force ?? false,
+        preferOnline: globals.preferOnline,
         packageId,
       };
 

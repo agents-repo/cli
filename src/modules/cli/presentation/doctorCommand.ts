@@ -72,6 +72,7 @@ export const registerDoctorCommand = (program: Command): void => {
       const service = new DoctorService();
       const result = await service.run({
         yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
+        preferOnline: globals.preferOnline,
       });
 
       writeDoctorWarnings(result.warnings, globals.json);

@@ -54,6 +54,7 @@ describe('cli global options', () => {
         yes: false,
         dryRun: false,
         noSave: false,
+        preferOnline: false,
       });
     });
   });
@@ -70,6 +71,7 @@ describe('cli global options', () => {
         yes: true,
         dryRun: false,
         noSave: false,
+        preferOnline: false,
       });
     });
   });
@@ -86,6 +88,7 @@ describe('cli global options', () => {
         yes: false,
         dryRun: false,
         noSave: false,
+        preferOnline: false,
       });
     });
   });
@@ -104,6 +107,26 @@ describe('cli global options', () => {
         yes: false,
         dryRun: true,
         noSave: true,
+        preferOnline: false,
+      });
+    });
+  });
+
+  it('sets prefer-online global from root options', async () => {
+    await withConfigOverride(async () => {
+      const program = createCliProgram();
+
+      await program.parseAsync(['--prefer-online', 'init', '--target', 'cursor'], {
+        from: 'user',
+      });
+
+      expect(getCliGlobals()).toEqual({
+        json: false,
+        verbose: false,
+        yes: false,
+        dryRun: false,
+        noSave: false,
+        preferOnline: true,
       });
     });
   });

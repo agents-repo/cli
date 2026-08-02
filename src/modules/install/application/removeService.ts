@@ -13,7 +13,6 @@ import {
   rollbackRemovedSlots,
   type RestoreRemovedSlotInput,
 } from '../infrastructure/packageRemover.js'
-import { verifySha256 } from '../infrastructure/sha256Verifier.js'
 import { resolveInstallScope } from './installScope.js'
 import { planRemoveSlots } from './planRemoveSlots.js'
 import { RemovePersistence } from './removePersistence.js'
@@ -27,6 +26,7 @@ export interface RemoveServiceOptions {
   readonly dryRun?: boolean
   readonly noSave?: boolean
   readonly force?: boolean
+  readonly preferOnline?: boolean
 }
 
 export class RemoveService {
@@ -42,6 +42,7 @@ export class RemoveService {
     const dryRun = options.dryRun === true
     const noSave = options.noSave === true
     const force = options.force === true
+    const preferOnline = options.preferOnline === true
 
     const resolved = await this.configResolver.resolve({
       cwd: configCwd,
@@ -115,8 +116,11 @@ export class RemoveService {
           deletedPaths: [],
         }
 
-        const zipBytes = await downloadArtifact(plan.artifactUrl)
-        verifySha256(zipBytes, expectedHex)
+        const zipBytes = await downloadArtifact(plan.artifactUrl, {
+          expectedSha256Hex: expectedHex,
+          preferOnline,
+          env,
+        })
         const extractPlan = planArtifactExtractFromZip(
           zipBytes,
           plan.target,

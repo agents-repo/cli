@@ -21,7 +21,6 @@ import { resolveInstallScope } from '../../install/application/installScope.js'
 import { resolveInstallTargets } from '../../install/application/resolveInstallTargets.js'
 import { planArtifactExtractFromZip } from '../../install/infrastructure/artifactExtractPaths.js'
 import { downloadArtifact } from '../../install/infrastructure/artifactDownloader.js'
-import { verifySha256 } from '../../install/infrastructure/sha256Verifier.js'
 import { InstallRuntimeError } from '../../install/domain/installErrors.js'
 
 class DoctorInstallPathsError extends Error {
@@ -54,6 +53,7 @@ export interface DoctorServiceOptions {
   readonly cwd?: string
   readonly env?: NodeJS.ProcessEnv
   readonly yes?: boolean
+  readonly preferOnline?: boolean
 }
 
 const getErrorCode = (error: unknown): string | undefined => {
@@ -155,6 +155,7 @@ const verifyInstallPathsFromLock = async (options: {
   readonly catalogResult: RegistryCatalogLoadResult
   readonly cwd: string
   readonly env: NodeJS.ProcessEnv
+  readonly preferOnline: boolean
   readonly parseIntegrityHex: (integrity: string) => string
 }): Promise<void> => {
   const scope = resolveInstallScope({
@@ -186,8 +187,11 @@ const verifyInstallPathsFromLock = async (options: {
         slot,
       })
 
-      const zipBytes = await downloadArtifact(plan.artifactUrl)
-      verifySha256(zipBytes, options.parseIntegrityHex(plan.slot.integrity))
+      const zipBytes = await downloadArtifact(plan.artifactUrl, {
+        expectedSha256Hex: options.parseIntegrityHex(plan.slot.integrity),
+        preferOnline: options.preferOnline,
+        env: options.env,
+      })
       const extractPlan = planArtifactExtractFromZip(
         zipBytes,
         plan.target,
@@ -220,6 +224,7 @@ export class DoctorService {
   async run(options: DoctorServiceOptions = {}): Promise<DoctorResult> {
     const cwd = options.cwd ?? process.cwd()
     const env = options.env ?? process.env
+    const preferOnline = options.preferOnline === true
     const checks: DoctorCheck[] = []
     const warnings: string[] = []
 
@@ -347,6 +352,7 @@ export class DoctorService {
           catalogResult,
           cwd,
           env,
+          preferOnline,
           parseIntegrityHex: (integrity) => this.lockFileService.parseIntegrityHex(integrity),
         })
         checks.push(passCheck('install_paths', 'Expected install paths exist on disk'))

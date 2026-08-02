@@ -33,15 +33,17 @@ const syncGlobalsFromCommand = (command: Command): void => {
     yes = false,
     dryRun = false,
     save,
+    preferOnline = false,
   } = command.optsWithGlobals<{
     json?: boolean;
     verbose?: boolean;
     yes?: boolean;
     dryRun?: boolean;
     save?: boolean;
+    preferOnline?: boolean;
   }>();
 
-  setCliGlobals({ json, verbose, yes, dryRun, noSave: save === false });
+  setCliGlobals({ json, verbose, yes, dryRun, noSave: save === false, preferOnline });
 };
 
 export const createCliProgram = (): Command => {
@@ -56,6 +58,10 @@ export const createCliProgram = (): Command => {
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
     .option('--dry-run', 'Resolve install through artifact selection without download or save')
     .option('--no-save', 'Skip agents.json and lock writes')
+    .option(
+      '--prefer-online',
+      'Fetch registry artifacts from the network instead of the local artifact cache',
+    )
     .showHelpAfterError()
     .hook('preAction', (thisCommand) => {
       syncGlobalsFromCommand(thisCommand);

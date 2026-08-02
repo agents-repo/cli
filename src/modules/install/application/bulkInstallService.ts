@@ -11,7 +11,6 @@ import { buildInstallContext } from './resolveInstallContext.js'
 import { isGreenfieldInstallBootstrap } from './resolveInstallTargets.js'
 import { resolveLockRef } from './resolveLockRef.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
-import { verifySha256 } from '../infrastructure/sha256Verifier.js'
 import {
   extractPackageArtifact,
   rollbackExtractedPaths,
@@ -25,6 +24,7 @@ export interface BulkInstallServiceOptions {
   readonly yes?: boolean
   readonly dryRun?: boolean
   readonly noSave?: boolean
+  readonly preferOnline?: boolean
   /** Single package ref (for example `update <package-id>`). */
   readonly packageId?: string
   /** One or more package refs (for example variadic `install <package-id>...`). */
@@ -141,6 +141,7 @@ export class BulkInstallService {
 
     const noSave = options.noSave === true
     const dryRun = options.dryRun === true
+    const preferOnline = options.preferOnline === true
 
     const results: InstallResult[] = []
     const persistenceEntries: BulkInstallPersistenceEntry[] = []
@@ -176,8 +177,11 @@ export class BulkInstallService {
             continue
           }
 
-          const zipBytes = await downloadArtifact(plan.artifactUrl)
-          verifySha256(zipBytes, plan.artifact.sha256)
+          const zipBytes = await downloadArtifact(plan.artifactUrl, {
+            expectedSha256Hex: plan.artifact.sha256,
+            preferOnline,
+            env,
+          })
           const extractedPaths = await extractPackageArtifact(
             zipBytes,
             target,
