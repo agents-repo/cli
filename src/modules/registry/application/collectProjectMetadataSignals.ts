@@ -127,14 +127,21 @@ const tokenizeReadme = (content: string): string[] => {
   return [...new Set(matches)]
 }
 
-const readReadmeSignals = (cwd: string): ProjectMetadataSignal[] => {
+const readReadmeSignals = (cwd: string, warnings: string[]): ProjectMetadataSignal[] => {
   for (const filename of README_CANDIDATES) {
     const readmePath = join(cwd, filename)
     if (!existsSync(readmePath)) {
       continue
     }
 
-    const content = readFileSync(readmePath, 'utf8')
+    let content: string
+    try {
+      content = readFileSync(readmePath, 'utf8')
+    } catch {
+      warnings.push(`Could not read ${filename}; README signals were skipped`)
+      return []
+    }
+
     return tokenizeReadme(content).map((value) => ({ value, source: 'readme' as const }))
   }
 
@@ -151,7 +158,7 @@ export const collectProjectMetadataSignals = (
 
   const signals = dedupeSignals([
     ...readPackageJsonSignals(options.cwd, warnings),
-    ...readReadmeSignals(options.cwd),
+    ...readReadmeSignals(options.cwd, warnings),
   ])
 
   return {

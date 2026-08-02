@@ -89,4 +89,14 @@ describe('suggest-agents command', () => {
     expect(exitSpy).toHaveBeenCalledWith(2)
     expect(stderrSpy.mock.calls.map((call) => String(call[0])).join('')).toContain('Invalid --limit')
   })
+
+  it('exits 2 for non-integer --limit suffix', async () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+
+    const program = createCliProgram()
+    await program.parseAsync(['suggest-agents', '--limit', '3abc'], { from: 'user' })
+
+    expect(exitSpy).toHaveBeenCalledWith(2)
+    expect(stderrSpy.mock.calls.map((call) => String(call[0])).join('')).toContain('Invalid --limit')
+  })
 })

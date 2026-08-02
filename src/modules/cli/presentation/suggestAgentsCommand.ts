@@ -14,6 +14,32 @@ export interface SuggestAgentsCommandOptions {
 
 const DESCRIPTION_MAX_LENGTH = 72
 
+const ESCAPE = String.fromCharCode(0x1b)
+const CSI = String.fromCharCode(0x9b)
+const ANSI_ESCAPE_SEQUENCE = new RegExp(`(?:${ESCAPE}|${CSI})\\[[0-9;]*[ -/]*[@-~]`, 'g')
+
+const isPrintableTerminalChar = (code: number): boolean => {
+  if (code < 0x20 || code === 0x7f) {
+    return false
+  }
+
+  if (code >= 0x80 && code <= 0x9f) {
+    return false
+  }
+
+  return true
+}
+
+const stripAnsiEscapeSequences = (value: string): string =>
+  value.replace(ANSI_ESCAPE_SEQUENCE, '')
+
+const sanitizeTerminalText = (value: string): string => {
+  const withoutAnsi = stripAnsiEscapeSequences(value)
+  return [...withoutAnsi]
+    .filter((char) => isPrintableTerminalChar(char.charCodeAt(0)))
+    .join('')
+}
+
 const truncateDescription = (value: string): string => {
   const codePoints = [...value]
   if (codePoints.length <= DESCRIPTION_MAX_LENGTH) {
@@ -42,7 +68,7 @@ const writeSuggestWarnings = (warnings: readonly string[], json: boolean): void 
   }
 
   for (const warning of warnings) {
-    process.stderr.write(`warning: ${warning}\n`)
+    process.stderr.write(`warning: ${sanitizeTerminalText(warning)}\n`)
   }
 }
 
@@ -75,8 +101,10 @@ const writeSuggestTextResults = (result: SuggestAgentsResult): void => {
   }
 
   for (const entry of result.suggestions) {
-    const line = `${entry.score}\t${entry.pkg.id}@${entry.pkg.latest}\t${truncateDescription(entry.pkg.description)}\n`
-    process.stdout.write(line)
+    const id = sanitizeTerminalText(entry.pkg.id)
+    const latest = sanitizeTerminalText(entry.pkg.latest)
+    const description = truncateDescription(sanitizeTerminalText(entry.pkg.description))
+    process.stdout.write(`${entry.score}  ${id}@${latest}  ${description}\n`)
   }
 }
 
@@ -85,8 +113,15 @@ const parseLimitOption = (value: string | undefined): number | undefined => {
     return undefined
   }
 
-  const parsed = Number.parseInt(value, 10)
-  if (!Number.isFinite(parsed)) {
+  const trimmed = value.trim()
+  if (!/^\d+$/.test(trimmed)) {
+    const error = new Error('Invalid --limit value; expected a positive integer')
+    error.name = 'InvalidUsageError'
+    throw error
+  }
+
+  const parsed = Number.parseInt(trimmed, 10)
+  if (parsed <= 0) {
     const error = new Error('Invalid --limit value; expected a positive integer')
     error.name = 'InvalidUsageError'
     throw error
@@ -123,11 +158,6 @@ export const registerSuggestAgentsCommand = (program: Command): void => {
 
       try {
         const limit = parseLimitOption(options.limit)
-        if (limit !== undefined && limit <= 0) {
-          const error = new Error('Invalid --limit value; expected a positive integer')
-          error.name = 'InvalidUsageError'
-          throw error
-        }
 
         const service = new SuggestAgentsService()
         const result = await service.run({
