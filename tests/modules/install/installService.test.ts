@@ -5,6 +5,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { InstallRuntimeError } from '../../../src/modules/install/domain/installErrors.js'
+import { ENV_AGENTS_REPO_NO_CACHE } from '../../../src/modules/config/domain/configConstants.js'
 import { InstallService } from '../../../src/modules/install/application/installService.js'
 import { BulkInstallService } from '../../../src/modules/install/application/bulkInstallService.js'
 import { PackageYankedError } from '../../../src/modules/registry/domain/errors.js'
@@ -78,15 +79,23 @@ const mockRegistryFetch = (
 
 describe('InstallService', () => {
   const tempDirs: string[] = []
+  let previousNoCache: string | undefined
 
   beforeEach(() => {
     vi.restoreAllMocks()
+    previousNoCache = process.env[ENV_AGENTS_REPO_NO_CACHE]
+    process.env[ENV_AGENTS_REPO_NO_CACHE] = '1'
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
     for (const dir of tempDirs.splice(0)) {
       rmSync(dir, { recursive: true, force: true })
+    }
+    if (previousNoCache === undefined) {
+      delete process.env[ENV_AGENTS_REPO_NO_CACHE]
+    } else {
+      process.env[ENV_AGENTS_REPO_NO_CACHE] = previousNoCache
     }
   })
 
@@ -389,13 +398,13 @@ describe('InstallService', () => {
 
     const service = new InstallService()
     await service.run({
-      packageId: 'agents-repo/sample-agent',
+      packageIds: ['agents-repo/sample-agent'],
       preferOnline: true,
     })
 
     expect(runAll).toHaveBeenCalledWith(
       expect.objectContaining({
-        packageId: 'agents-repo/sample-agent',
+        packageIds: ['agents-repo/sample-agent'],
         preferOnline: true,
       }),
     )
