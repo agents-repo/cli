@@ -1,5 +1,6 @@
 import { RegistryFetchError } from '../../registry/domain/errors.js'
 import {
+  normalizeSha256Hex,
   resolveArtifactCacheRoot,
   resolveContentBlobPath,
 } from './artifactCachePaths.js'
@@ -53,7 +54,7 @@ export const downloadArtifact = async (
   const env = options.env ?? process.env
   const writeCache = options.writeCache !== false
   const preferOnline = options.preferOnline === true
-  const expectedSha256Hex = options.expectedSha256Hex
+  const expectedSha256Hex = normalizeSha256Hex(options.expectedSha256Hex)
 
   const verifyOnce = (bytes: Buffer): Buffer => {
     verifySha256(bytes, expectedSha256Hex)

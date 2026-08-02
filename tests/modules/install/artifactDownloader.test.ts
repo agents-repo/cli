@@ -15,9 +15,11 @@ const sampleSha256 = createHash('sha256').update(sampleBytes).digest('hex')
 describe('downloadArtifact cache', () => {
   let tempHome: string
   let fetchSpy: MockInstance<typeof fetch>
+  let previousNoCache: string | undefined
 
   beforeEach(() => {
     tempHome = mkdtempSync(path.join(os.tmpdir(), 'agents-artifact-cache-'))
+    previousNoCache = process.env[ENV_AGENTS_REPO_NO_CACHE]
     delete process.env[ENV_AGENTS_REPO_NO_CACHE]
     fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
       Promise.resolve(new Response(sampleBytes, { status: 200 })),
@@ -27,6 +29,11 @@ describe('downloadArtifact cache', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     rmSync(tempHome, { recursive: true, force: true })
+    if (previousNoCache === undefined) {
+      delete process.env[ENV_AGENTS_REPO_NO_CACHE]
+    } else {
+      process.env[ENV_AGENTS_REPO_NO_CACHE] = previousNoCache
+    }
   })
 
   const env = (): NodeJS.ProcessEnv => ({
@@ -141,6 +148,15 @@ describe('downloadArtifact cache', () => {
 
     expect(bytes.equals(sampleBytes)).toBe(true)
     expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('accepts uppercase expected digest hex', async () => {
+    const bytes = await downloadArtifact('https://example.test/artifact.zip', {
+      expectedSha256Hex: sampleSha256.toUpperCase(),
+      env: env(),
+    })
+
+    expect(bytes.equals(sampleBytes)).toBe(true)
   })
 
   it('refetches when corrupt cache cannot be deleted', async () => {

@@ -11,7 +11,7 @@ export const normalizeSha256Hex = (sha256Hex: string): string => {
   if (!SHA256_HEX_PATTERN.test(normalized)) {
     throw new InstallRuntimeError(
       'integrity_mismatch',
-      `Invalid SHA-256 hex digest: expected 64 lowercase hex characters`,
+      `Invalid SHA-256 hex digest: expected 64 hexadecimal characters`,
     )
   }
 
