@@ -229,10 +229,13 @@ write `agents.json` or `agents-lock.json`. When a later target fails after earli
 deleted, tooling MUST restore deleted files from the locked artifact ZIP before surfacing the error.
 Config MUST be updated before the lock file on successful persistence.
 
-## MVP Install Scope
+## Install scope
 
-`install <package-id>` installs the **entire package**. Selective install (subset of agents or
-flows) is out of MVP scope. Reserved future interfaces are listed in `command-contracts.md`.
+`install <package-id>` installs the **entire package** (all agents and flows in the target
+artifact). Partial install of individual agents or flows (colon selector syntax or `--agents` /
+`--flows` flags) was considered in [#19](https://github.com/agents-repo/cli/issues/19) and
+[#20](https://github.com/agents-repo/cli/issues/20) and **dropped** to keep lock, config, and
+on-disk paths consistent. See `command-contracts.md` **Dropped interfaces**.
 
 ## Cross-References
 
