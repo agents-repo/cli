@@ -178,12 +178,12 @@ Unless `--no-save` or `--dry-run`, config and lock mutation follows:
 | `update` (bulk, `-g`) | Global home | Yes (global) | Yes (global) |
 | `remove <pkg>` (project) | Project cwd | Yes | Yes |
 | `remove <pkg> -g` | Global home | Yes (global) | Yes (global) |
-| `ci` (post-MVP, project) | Project cwd | No | No |
+| `ci` (project) | Project cwd | No | No |
 
 With `--no-save` or `--dry-run`, all rows skip config and lock writes. Global-scope rows MUST NOT
 touch project config or lock files.
 
-## Frozen install (`ci`, post-MVP)
+## Frozen install (`ci`)
 
 `agents-repo ci` follows the install pipeline through config and lock load, then uses lock v2
 `byTarget` slots instead of semver resolution from `agents.json` ranges:
@@ -196,8 +196,8 @@ touch project config or lock files.
    `integrity`, run ZIP security scan, and extract (same steps as `install` after artifact
    selection).
 
-`ci` MUST NOT run install-target detection and MUST NOT pick versions from manifest ranges. MVP does
-not implement `ci`; see `command-contracts.md` and [#16](https://github.com/agents-repo/cli/issues/16).
+`ci` MUST NOT run install-target detection and MUST NOT pick versions from manifest ranges. See
+`command-contracts.md` and [#16](https://github.com/agents-repo/cli/issues/16).
 
 ## Remove command
 

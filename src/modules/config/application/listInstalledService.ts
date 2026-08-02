@@ -3,6 +3,7 @@ import { LockFileService } from './lockFileService.js'
 import type { PackageLockEntry } from '../domain/agentsLock.js'
 import { sortCanonicalInstallTargetIds } from '../domain/packageLockEntry.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
+import { formatMissingByTargetSlotMessage } from '../../install/application/validateCiPrerequisites.js'
 
 export type ListInstallScope = 'project' | 'global'
 
@@ -89,9 +90,7 @@ export class ListInstalledService {
       const entry = entries[packageId]
       for (const targetId of configuredTargets) {
         if (entry.byTarget[targetId] === undefined) {
-          warnings.push(
-            `${packageId}: missing byTarget slot for configured target ${targetId}`,
-          )
+          warnings.push(formatMissingByTargetSlotMessage(packageId, targetId))
         }
       }
     }

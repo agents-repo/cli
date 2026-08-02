@@ -116,13 +116,12 @@ remains.
 When `agents-lock.json` is missing on bulk `install`, tooling MUST resolve from `agents.json`
 ranges and write the lock (project scope, or global lock under `AGENTS_REPO_HOME` when `-g` is set).
 
-### Frozen install (post-MVP)
+### Frozen install (`ci`)
 
-`agents-repo ci` (post-MVP) installs exactly from the lock without semver re-resolution. The lock
-format MUST support that command; MVP does not implement it. See
-[#16](https://github.com/agents-repo/cli/issues/16). Multi-target `agents.json` and lock v2
-`byTarget` rules are defined in this section and in `command-contracts.md` (see
-[#48](https://github.com/agents-repo/cli/issues/48)).
+`agents-repo ci` installs exactly from the lock without semver re-resolution. The lock format MUST
+support that command. See [#16](https://github.com/agents-repo/cli/issues/16). Multi-target
+`agents.json` and lock v2 `byTarget` rules are defined in this section and in
+`command-contracts.md` (see [#48](https://github.com/agents-repo/cli/issues/48)).
 
 #### Prerequisites
 
@@ -131,7 +130,7 @@ format MUST support that command; MVP does not implement it. See
 - Tooling MUST resolve `agents.json` `targets[]` from config only. `ci` MUST NOT run install-target
   detection. When `targets` is missing or empty after resolution, tooling MUST exit `3` (same as
   bulk `install` / `update`).
-- Post-MVP `ci` in this spec applies to **project scope** only. Global `ci -g` is out of scope
+- Project-scope `ci` in this spec applies to **project scope** only. Global `ci -g` is out of scope
   unless a follow-up issue extends these rules.
 
 #### Config and lock package sets

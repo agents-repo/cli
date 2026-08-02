@@ -209,7 +209,7 @@ results. No install target is required.
 Root `--json` emits `indexUrl`, `updatedAt`, `warnings`, and `suggestions` (each
 entry includes `score` and `matchedSignals`). Empty suggestions exit `0`.
 
-### `ci` (post-MVP)
+### `ci`
 
 Grammar: `ci` with no package arguments. Project scope only in the initial spec; global `ci -g` is
 reserved for a follow-up issue.
@@ -226,14 +226,16 @@ require a `byTarget` slot for every `(packageId, targetId)` pair drawn from reso
 | `--yes` / `-y` | Waive dual-definition config conflicts with warnings (same as other commands) |
 
 `--force` MUST NOT waive missing required `byTarget` slots or config/lock package-set mismatch.
-Those conditions MUST exit `3`.
+Those conditions MUST exit `3` with structured error codes including `lock_config_package_drift`,
+`missing_by_target_slot`, and `lock_version_range_mismatch`.
 
 Missing or empty `targets` after resolution MUST exit `3`. Missing lock MUST exit `3`.
 
 Contrast `list`: incomplete `byTarget` for configured targets is a warning on `list` (exit `0`) and
 MUST be fatal on `ci` (exit `3`). See [#48](https://github.com/agents-repo/cli/issues/48).
 
-MVP MUST NOT implement `ci`. Tracking: [#16](https://github.com/agents-repo/cli/issues/16).
+Root `--json` on success MUST emit a single JSON object with top-level `"command": "ci"`, `warnings`,
+and `packages` (same per-entry fields as bulk install). Tracking: [#16](https://github.com/agents-repo/cli/issues/16).
 
 ### Global install directory
 
@@ -247,7 +249,6 @@ Reserved for follow-up feature issues. MVP MUST NOT implement these interfaces.
 
 | Interface | Description | Tracking |
 | --- | --- | --- |
-| `ci` | Frozen lockfile install for CI pipelines (project scope) | [#16](https://github.com/agents-repo/cli/issues/16) |
 | `install <package-id>:<selector>` | Install one agent or flow by exact id | [#19](https://github.com/agents-repo/cli/issues/19) |
 | `--agents <id>` (repeatable) | Install listed agents from package | [#20](https://github.com/agents-repo/cli/issues/20) |
 | `--flows <id>` (repeatable) | Install listed flows from package | [#20](https://github.com/agents-repo/cli/issues/20) |
