@@ -46,6 +46,7 @@ Shared contracts for all CLI commands. Command implementations MUST conform to t
 | --- | --- | --- |
 | `install` | `i` | MVP |
 | `search` | `find` | MVP |
+| `suggest-agents` | `suggest` | post-MVP |
 | `list` | `ls` | MVP |
 | `update` | `up` | MVP |
 | `remove` | `rm` | MVP |
@@ -193,6 +194,20 @@ in the `{ "selected": "<id>" }` stdout payload).
 
 `--interactive` without an interactive stdin TTY MUST exit `2` with an invalid-usage
 message. With `--json`, stdout MAY be piped; stdin MUST still be a TTY.
+
+### `suggest-agents`
+
+| Flag | Description |
+| --- | --- |
+| `--limit <n>` | Maximum ranked suggestions (default `10`) |
+
+`suggest-agents` loads the registry catalog like `search`, collects project metadata
+signals (`package.json`, root README, resolved config), scores packages per
+`suggest-agents.md`, omits yanked and already-installed packages, and prints ranked
+results. No install target is required.
+
+Root `--json` emits `indexUrl`, `updatedAt`, `warnings`, and `suggestions` (each
+entry includes `score` and `matchedSignals`). Empty suggestions exit `0`.
 
 ### `ci` (post-MVP)
 
