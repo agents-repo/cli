@@ -235,7 +235,7 @@ Config MUST be updated before the lock file on successful persistence.
 artifact). Partial install of individual agents or flows (colon selector syntax or `--agents` /
 `--flows` flags) was considered in [#19](https://github.com/agents-repo/cli/issues/19) and
 [#20](https://github.com/agents-repo/cli/issues/20) and **dropped** to keep lock, config, and
-on-disk paths consistent. See `command-contracts.md` **Dropped interfaces**.
+on-disk paths consistent. See [`command-contracts.md` — Dropped interfaces](command-contracts.md#dropped-interfaces-not-planned).
 
 ## Cross-References
 
