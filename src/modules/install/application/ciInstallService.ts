@@ -8,7 +8,8 @@ import { loadRegistryCatalog } from '../../registry/infrastructure/registryRepos
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
 import {
   extractPackageArtifact,
-  rollbackExtractedPaths,
+  rollbackExtractEntries,
+  type ExtractRollbackEntry,
 } from '../infrastructure/packageExtractor.js'
 import type { InstallResult } from '../domain/installResult.js'
 import { planFrozenInstallSlot } from './planFrozenInstallSlot.js'
@@ -74,7 +75,7 @@ export class CiInstallService {
     warnings.push(...catalogResult.warnings)
 
     const results: InstallResult[] = []
-    const extractedPathsAll: string[] = []
+    const rollbackEntriesAll: ExtractRollbackEntry[] = []
     const catalogPackages = new Map<string, RegistryPackage>()
     const resolveCatalogPackage = (packageId: string): RegistryPackage => {
       const cached = catalogPackages.get(packageId)
@@ -130,19 +131,19 @@ export class CiInstallService {
             preferOnline,
             env,
           })
-          const extractedPaths = await extractPackageArtifact(
+          const extractResult = await extractPackageArtifact(
             zipBytes,
             plan.target,
             plan.version,
             scope.extractRoot,
             { overwriteOnMismatch: true },
           )
-          extractedPathsAll.push(...extractedPaths)
+          rollbackEntriesAll.push(...extractResult.rollbackEntries)
           results.push(resultBase)
         }
       }
     } catch (error) {
-      await rollbackExtractedPaths(extractedPathsAll)
+      await rollbackExtractEntries(rollbackEntriesAll)
       throw error
     }
 

@@ -14,7 +14,8 @@ import { resolveLockRef } from './resolveLockRef.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
 import {
   extractPackageArtifact,
-  rollbackExtractedPaths,
+  rollbackExtractEntries,
+  type ExtractRollbackEntry,
 } from '../infrastructure/packageExtractor.js'
 import type { InstallResult } from '../domain/installResult.js'
 
@@ -152,7 +153,7 @@ export class BulkInstallService {
 
     const results: InstallResult[] = []
     const persistenceEntries: BulkInstallPersistenceEntry[] = []
-    const extractedPathsAll: string[] = []
+    const rollbackEntriesAll: ExtractRollbackEntry[] = []
 
     try {
       for (const target of targets) {
@@ -193,7 +194,7 @@ export class BulkInstallService {
           const overwriteOnMismatch =
             priorLockVersion === undefined || priorLockVersion !== plan.version
 
-          const extractedPaths = await extractPackageArtifact(
+          const extractResult = await extractPackageArtifact(
             zipBytes,
             target,
             plan.version,
@@ -203,7 +204,7 @@ export class BulkInstallService {
               forceSameVersion,
             },
           )
-          extractedPathsAll.push(...extractedPaths)
+          rollbackEntriesAll.push(...extractResult.rollbackEntries)
 
           persistenceEntries.push({
             packageId: plan.pkg.id,
@@ -216,7 +217,7 @@ export class BulkInstallService {
         }
       }
     } catch (error) {
-      await rollbackExtractedPaths(extractedPathsAll)
+      await rollbackExtractEntries(rollbackEntriesAll)
       throw error
     }
 
@@ -246,7 +247,7 @@ export class BulkInstallService {
             Object.keys(adHocPackageRanges).length > 0 ? adHocPackageRanges : undefined,
         })
       } catch (error) {
-        await rollbackExtractedPaths(extractedPathsAll)
+        await rollbackExtractEntries(rollbackEntriesAll)
         throw error
       }
     }

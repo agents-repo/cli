@@ -20,17 +20,23 @@ export interface ExtractPackageArtifactOptions {
   readonly forceSameVersion?: boolean
 }
 
+/** `previousBytes: null` means the path did not exist before extract (rollback deletes the file). */
+export interface ExtractRollbackEntry {
+  readonly path: string
+  readonly previousBytes: Buffer | null
+}
+
+export interface ExtractPackageArtifactResult {
+  readonly writtenPaths: readonly string[]
+  readonly rollbackEntries: readonly ExtractRollbackEntry[]
+}
+
 const isEnoentError = (error: unknown): error is NodeJS.ErrnoException => {
   return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
 
 const sha256HexOfBytes = (bytes: Buffer): string => {
   return createHash('sha256').update(bytes).digest('hex')
-}
-
-const sha256HexOfFile = async (filePath: string): Promise<string> => {
-  const bytes = await readFile(filePath)
-  return sha256HexOfBytes(bytes)
 }
 
 const assertNoSymlinksAlongPath = async (
@@ -64,22 +70,35 @@ const assertDestinationWithinRoot = (resolvedRoot: string, destination: string):
   }
 }
 
-export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
-  for (const filePath of [...paths].reverse()) {
+export const rollbackExtractEntries = async (entries: readonly ExtractRollbackEntry[]): Promise<void> => {
+  for (const entry of [...entries].reverse()) {
     try {
-      await rm(filePath, { force: true })
+      if (entry.previousBytes === null) {
+        await rm(entry.path, { force: true })
+      } else {
+        await writeFile(entry.path, entry.previousBytes)
+      }
     } catch {
       // Best-effort rollback when persistence fails after extract.
     }
   }
 }
 
-const resolveOnDiskAction = async (options: {
+/** @deprecated Prefer rollbackExtractEntries with prior-bytes capture on overwrite. */
+export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
+  await rollbackExtractEntries(paths.map((filePath) => ({ path: filePath, previousBytes: null })))
+}
+
+type OnDiskWritePlan =
+  | { readonly action: 'skip' }
+  | { readonly action: 'write'; readonly previousBytes: Buffer | null }
+
+const resolveOnDiskWritePlan = async (options: {
   readonly destination: string
   readonly resolvedRoot: string
   readonly incomingHex: string
   readonly extractOptions: ExtractPackageArtifactOptions
-}): Promise<'write' | 'skip'> => {
+}): Promise<OnDiskWritePlan> => {
   const { destination, resolvedRoot, incomingHex, extractOptions } = options
   const overwriteOnMismatch = extractOptions.overwriteOnMismatch === true
   const forceSameVersion = extractOptions.forceSameVersion === true
@@ -94,13 +113,14 @@ const resolveOnDiskAction = async (options: {
       )
     }
 
-    const onDiskHex = await sha256HexOfFile(destination)
+    const previousBytes = await readFile(destination)
+    const onDiskHex = sha256HexOfBytes(previousBytes)
     if (onDiskHex === incomingHex) {
-      return 'skip'
+      return { action: 'skip' }
     }
 
     if (overwriteOnMismatch || forceSameVersion) {
-      return 'write'
+      return { action: 'write', previousBytes }
     }
 
     const relative = path.relative(resolvedRoot, destination).split(path.sep).join('/')
@@ -110,7 +130,7 @@ const resolveOnDiskAction = async (options: {
     )
   } catch (error) {
     if (isEnoentError(error)) {
-      return 'write'
+      return { action: 'write', previousBytes: null }
     }
 
     throw error
@@ -123,7 +143,7 @@ export const extractPackageArtifact = async (
   version: string,
   extractRoot: string,
   extractOptions: ExtractPackageArtifactOptions = {},
-): Promise<readonly string[]> => {
+): Promise<ExtractPackageArtifactResult> => {
   const issues = scanTargetArtifactZipBuffer(zipBytes, targetId, version)
   const blocking = issues.find((issue) => issue.severity === 'error')
   if (blocking !== undefined) {
@@ -142,6 +162,7 @@ export const extractPackageArtifact = async (
 
   const resolvedRoot = path.resolve(extractRoot)
   const writtenPaths: string[] = []
+  const rollbackEntries: ExtractRollbackEntry[] = []
 
   try {
     for (const entry of zip.getEntries()) {
@@ -172,25 +193,26 @@ export const extractPackageArtifact = async (
 
       const entryBytes = entry.getData()
       const incomingHex = sha256HexOfBytes(entryBytes)
-      const action = await resolveOnDiskAction({
+      const plan = await resolveOnDiskWritePlan({
         destination,
         resolvedRoot,
         incomingHex,
         extractOptions,
       })
 
-      if (action === 'skip') {
+      if (plan.action === 'skip') {
         continue
       }
 
       await mkdir(path.dirname(destination), { recursive: true })
       await writeFile(destination, entryBytes)
       writtenPaths.push(destination)
+      rollbackEntries.push({ path: destination, previousBytes: plan.previousBytes })
     }
   } catch (error) {
-    await rollbackExtractedPaths(writtenPaths)
+    await rollbackExtractEntries(rollbackEntries)
     throw error
   }
 
-  return writtenPaths
+  return { writtenPaths, rollbackEntries }
 }
