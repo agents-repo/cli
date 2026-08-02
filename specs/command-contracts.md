@@ -237,6 +237,47 @@ MUST be fatal on `ci` (exit `3`). See [#48](https://github.com/agents-repo/cli/i
 Root `--json` on success MUST emit a single JSON object with top-level `"command": "ci"`, `warnings`,
 and `packages` (same per-entry fields as bulk install). Tracking: [#16](https://github.com/agents-repo/cli/issues/16).
 
+### `doctor`
+
+Grammar: `doctor` with no package arguments. Project scope only in the initial spec; global
+`doctor -g` is reserved for a follow-up issue (mirroring `ci`).
+
+`doctor` runs read-only diagnostics for the project agents setup. Tooling MUST NOT write
+`agents.json`, `agents-lock.json`, or extract packages. Tooling MUST run independent checks where
+possible and MUST NOT fail fast before reporting all applicable checks.
+
+| Flag | Description |
+| --- | --- |
+| `--yes` / `-y` | Waive dual-definition config conflicts with warnings (same as other commands) |
+
+Each check result MUST include `id`, `status` (`pass`, `fail`, or `skip`), and `message`. Failed
+checks SHOULD include structured `code` matching existing CLI error codes where applicable.
+
+| Check id | Description | Skip when |
+| --- | --- | --- |
+| `config_schema` | Resolve `agents.json` through the schema gate and conflict detection | — |
+| `targets_configured` | Non-empty `targets[]` | config failed |
+| `lock_present` | Valid lock v2 beside config | config failed |
+| `lock_config_sync` | Config/lock parity (as `ci`) | lock invalid or targets not configured |
+| `registry_reachable` | Catalog index fetch | config failed |
+| `install_paths` | On-disk paths from lock ZIPs | sync/registry failed |
+
+Process exit code MUST be the highest severity among failed checks: config or validation failures
+(exit `3`, including lock validation), dual-definition conflicts when not waived (exit `4`), registry
+network or transport failures (exit `1`), success when no check failed (exit `0`). Skipped checks MUST
+NOT affect the exit code. Config resolver warnings (including waived dual-definition) MUST appear in
+`warnings` but MUST NOT alone change the exit code.
+
+Contrast [`list`](#list): incomplete `byTarget` for configured targets is a warning on `list` (exit
+`0`) and MUST be a failed `lock_config_sync` check on `doctor` (exit `3`). Contrast [`ci`](#ci):
+`ci` installs from the lock; `doctor` validates without mutating state. Tracking:
+[#17](https://github.com/agents-repo/cli/issues/17).
+
+Root `--json` MUST emit a single JSON object on stdout with top-level `"command": "doctor"`,
+`checks` (array of check objects), and `warnings` (string array). Text mode SHOULD print one line
+per check with `ok`, `fail`, or `skip` prefix (JSON `checks[].status` remains `pass`, `fail`, or
+`skip`).
+
 ### Global install directory
 
 Global home: `~/.agents-repo/` (override with `AGENTS_REPO_HOME`). Global scope uses the same
