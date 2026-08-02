@@ -242,6 +242,48 @@ describe('doctor command subprocess with mock registry', () => {
     const doctorResult = await runCliSubprocess(['doctor'], { cwd });
     expect(doctorResult.status).toBe(3);
     expect(doctorResult.stdout).toContain('fail targets_configured');
+    expect(doctorResult.stdout).toContain('skip lock_config_sync');
+  });
+
+  it('skips registry_reachable when agents.json cannot be parsed', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-doctor-cli-bad-config-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(path.join(cwd, 'agents.json'), '{ not valid json');
+
+    const doctorResult = await runCliSubprocess(['doctor'], { cwd });
+    expect(doctorResult.status).toBe(3);
+    expect(doctorResult.stdout).toContain('fail config_schema');
+    expect(doctorResult.stdout).toContain('skip registry_reachable');
+    expect(doctorResult.stdout).not.toContain('ok registry_reachable');
+  });
+
+  it('exits 1 when registry is unreachable', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-doctor-cli-registry-down-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: 'http://127.0.0.1:1/?ref=v2.0.0', ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: {},
+      }),
+    );
+
+    writeFileSync(
+      path.join(cwd, 'agents-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 2,
+        resolvedRef: 'v2.0.0',
+        packages: {},
+      }),
+    );
+
+    const doctorResult = await runCliSubprocess(['doctor'], { cwd });
+    expect(doctorResult.status).toBe(1);
+    expect(doctorResult.stdout).toContain('fail registry_reachable');
   });
 
   it('reports lock_config_package_drift without failing fast on registry check', async () => {

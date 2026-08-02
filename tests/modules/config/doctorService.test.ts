@@ -7,6 +7,7 @@ import {
 } from '../../../src/modules/config/application/doctorService.js'
 import { ConfigValidationError } from '../../../src/modules/config/domain/configErrors.js'
 import { RegistryFetchError } from '../../../src/modules/registry/domain/errors.js'
+import { InstallRuntimeError } from '../../../src/modules/install/domain/installErrors.js'
 
 describe('computeDoctorExitCode', () => {
   it('returns 0 when all checks pass or skip', () => {
@@ -49,5 +50,11 @@ describe('exitCodeForDoctorError', () => {
 
   it('maps registry fetch errors to exit 1', () => {
     expect(exitCodeForDoctorError(new RegistryFetchError('fetch failed', 503))).toBe(1)
+  })
+
+  it('maps integrity mismatch to exit 3', () => {
+    expect(
+      exitCodeForDoctorError(new InstallRuntimeError('integrity_mismatch', 'SHA-256 mismatch')),
+    ).toBe(3)
   })
 })

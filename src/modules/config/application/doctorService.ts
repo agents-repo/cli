@@ -5,7 +5,6 @@ import { LockFileService } from './lockFileService.js'
 import type { ResolvedAgentsConfig } from '../domain/agentsConfig.js'
 import type { AgentsLockDocument } from '../domain/agentsLock.js'
 import { ConfigError, LockValidationError } from '../domain/configErrors.js'
-import { DEFAULT_REGISTRY_CONFIG } from '../../registry/infrastructure/registrySourceConfig.js'
 import { RegistryError, RegistryFetchError } from '../../registry/domain/errors.js'
 import {
   loadRegistryCatalog,
@@ -22,6 +21,8 @@ import { resolveInstallScope } from '../../install/application/installScope.js'
 import { resolveInstallTargets } from '../../install/application/resolveInstallTargets.js'
 import { planArtifactExtractFromZip } from '../../install/infrastructure/artifactExtractPaths.js'
 import { downloadArtifact } from '../../install/infrastructure/artifactDownloader.js'
+import { verifySha256 } from '../../install/infrastructure/sha256Verifier.js'
+import { InstallRuntimeError } from '../../install/domain/installErrors.js'
 
 class DoctorInstallPathsError extends Error {
   readonly code = 'install_paths_missing'
@@ -68,6 +69,10 @@ const getErrorCode = (error: unknown): string | undefined => {
     return error.code
   }
 
+  if (error instanceof InstallRuntimeError) {
+    return error.code
+  }
+
   return undefined
 }
 
@@ -86,6 +91,14 @@ export const exitCodeForDoctorError = (error: unknown): number => {
 
   if (error instanceof RegistryError) {
     return 3
+  }
+
+  if (error instanceof InstallRuntimeError) {
+    if (error.code === 'integrity_mismatch') {
+      return 3
+    }
+
+    return error.exitCode
   }
 
   return 1
@@ -142,6 +155,7 @@ const verifyInstallPathsFromLock = async (options: {
   readonly catalogResult: RegistryCatalogLoadResult
   readonly cwd: string
   readonly env: NodeJS.ProcessEnv
+  readonly parseIntegrityHex: (integrity: string) => string
 }): Promise<void> => {
   const scope = resolveInstallScope({
     cwd: options.cwd,
@@ -173,6 +187,7 @@ const verifyInstallPathsFromLock = async (options: {
       })
 
       const zipBytes = await downloadArtifact(plan.artifactUrl)
+      verifySha256(zipBytes, options.parseIntegrityHex(plan.slot.integrity))
       const extractPlan = planArtifactExtractFromZip(
         zipBytes,
         plan.target,
@@ -235,8 +250,8 @@ export class DoctorService {
       checks.push(skipCheck('targets_configured', 'Skipped because config resolution failed'))
       checks.push(skipCheck('lock_present', 'Skipped because config resolution failed'))
       checks.push(skipCheck('lock_config_sync', 'Skipped because config resolution failed'))
+      checks.push(skipCheck('registry_reachable', 'Skipped because config resolution failed'))
       checks.push(skipCheck('install_paths', 'Skipped because config resolution failed'))
-      await this.runRegistryCheck(checks, warnings, DEFAULT_REGISTRY_CONFIG)
       return {
         checks,
         warnings,
@@ -244,8 +259,10 @@ export class DoctorService {
       }
     }
 
+    let targetsConfiguredPassed = false
     try {
       resolveInstallTargets(resolved)
+      targetsConfiguredPassed = true
       checks.push(passCheck('targets_configured', 'Install targets are configured'))
     } catch (error) {
       checks.push(
@@ -283,6 +300,8 @@ export class DoctorService {
 
     if (lock === null) {
       checks.push(skipCheck('lock_config_sync', 'Skipped because lock is missing or invalid'))
+    } else if (!targetsConfiguredPassed) {
+      checks.push(skipCheck('lock_config_sync', 'Skipped because install targets are not configured'))
     } else {
       try {
         runLockConfigSync(resolved, lock)
@@ -328,6 +347,7 @@ export class DoctorService {
           catalogResult,
           cwd,
           env,
+          parseIntegrityHex: (integrity) => this.lockFileService.parseIntegrityHex(integrity),
         })
         checks.push(passCheck('install_paths', 'Expected install paths exist on disk'))
       } catch (error) {

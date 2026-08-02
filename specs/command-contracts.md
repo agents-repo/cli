@@ -258,7 +258,7 @@ checks SHOULD include structured `code` matching existing CLI error codes where 
 | `config_schema` | Resolve `agents.json` through the schema gate and conflict detection | — |
 | `targets_configured` | Non-empty `targets[]` | config failed |
 | `lock_present` | Valid lock v2 beside config | config failed |
-| `lock_config_sync` | Config/lock parity (as `ci`) | lock invalid |
+| `lock_config_sync` | Config/lock parity (as `ci`) | lock invalid or targets not configured |
 | `registry_reachable` | Catalog index fetch | config failed |
 | `install_paths` | On-disk paths from lock ZIPs | sync/registry failed |
 
@@ -275,7 +275,8 @@ Contrast [`list`](#list): incomplete `byTarget` for configured targets is a warn
 
 Root `--json` MUST emit a single JSON object on stdout with top-level `"command": "doctor"`,
 `checks` (array of check objects), and `warnings` (string array). Text mode SHOULD print one line
-per check with `pass`, `fail`, or `skip` prefix.
+per check with `ok`, `fail`, or `skip` prefix (JSON `checks[].status` remains `pass`, `fail`, or
+`skip`).
 
 ### Global install directory
 
