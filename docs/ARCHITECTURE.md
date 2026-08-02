@@ -57,7 +57,7 @@ application and infrastructure APIs consumed by commands.
 - **List:** One row per installed `(package, target)` from project or global lock.
 - **Targets:** Read-only `targets[]` from resolved `agents.json` (project or global scope).
 - **Registry:** Copy-adapted from webapp (`src/modules/registry/`); catalog search via
-  `search`.
+  `search` and metadata-based ranking via `suggest-agents`.
 - **Target detection:** Filesystem markers for `init` and greenfield `install <package-id>`.
 
 Install commands pass `ResolvedAgentsConfig.registry` to `resolveRegistryFetchSourceConfig()`.

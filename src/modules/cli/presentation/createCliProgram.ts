@@ -11,6 +11,7 @@ import { registerListCommand } from './listCommand.js';
 import { registerRemoveCommand } from './removeCommand.js';
 import { registerUpdateCommand } from './updateCommand.js';
 import { registerSearchCommand } from './searchCommand.js';
+import { registerSuggestAgentsCommand } from './suggestAgentsCommand.js';
 import { registerTargetsCommand } from './targetsCommand.js';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
@@ -64,6 +65,7 @@ export const createCliProgram = (): Command => {
   registerInstallCommand(program);
   registerUpdateCommand(program);
   registerSearchCommand(program);
+  registerSuggestAgentsCommand(program);
   registerListCommand(program);
   registerRemoveCommand(program);
   registerTargetsCommand(program);
