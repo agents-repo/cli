@@ -10,6 +10,7 @@ export interface InstallServiceOptions {
   readonly dryRun?: boolean
   readonly noSave?: boolean
   readonly preferOnline?: boolean
+  readonly force?: boolean
 }
 
 export class InstallService {
@@ -25,6 +26,7 @@ export class InstallService {
       dryRun: options.dryRun,
       noSave: options.noSave,
       preferOnline: options.preferOnline,
+      force: options.force,
       enforceConfiguredOnly: false,
     })
   }

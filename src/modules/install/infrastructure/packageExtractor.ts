@@ -1,4 +1,5 @@
-import { lstat, mkdir, rm, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { lstat, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import AdmZip from 'adm-zip'
@@ -12,12 +13,30 @@ import {
 } from './targetExtractPaths.js'
 import { scanTargetArtifactZipBuffer } from './zipSecurityScanner.js'
 
+export interface ExtractPackageArtifactOptions {
+  /** When true, differing on-disk content is overwritten (version bump or `ci`). */
+  readonly overwriteOnMismatch?: boolean
+  /** When true with same-version mismatch, overwrite instead of failing (`install --force`). */
+  readonly forceSameVersion?: boolean
+}
+
+/** `previousBytes: null` means the path did not exist before extract (rollback deletes the file). */
+export interface ExtractRollbackEntry {
+  readonly path: string
+  readonly previousBytes: Buffer | null
+}
+
+export interface ExtractPackageArtifactResult {
+  readonly writtenPaths: readonly string[]
+  readonly rollbackEntries: readonly ExtractRollbackEntry[]
+}
+
 const isEnoentError = (error: unknown): error is NodeJS.ErrnoException => {
   return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
 
-const isExistError = (error: unknown): error is NodeJS.ErrnoException => {
-  return error instanceof Error && 'code' in error && error.code === 'EEXIST'
+const sha256HexOfBytes = (bytes: Buffer): string => {
+  return createHash('sha256').update(bytes).digest('hex')
 }
 
 const assertNoSymlinksAlongPath = async (
@@ -51,13 +70,70 @@ const assertDestinationWithinRoot = (resolvedRoot: string, destination: string):
   }
 }
 
-export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
-  for (const filePath of [...paths].reverse()) {
+export const rollbackExtractEntries = async (entries: readonly ExtractRollbackEntry[]): Promise<void> => {
+  for (const entry of [...entries].reverse()) {
     try {
-      await rm(filePath, { force: true })
+      if (entry.previousBytes === null) {
+        await rm(entry.path, { force: true })
+      } else {
+        await writeFile(entry.path, entry.previousBytes)
+      }
     } catch {
       // Best-effort rollback when persistence fails after extract.
     }
+  }
+}
+
+/** @deprecated Prefer rollbackExtractEntries with prior-bytes capture on overwrite. */
+export const rollbackExtractedPaths = async (paths: readonly string[]): Promise<void> => {
+  await rollbackExtractEntries(paths.map((filePath) => ({ path: filePath, previousBytes: null })))
+}
+
+type OnDiskWritePlan =
+  | { readonly action: 'skip' }
+  | { readonly action: 'write'; readonly previousBytes: Buffer | null }
+
+const resolveOnDiskWritePlan = async (options: {
+  readonly destination: string
+  readonly resolvedRoot: string
+  readonly incomingHex: string
+  readonly extractOptions: ExtractPackageArtifactOptions
+}): Promise<OnDiskWritePlan> => {
+  const { destination, resolvedRoot, incomingHex, extractOptions } = options
+  const overwriteOnMismatch = extractOptions.overwriteOnMismatch === true
+  const forceSameVersion = extractOptions.forceSameVersion === true
+
+  try {
+    await assertNoSymlinksAlongPath(resolvedRoot, destination)
+    const stats = await lstat(destination)
+    if (!stats.isFile()) {
+      throw new InstallRuntimeError(
+        'extract_conflict',
+        `Refusing to overwrite non-file path: ${destination}`,
+      )
+    }
+
+    const previousBytes = await readFile(destination)
+    const onDiskHex = sha256HexOfBytes(previousBytes)
+    if (onDiskHex === incomingHex) {
+      return { action: 'skip' }
+    }
+
+    if (overwriteOnMismatch || forceSameVersion) {
+      return { action: 'write', previousBytes }
+    }
+
+    const relative = path.relative(resolvedRoot, destination).split(path.sep).join('/')
+    throw new InstallRuntimeError(
+      'extract_modified',
+      `Modified file (use --force to overwrite): ${relative}`,
+    )
+  } catch (error) {
+    if (isEnoentError(error)) {
+      return { action: 'write', previousBytes: null }
+    }
+
+    throw error
   }
 }
 
@@ -66,7 +142,8 @@ export const extractPackageArtifact = async (
   targetId: InstallTargetId,
   version: string,
   extractRoot: string,
-): Promise<readonly string[]> => {
+  extractOptions: ExtractPackageArtifactOptions = {},
+): Promise<ExtractPackageArtifactResult> => {
   const issues = scanTargetArtifactZipBuffer(zipBytes, targetId, version)
   const blocking = issues.find((issue) => issue.severity === 'error')
   if (blocking !== undefined) {
@@ -85,6 +162,7 @@ export const extractPackageArtifact = async (
 
   const resolvedRoot = path.resolve(extractRoot)
   const writtenPaths: string[] = []
+  const rollbackEntries: ExtractRollbackEntry[] = []
 
   try {
     for (const entry of zip.getEntries()) {
@@ -113,26 +191,28 @@ export const extractPackageArtifact = async (
       const destination = resolveContainedExtractPath(resolvedRoot, mappedName)
       assertDestinationWithinRoot(resolvedRoot, destination)
 
-      await assertNoSymlinksAlongPath(resolvedRoot, destination)
-      await mkdir(path.dirname(destination), { recursive: true })
-      try {
-        await writeFile(destination, entry.getData(), { flag: 'wx' })
-      } catch (error) {
-        if (isExistError(error)) {
-          throw new InstallRuntimeError(
-            'extract_conflict',
-            `Refusing to overwrite existing file: ${destination}`,
-          )
-        }
+      const entryBytes = entry.getData()
+      const incomingHex = sha256HexOfBytes(entryBytes)
+      const plan = await resolveOnDiskWritePlan({
+        destination,
+        resolvedRoot,
+        incomingHex,
+        extractOptions,
+      })
 
-        throw error
+      if (plan.action === 'skip') {
+        continue
       }
+
+      await mkdir(path.dirname(destination), { recursive: true })
+      await writeFile(destination, entryBytes)
       writtenPaths.push(destination)
+      rollbackEntries.push({ path: destination, previousBytes: plan.previousBytes })
     }
   } catch (error) {
-    await rollbackExtractedPaths(writtenPaths)
+    await rollbackExtractEntries(rollbackEntries)
     throw error
   }
 
-  return writtenPaths
+  return { writtenPaths, rollbackEntries }
 }

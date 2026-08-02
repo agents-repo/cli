@@ -1,4 +1,5 @@
 import { ConfigResolver } from '../../config/application/configResolver.js'
+import { LockFileService } from '../../config/application/lockFileService.js'
 import { ConfigValidationError } from '../../config/domain/configErrors.js'
 import { resolveAgentsRepoHome } from '../../config/infrastructure/agentsRepoHome.js'
 import { resolvePackageInCatalog } from '../../registry/application/resolvePackageInCatalog.js'
@@ -13,7 +14,8 @@ import { resolveLockRef } from './resolveLockRef.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
 import {
   extractPackageArtifact,
-  rollbackExtractedPaths,
+  rollbackExtractEntries,
+  type ExtractRollbackEntry,
 } from '../infrastructure/packageExtractor.js'
 import type { InstallResult } from '../domain/installResult.js'
 
@@ -30,6 +32,7 @@ export interface BulkInstallServiceOptions {
   /** One or more package refs (for example variadic `install <package-id>...`). */
   readonly packageIds?: readonly string[]
   readonly enforceConfiguredOnly?: boolean
+  readonly force?: boolean
 }
 
 const resolveRequestedPackageRefs = (
@@ -49,6 +52,7 @@ const resolveRequestedPackageRefs = (
 export class BulkInstallService {
   private readonly configResolver = new ConfigResolver()
   private readonly installPersistence = new InstallPersistence()
+  private readonly lockFileService = new LockFileService()
 
   async runAll(options: BulkInstallServiceOptions): Promise<InstallResult[]> {
     const cwd = options.cwd ?? process.cwd()
@@ -142,10 +146,14 @@ export class BulkInstallService {
     const noSave = options.noSave === true
     const dryRun = options.dryRun === true
     const preferOnline = options.preferOnline === true
+    const forceSameVersion = options.force === true
+
+    const lockDocument = dryRun ? null : await this.lockFileService.read(resolved.lockPath)
+    const lockPackages = lockDocument?.packages
 
     const results: InstallResult[] = []
     const persistenceEntries: BulkInstallPersistenceEntry[] = []
-    const extractedPathsAll: string[] = []
+    const rollbackEntriesAll: ExtractRollbackEntry[] = []
 
     try {
       for (const target of targets) {
@@ -182,13 +190,21 @@ export class BulkInstallService {
             preferOnline,
             env,
           })
-          const extractedPaths = await extractPackageArtifact(
+          const priorLockVersion = lockPackages?.[plan.pkg.id]?.version
+          const overwriteOnMismatch =
+            priorLockVersion === undefined || priorLockVersion !== plan.version
+
+          const extractResult = await extractPackageArtifact(
             zipBytes,
             target,
             plan.version,
             scope.extractRoot,
+            {
+              overwriteOnMismatch,
+              forceSameVersion,
+            },
           )
-          extractedPathsAll.push(...extractedPaths)
+          rollbackEntriesAll.push(...extractResult.rollbackEntries)
 
           persistenceEntries.push({
             packageId: plan.pkg.id,
@@ -201,7 +217,7 @@ export class BulkInstallService {
         }
       }
     } catch (error) {
-      await rollbackExtractedPaths(extractedPathsAll)
+      await rollbackExtractEntries(rollbackEntriesAll)
       throw error
     }
 
@@ -231,7 +247,7 @@ export class BulkInstallService {
             Object.keys(adHocPackageRanges).length > 0 ? adHocPackageRanges : undefined,
         })
       } catch (error) {
-        await rollbackExtractedPaths(extractedPathsAll)
+        await rollbackExtractEntries(rollbackEntriesAll)
         throw error
       }
     }

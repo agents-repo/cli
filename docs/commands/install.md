@@ -29,6 +29,7 @@ installs it once with no extra warning, matching npm `install` behavior.
 | --- | --- | --- |
 | `--global` / `-g` | install | Global scope: config and lock under `~/.agents-repo/` |
 | `--yes` / `-y` | install / global | Waive dual-definition mismatches with warnings |
+| `--force` | install | Overwrite managed files when content differs at the same lock version (see [`remove`](remove.md); not npm `install --force`) |
 | `--dry-run` | global | Resolve through artifact selection; no download, extract, or save |
 | `--no-save` | global | Skip `agents.json` and lock writes after a successful extract |
 | `--prefer-online` | global | Fetch registry ZIPs from the network instead of the local cache |
@@ -98,6 +99,11 @@ The command follows [`specs/cli-protocol.md`](../../specs/cli-protocol.md):
 6. Extract using registry install-target path rules
 7. Persist config and lock when allowed
 
+Re-running `install` when files already match the resolved artifact skips writes and exits `0`.
+When the lock version matches but a managed file was edited locally, the command exits `1` with
+`extract_modified` unless `--force` is set. Version upgrades overwrite differing files without
+`--force`.
+
 `--dry-run` stops after step 4 and prints the resolved install plan.
 
 ### Environment overrides
@@ -118,7 +124,7 @@ Install `--dry-run` does not download and does not write the cache.
 | Code | Meaning |
 | --- | --- |
 | `0` | Success (or successful `--dry-run`) |
-| `1` | Runtime failure (network, I/O, ZIP security, checksum mismatch) |
+| `1` | Runtime failure (network, I/O, ZIP security, checksum mismatch, `extract_modified`) |
 | `2` | Usage error |
 | `3` | Validation failure (missing target, unsupported target, package not found, schema errors) |
 | `4` | Dual-definition conflict in config (without `--yes`) |

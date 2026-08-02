@@ -152,6 +152,16 @@ At minimum, tooling MUST reject archives with:
 - MVP: install the **entire package** (all agents and flows in the artifact).
 - **Project scope:** extract under project root.
 - **Global scope:** extract under `~/.agents-repo/` (or `AGENTS_REPO_HOME`).
+- For each mapped archive file path, tooling MUST compare on-disk SHA-256 to the incoming ZIP entry
+  bytes when the destination already exists:
+  - When digests match, tooling MUST skip writing that path (idempotent reinstall).
+  - When digests differ and the resolved install `version` differs from the lock entry for that
+    package (or no lock entry exists), tooling MUST overwrite the file (`install` / `update`).
+  - When digests differ at the **same** resolved version as the lock, `install` and `update` MUST
+    exit `1` with structured code `extract_modified` unless `--force` is set; with `--force`, tooling
+    MUST overwrite modified managed files.
+- Frozen `ci` extract MUST skip when digests match and MUST overwrite when digests differ (reproduce
+  lock artifact). This policy is independent of `ci --force` (lock range waiver only).
 
 ### 12. Update config and lock
 
@@ -200,8 +210,8 @@ touch project config or lock files.
 3. Optionally verify each lock `version` satisfies the resolved `packages[<id>]` range unless
    `--force`.
 4. For each required `(packageId, targetId)` pair, download the slot `artifact`, verify
-   `integrity`, run ZIP security scan, and extract (same steps as `install` after artifact
-   selection).
+   `integrity`, run ZIP security scan, and extract using the frozen-install extract policy in
+   [step 11](#11-extract) (skip matching bytes; overwrite on mismatch).
 
 `ci` MUST NOT run install-target detection and MUST NOT pick versions from manifest ranges. See
 `command-contracts.md` and [#16](https://github.com/agents-repo/cli/issues/16).

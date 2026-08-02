@@ -29,10 +29,11 @@ describe('artifactExtractPaths', () => {
 
     const listed = resolveArtifactExtractPaths(zipBytes, 'cursor', '1.0.0', root);
     const written = await extractPackageArtifact(zipBytes, 'cursor', '1.0.0', root);
+    expect(written.writtenPaths.length).toBeGreaterThan(0);
 
     expect([...listed].sort((left, right) => left.localeCompare(right))).toEqual(
-      [...written].sort((left, right) => left.localeCompare(right)),
-    );
+      [...written.writtenPaths].sort((left, right) => left.localeCompare(right)),
+    )
 
     rmSync(root, { recursive: true, force: true });
   });

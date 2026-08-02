@@ -28,6 +28,7 @@ index alias defined in `packages/index.json`.
 | --- | --- | --- |
 | `--global` / `-g` | update | Global scope; config/lock under `~/.agents-repo/` |
 | `--yes` / `-y` | update / global | Waive dual-definition mismatches with warnings |
+| `--force` | update | Overwrite managed files when content differs at the same lock version |
 | `--dry-run` | global | Resolve through artifact selection; no download, extract, or save |
 | `--no-save` | global | Skip `agents.json` and lock writes after a successful extract |
 | `--json` | global | Machine-readable success and error output |

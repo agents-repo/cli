@@ -322,6 +322,64 @@ describe('install command subprocess with mock registry', () => {
     expect(lock.packages['agents-repo/other-agent'].version).toBe('1.0.0');
   });
 
+  it('succeeds when reinstalling with package files already on disk', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-reinstall-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const first = await runCliSubprocess(['install'], { cwd });
+    expect(first.status).toBe(0);
+
+    const second = await runCliSubprocess(['install'], { cwd });
+    expect(second.status).toBe(0);
+    expect(second.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
+  });
+
+  it('install --force overwrites a modified managed file at the same version', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-force-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const installResult = await runCliSubprocess(['install'], { cwd });
+    expect(installResult.status).toBe(0);
+
+    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    writeFileSync(skillPath, 'edited locally\n');
+
+    const withoutForce = await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
+    expect(withoutForce.status).toBe(1);
+    expect(withoutForce.stderr).toContain('extract_modified');
+
+    const withForce = await runCliSubprocess(
+      ['install', '--force', 'agents-repo/sample-agent'],
+      { cwd },
+    );
+    expect(withForce.status).toBe(0);
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample');
+  });
+
   it('emits deduped bulk JSON when --json is set', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-bulk-json-'));
     tempDirs.push(cwd);

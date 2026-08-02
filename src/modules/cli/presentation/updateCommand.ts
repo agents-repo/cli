@@ -13,6 +13,7 @@ import {
 export interface UpdateCommandOptions {
   readonly global?: boolean;
   readonly yes?: boolean;
+  readonly force?: boolean;
 }
 
 export const registerUpdateCommand = (program: Command): void => {
@@ -22,6 +23,7 @@ export const registerUpdateCommand = (program: Command): void => {
     .description('Update configured packages within semver ranges in agents.json')
     .option('-g, --global', 'Update packages in the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
+    .option('--force', 'Overwrite files when content differs from the artifact at the same version')
     .action(async function updateAction(
       this: Command,
       packageId: string | undefined,
@@ -33,6 +35,7 @@ export const registerUpdateCommand = (program: Command): void => {
       const runOptions = {
         global: options.global ?? false,
         yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
+        force: options.force ?? false,
         dryRun: globals.dryRun,
         noSave: globals.noSave,
         preferOnline: globals.preferOnline,

@@ -179,7 +179,6 @@ describe('CiInstallService', () => {
 
     const configBefore = readFileSync(path.join(cwd, 'agents.json'), 'utf8')
     const lockBefore = readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')
-    rmSync(path.join(cwd, '.cursor'), { recursive: true, force: true })
 
     const ci = new CiInstallService()
     const results = await ci.run({ cwd })
@@ -189,6 +188,36 @@ describe('CiInstallService', () => {
     expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain('name: sample')
     expect(readFileSync(path.join(cwd, 'agents.json'), 'utf8')).toBe(configBefore)
     expect(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toBe(lockBefore)
+  })
+
+  it('overwrites modified managed files when re-running ci', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-ci-overwrite-modified-'))
+    tempDirs.push(cwd)
+    writeDualPackageProject(cwd)
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const otherZipBytes = buildOtherCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const otherSha256 = createHash('sha256').update(otherZipBytes).digest('hex')
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), otherSha256)
+
+    mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
+      sampleZipBytes,
+      otherZipBytes,
+    })
+    mockRegistrySource()
+
+    const bulk = new BulkInstallService()
+    await bulk.runAll({ cwd })
+
+    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md')
+    writeFileSync(skillPath, 'local edit before ci\n')
+
+    const ci = new CiInstallService()
+    await ci.run({ cwd })
+
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample')
   })
 
   it('throws when agents-lock.json is missing', async () => {
