@@ -35,6 +35,7 @@ export type ConfigValidationCode =
   | 'lock_config_package_drift'
   | 'missing_by_target_slot'
   | 'lock_version_range_mismatch'
+  | 'selector_not_found'
 
 export class ConfigValidationError extends ConfigError {
   readonly exitCode = 3 as const

@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
 
+import { parseInstallPackageArgument } from '../application/parseInstallPackageArgument.js';
 import { getCliGlobals } from '../application/cliGlobals.js';
 import { BulkInstallService } from '../../install/application/bulkInstallService.js';
 import { InstallService } from '../../install/application/installService.js';
@@ -15,6 +16,19 @@ export interface InstallCommandOptions {
   readonly global?: boolean;
   readonly yes?: boolean;
 }
+
+const handleInvalidUsageError = (error: Error, json: boolean): never => {
+  if (json) {
+    process.stderr.write(
+      `${JSON.stringify({
+        error: { code: 'invalid_usage', message: error.message },
+      })}\n`,
+    );
+  } else {
+    process.stderr.write(`${error.message}\n`);
+  }
+  process.exit(2);
+};
 
 export const registerInstallCommand = (program: Command): void => {
   program
@@ -53,9 +67,12 @@ export const registerInstallCommand = (program: Command): void => {
           return;
         }
 
+        const parsed = parseInstallPackageArgument(packageId);
+
         const service = new InstallService();
         const results = await service.run({
-          packageId,
+          packageId: parsed.packageRef,
+          selection: parsed.selection ?? undefined,
           ...runOptions,
         });
 
@@ -68,6 +85,9 @@ export const registerInstallCommand = (program: Command): void => {
           globals.verbose,
         );
       } catch (error) {
+        if (error instanceof Error && error.name === 'InvalidUsageError') {
+          handleInvalidUsageError(error, globals.json);
+        }
         handleCliError(error);
       }
     });

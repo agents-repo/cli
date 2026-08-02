@@ -189,6 +189,31 @@ Body
   return zip.toBuffer()
 }
 
+export const buildDualCursorSkillZip = (): Buffer => {
+  const zip = new AdmZip()
+  zip.addFile(
+    '.cursor/skills/sample/SKILL.md',
+    Buffer.from(`---
+name: sample
+description: Sample skill for install tests.
+version: 1.0.0
+---
+Body
+`),
+  )
+  zip.addFile(
+    '.cursor/skills/planner/SKILL.md',
+    Buffer.from(`---
+name: planner
+description: Second skill in the same package for selective install tests.
+version: 1.0.0
+---
+Body
+`),
+  )
+  return zip.toBuffer()
+}
+
 export const buildOtherCursorSkillZip = (): Buffer => {
   const zip = new AdmZip()
   zip.addFile(

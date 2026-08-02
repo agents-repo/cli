@@ -10,6 +10,7 @@ extract into the project (or global directory), and update `agents.json` and
 ```bash
 agents-repo install [package-id] [options]
 agents-repo i [package-id] [options]
+agents-repo install <package-id>:<selector> [options]
 ```
 
 With **no** `package-id`, the command syncs every entry in the resolved
@@ -19,13 +20,18 @@ that package is installed.
 `<package-id>` is a qualified id (for example `agents-repo/sample-agent`) or an
 index alias defined in `packages/index.json`.
 
+**Colon syntax:** `install agents-repo/sample-agent:my-agent` installs only the agent or flow
+with id `my-agent` from that package. The selector must match an id in the downloaded artifact;
+otherwise the command exits `3`. Malformed `package-id:selector` arguments exit `2`.
+Config and lock still record the full package version; only selected files are extracted.
+
 ## Flags
 
 | Flag | Scope | Description |
 | --- | --- | --- |
 | `--global` / `-g` | install | Global scope: config and lock under `~/.agents-repo/` |
 | `--yes` / `-y` | install / global | Waive dual-definition mismatches with warnings |
-| `--dry-run` | global | Resolve through artifact selection; no download, extract, or save |
+| `--dry-run` | global | No extract/save; colon syntax validates selector against artifact ZIP |
 | `--no-save` | global | Skip `agents.json` and lock writes after a successful extract |
 | `--json` | global | Machine-readable success and error output |
 | `--verbose` | global | Detailed logging; multi-target installs add per-package summary lines |

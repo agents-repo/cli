@@ -11,6 +11,7 @@ import {
 } from '../../../src/modules/install/infrastructure/targetExtractPaths.js'
 import {
   buildCursorSkillZip,
+  buildDualCursorSkillZip,
   buildGithubCopilotZip,
   buildTraversalZip,
 } from '../../fixtures/installFixtures.js'
@@ -62,6 +63,23 @@ describe('packageExtractor', () => {
       await extractPackageArtifact(buildGithubCopilotZip(), 'github-copilot', '1.0.0', cwd)
       const content = readFileSync(path.join(cwd, '.github/agents/sample.agent.md'), 'utf8')
       expect(content).toContain('name: sample')
+    } finally {
+      rmSync(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('extracts only the selected cursor skill', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-selective-'))
+
+    try {
+      await extractPackageArtifact(buildDualCursorSkillZip(), 'cursor', '1.0.0', cwd, {
+        kind: 'single',
+        id: 'sample',
+      })
+      expect(() =>
+        readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8'),
+      ).not.toThrow()
+      expect(() => readFileSync(path.join(cwd, '.cursor/skills/planner/SKILL.md'), 'utf8')).toThrow()
     } finally {
       rmSync(cwd, { recursive: true, force: true })
     }

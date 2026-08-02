@@ -88,6 +88,15 @@ detection before fan-out. Bulk `install` / `update` MUST NOT run detection.
 `~/.agents-repo/` (or `AGENTS_REPO_HOME`). Project `agents.json` / `agents-lock.json` MUST NOT be
 modified when `-g` is set.
 
+**Selective install (colon syntax):** `install <package-id>:<selector>` installs one agent or flow
+by exact id from the package artifact. Parsing MUST split the positional argument on the **first**
+`:`; the left segment is the package ref (qualified id or index alias); the right segment is a
+non-empty selector id. Malformed grammar (empty package ref, empty selector, or bare `:`) MUST exit
+`2`. When the selector does not match an agent or flow id in the resolved artifact, tooling MUST
+exit `3`. Combining colon syntax with `--agents` or `--flows` in the same invocation MUST exit `2`
+when those flags exist ([#20](https://github.com/agents-repo/cli/issues/20)). See `cli-protocol.md`
+for extract and persistence rules.
+
 ### `add-target`
 
 | Flag | Description |
@@ -290,7 +299,6 @@ Reserved for follow-up feature issues. MVP MUST NOT implement these interfaces.
 
 | Interface | Description | Tracking |
 | --- | --- | --- |
-| `install <package-id>:<selector>` | Install one agent or flow by exact id | [#19](https://github.com/agents-repo/cli/issues/19) |
 | `--agents <id>` (repeatable) | Install listed agents from package | [#20](https://github.com/agents-repo/cli/issues/20) |
 | `--flows <id>` (repeatable) | Install listed flows from package | [#20](https://github.com/agents-repo/cli/issues/20) |
 

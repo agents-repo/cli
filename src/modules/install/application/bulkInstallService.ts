@@ -17,6 +17,8 @@ import {
   rollbackExtractedPaths,
 } from '../infrastructure/packageExtractor.js'
 import type { InstallResult } from '../domain/installResult.js'
+import type { InstallSelection } from '../domain/installSelection.js'
+import { assertSelectionInArtifactZip } from './installArtifactSelection.js'
 
 export interface BulkInstallServiceOptions {
   readonly cwd?: string
@@ -26,6 +28,7 @@ export interface BulkInstallServiceOptions {
   readonly dryRun?: boolean
   readonly noSave?: boolean
   readonly packageId?: string
+  readonly selection?: InstallSelection
   readonly enforceConfiguredOnly?: boolean
 }
 
@@ -107,6 +110,7 @@ export class BulkInstallService {
 
     const noSave = options.noSave === true
     const dryRun = options.dryRun === true
+    const selection = options.selection
 
     const results: InstallResult[] = []
     const persistenceEntries: BulkInstallPersistenceEntry[] = []
@@ -137,18 +141,35 @@ export class BulkInstallService {
             warnings: packageWarnings,
           }
 
-          if (dryRun) {
+          if (dryRun && selection === undefined) {
             results.push(resultBase)
             continue
           }
 
           const zipBytes = await downloadArtifact(plan.artifactUrl)
           verifySha256(zipBytes, plan.artifact.sha256)
+
+          if (selection !== undefined) {
+            assertSelectionInArtifactZip(
+              zipBytes,
+              target,
+              plan.version,
+              plan.pkg.id,
+              selection,
+            )
+          }
+
+          if (dryRun) {
+            results.push(resultBase)
+            continue
+          }
+
           const extractedPaths = await extractPackageArtifact(
             zipBytes,
             target,
             plan.version,
             scope.extractRoot,
+            selection,
           )
           extractedPathsAll.push(...extractedPaths)
 

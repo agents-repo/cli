@@ -177,6 +177,20 @@ describe('install command subprocess', () => {
     expect(result.status).toBe(4);
     expect(result.stderr).toContain('dual definition');
   });
+
+  it('exits 2 for malformed package-id:selector syntax', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-colon-usage-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, 'https://example.test');
+
+    const emptySelector = await runCliSubprocess(['install', 'agents-repo/sample-agent:'], {
+      cwd,
+    });
+    expect(emptySelector.status).toBe(2);
+
+    const missingPackage = await runCliSubprocess(['install', ':planner'], { cwd });
+    expect(missingPackage.status).toBe(2);
+  });
 });
 
 describe('install command subprocess with mock registry', () => {
@@ -439,6 +453,61 @@ describe('install command subprocess with mock registry', () => {
       packages: Record<string, { version: string }>
     };
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0');
+  });
+
+  it('installs a single agent via package-id:selector syntax', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-colon-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const result = await runCliSubprocess(
+      ['install', 'agents-repo/sample-agent:sample'],
+      { cwd },
+    );
+
+    expect(result.status).toBe(0);
+    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
+      'name: sample',
+    );
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/planner/SKILL.md'), 'utf8')).toThrow();
+
+    const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
+      packages: Record<string, { version: string }>
+    };
+    expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0');
+  });
+
+  it('exits 3 when selector is not in the package artifact', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-colon-missing-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const result = await runCliSubprocess(
+      ['install', 'agents-repo/sample-agent:missing-id'],
+      { cwd },
+    );
+
+    expect(result.status).toBe(3);
+    expect(result.stderr).toMatch(/missing-id/)
+  });
+
+  it('validates selector on dry-run without extracting files', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-colon-dry-run-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const ok = await runCliSubprocess(
+      ['--dry-run', 'install', 'agents-repo/sample-agent:sample'],
+      { cwd },
+    );
+    expect(ok.status).toBe(0);
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toThrow();
+
+    const bad = await runCliSubprocess(
+      ['--dry-run', 'install', 'agents-repo/sample-agent:missing-id'],
+      { cwd },
+    );
+    expect(bad.status).toBe(3);
   });
 
   it('extracts without saving when --no-save is set', async () => {

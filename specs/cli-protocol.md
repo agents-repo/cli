@@ -142,7 +142,9 @@ At minimum, tooling MUST reject archives with:
 
 - Extract per [registry install-targets](https://github.com/agents-repo/registry/blob/main/specs/install-targets.md)
   ZIP layout for the chosen target.
-- MVP: install the **entire package** (all agents and flows in the artifact).
+- Default: install the **entire package** (all agents and flows in the artifact).
+- **Selective install:** when `install <package-id>:<selector>` is used, extract only ZIP entries
+  belonging to that agent or flow id (see [Selective install](#selective-install)).
 - **Project scope:** extract under project root.
 - **Global scope:** extract under `~/.agents-repo/` (or `AGENTS_REPO_HOME`).
 
@@ -229,10 +231,25 @@ write `agents.json` or `agents-lock.json`. When a later target fails after earli
 deleted, tooling MUST restore deleted files from the locked artifact ZIP before surfacing the error.
 Config MUST be updated before the lock file on successful persistence.
 
-## MVP Install Scope
+## Selective install
 
-`install <package-id>` installs the **entire package**. Selective install (subset of agents or
-flows) is out of MVP scope. Reserved future interfaces are listed in `command-contracts.md`.
+`install <package-id>:<selector>` installs a **single** agent or flow from a package. The selector
+MUST be an exact agent or flow id present in the resolved version **target artifact ZIP** (derived
+from artifact entry paths per registry `package-format.md` and `install-targets.md`). When the id is
+missing, tooling MUST exit `3`.
+
+After download and integrity verification, tooling MUST validate the selector against the artifact
+inventory before extract. With `--dry-run`, tooling MUST still download (or otherwise read) the
+artifact bytes to validate the selector and MUST NOT extract files or mutate config or lock.
+
+**Extract:** only file entries mapped to the selected id (for example `agents/<id>.agent.md`,
+`agents/<id>.metadata.json`, or `.cursor/skills/<id>/…` depending on target).
+
+**Persistence:** step 12 MUST behave like a full package install for config and lock: record the
+package in `agents.json` when ad-hoc rules apply and write lock `integrity` / `artifact` for the
+**full** target artifact per `lock-schema.md`. On-disk files MAY be a subset of the artifact.
+
+`install <package-id>` without a selector continues to install the entire package.
 
 ## Cross-References
 

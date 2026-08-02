@@ -5,6 +5,8 @@ import AdmZip from 'adm-zip'
 
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import { InstallRuntimeError, InstallZipSecurityError } from '../domain/installErrors.js'
+import { zipEntryBelongsToSelection } from '../application/installArtifactSelection.js'
+import type { InstallSelection } from '../domain/installSelection.js'
 import {
   assertZipEntryPathSafe,
   mapZipEntryToExtractPath,
@@ -66,6 +68,7 @@ export const extractPackageArtifact = async (
   targetId: InstallTargetId,
   version: string,
   extractRoot: string,
+  selection?: InstallSelection,
 ): Promise<readonly string[]> => {
   const issues = scanTargetArtifactZipBuffer(zipBytes, targetId, version)
   const blocking = issues.find((issue) => issue.severity === 'error')
@@ -101,6 +104,13 @@ export const extractPackageArtifact = async (
       }
 
       assertZipEntryPathSafe(entryName)
+
+      if (
+        selection !== undefined &&
+        !zipEntryBelongsToSelection(entryName, targetId, selection.id)
+      ) {
+        continue
+      }
 
       const mappedName = mapZipEntryToExtractPath(targetId, entryName)
       if (mappedName.indexOf('..') !== -1) {
