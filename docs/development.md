@@ -57,6 +57,12 @@ npm run test
 npm run check:secrets
 ```
 
+`lint:all` includes `lint:workflows` ([actionlint](https://github.com/rhysd/actionlint)
+on `.github/workflows/`). Run `npm run lint:workflows` before pushing workflow
+changes. See the organization
+[GitHub Actions workflow linting](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#github-actions-workflow-linting)
+norm.
+
 For local CLI binary testing after code changes:
 
 ```bash
