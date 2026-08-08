@@ -1,0 +1,12 @@
+# actionlint bundled schemas for actions/create-github-app-token@v3 may lag the
+# published action; release.yml uses client-id per upstream and docs/npm-publishing.md.
+self-hosted-runner:
+  labels: []
+
+config-variables: null
+
+paths:
+  .github/workflows/release.yml:
+    ignore:
+      - 'input "client-id" is not defined in action "actions/create-github-app-token@v3"'
+      - 'missing input "app-id" which is required by action "actions/create-github-app-token@v3"'
