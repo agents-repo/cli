@@ -55,49 +55,30 @@ describe('search command', () => {
     }
   };
 
-  it('prints text results for a search query', async () => {
-    runMock.mockResolvedValue({
-      query: 'sample',
-      packages: sampleRegistryCatalog.packages,
-      indexUrl: 'https://example.test/index.json',
-      updatedAt: sampleRegistryCatalog.updatedAt,
-      warnings: [],
-    });
+  it.each(['search', 's', 'se'] as const)(
+    'dispatches search for command token %s',
+    async (command) => {
+      runMock.mockResolvedValue({
+        query: 'sample',
+        packages: sampleRegistryCatalog.packages,
+        indexUrl: 'https://example.test/index.json',
+        updatedAt: sampleRegistryCatalog.updatedAt,
+        warnings: [],
+      });
 
-    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
 
-    await withConfigOverride(async () => {
-      const program = createCliProgram();
-      await program.parseAsync(['search', 'sample'], { from: 'user' });
-    });
+      await withConfigOverride(async () => {
+        const program = createCliProgram();
+        await program.parseAsync([command, 'sample'], { from: 'user' });
+      });
 
-    expect(runMock).toHaveBeenCalledWith({ query: 'sample', yes: false });
-    expect(stdoutSpy.mock.calls.map((call) => String(call[0])).join('')).toContain(
-      'agents-repo/sample-agent@1.0.0',
-    );
-  });
-
-  it('dispatches the s npm parity alias like search', async () => {
-    runMock.mockResolvedValue({
-      query: 'sample',
-      packages: sampleRegistryCatalog.packages,
-      indexUrl: 'https://example.test/index.json',
-      updatedAt: sampleRegistryCatalog.updatedAt,
-      warnings: [],
-    });
-
-    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-
-    await withConfigOverride(async () => {
-      const program = createCliProgram();
-      await program.parseAsync(['s', 'sample'], { from: 'user' });
-    });
-
-    expect(runMock).toHaveBeenCalledWith({ query: 'sample', yes: false });
-    expect(stdoutSpy.mock.calls.map((call) => String(call[0])).join('')).toContain(
-      'agents-repo/sample-agent@1.0.0',
-    );
-  });
+      expect(runMock).toHaveBeenCalledWith({ query: 'sample', yes: false });
+      expect(stdoutSpy.mock.calls.map((call) => String(call[0])).join('')).toContain(
+        'agents-repo/sample-agent@1.0.0',
+      );
+    },
+  );
 
   it('emits JSON with packages array when --json is set', async () => {
     runMock.mockResolvedValue({

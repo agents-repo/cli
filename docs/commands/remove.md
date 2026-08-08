@@ -52,6 +52,13 @@ as `install` extract). Registry uninstall layout rules are defined in
 When the lock entry has multiple `byTarget` slots, `remove` processes every slot
 for that package.
 
+### npm parity: `unlink`
+
+`unlink` is a UX alias for this command (same behavior as `remove`, `rm`, and
+`uninstall`). agents-repo does not implement npm `link`; `unlink` always performs
+a full uninstall of configured lock artifacts, not npm-style linked-package removal
+only. See [npm-cli-parity.md](../npm-cli-parity.md).
+
 ## Exit codes
 
 | Code | Meaning |
