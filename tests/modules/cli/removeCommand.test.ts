@@ -198,6 +198,23 @@ describe('remove command subprocess with mock registry', () => {
     expect(lock.packages['agents-repo/sample-agent']).toBeUndefined();
   });
 
+  it('supports the unlink npm parity alias', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-remove-cli-unlink-alias-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const installResult = await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
+    expect(installResult.status).toBe(0);
+
+    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample');
+
+    const removeResult = await runCliSubprocess(['unlink', 'agents-repo/sample-agent'], { cwd });
+    expect(removeResult.status).toBe(0);
+    expect(removeResult.stdout).toContain('Removed agents-repo/sample-agent@1.0.0');
+    expect(() => readFileSync(skillPath, 'utf8')).toThrow();
+  });
+
   it('exits 3 when package is not in lock', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-remove-missing-'));
     tempDirs.push(cwd);

@@ -306,6 +306,28 @@ describe('update command subprocess with mock registry', () => {
     expect(result.stdout).toContain('Updated agents-repo/sample-agent@1.0.0');
   });
 
+  it('supports the upgrade alias', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-upgrade-alias-'));
+    tempDirs.push(cwd);
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: { url: mockBaseUrl, ref: 'v2.0.0' },
+        targets: ['cursor'],
+        packages: {
+          'agents-repo/sample-agent': '^1.0.0',
+        },
+      }),
+    );
+
+    const result = await runCliSubprocess(['upgrade'], { cwd });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Updated agents-repo/sample-agent@1.0.0');
+  });
+
   it('updates a single configured package', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-update-cli-single-'));
     tempDirs.push(cwd);

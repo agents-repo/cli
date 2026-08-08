@@ -9,6 +9,7 @@ update `agents-lock.json` (and `agents.json` when needed) unless disabled.
 ```bash
 agents-repo update [package-id] [options]
 agents-repo up [package-id] [options]
+agents-repo upgrade [package-id] [options]
 ```
 
 With **no** `package-id`, every entry in the resolved `agents.json` `packages`

@@ -29,9 +29,11 @@ npm run build
 node dist/bin/agents-repo.js <command>
 ```
 
-Commands (`init`, `install`, `update`, `remove`, `search`, `suggest-agents`, `list`, `ci`,
-`doctor`, and `targets`) are available today. See
+Commands (`init`, `add-target`, `install`, `update`, `remove`, `search`, `suggest-agents`, `list`, `ci`,
+`doctor`, and `targets`) are available today. npm alias parity is summarized in
+[docs/npm-cli-parity.md](docs/npm-cli-parity.md). See
 [docs/commands/init.md](docs/commands/init.md),
+[docs/commands/add-target.md](docs/commands/add-target.md),
 [docs/commands/install.md](docs/commands/install.md),
 [docs/commands/update.md](docs/commands/update.md),
 [docs/commands/remove.md](docs/commands/remove.md),
@@ -84,15 +86,17 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 | Command | Documentation |
 | --- | --- |
 | `init` | [docs/commands/init.md](docs/commands/init.md) |
-| `install` / `i` | [docs/commands/install.md](docs/commands/install.md) |
-| `update` / `up` | [docs/commands/update.md](docs/commands/update.md) |
-| `remove` / `rm` | [docs/commands/remove.md](docs/commands/remove.md) |
-| `search` / `find` | [docs/commands/search.md](docs/commands/search.md) |
+| `add-target` | [docs/commands/add-target.md](docs/commands/add-target.md) |
+| `install` / `i` / `add` / `inst` | [docs/commands/install.md](docs/commands/install.md) |
+| `update` / `up` / `upgrade` | [docs/commands/update.md](docs/commands/update.md) |
+| `remove` / `rm` / `uninstall` / `unlink` | [docs/commands/remove.md](docs/commands/remove.md) |
+| `search` / `find` / `s` / `se` | [docs/commands/search.md](docs/commands/search.md) |
 | `suggest-agents` / `suggest` | [docs/commands/suggest-agents.md](docs/commands/suggest-agents.md) |
 | `list` / `ls` | [docs/commands/list.md](docs/commands/list.md) |
 | `ci` | [docs/commands/ci.md](docs/commands/ci.md) |
 | `doctor` | [docs/commands/doctor.md](docs/commands/doctor.md) |
 | `targets` | [docs/commands/targets.md](docs/commands/targets.md) |
+| npm parity matrix | [docs/npm-cli-parity.md](docs/npm-cli-parity.md) |
 
 ## IDE Agent Instructions
 

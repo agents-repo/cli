@@ -8,6 +8,8 @@ home page search (`filterRegistryPackages`).
 ```bash
 agents-repo search [query] [options]
 agents-repo find [query] [options]
+agents-repo s [query] [options]
+agents-repo se [query] [options]
 ```
 
 With no `query`, or with a whitespace-only query, every package in the catalog

@@ -10,6 +10,8 @@ extract into the project (or global directory), and update `agents.json` and
 ```bash
 agents-repo install [package-id...] [options]
 agents-repo i [package-id...] [options]
+agents-repo add [package-id...] [options]
+agents-repo inst [package-id...] [options]
 ```
 
 With **no** `package-id`, the command syncs every entry in the resolved

@@ -9,6 +9,8 @@ remove the package from config and lock unless disabled.
 ```bash
 agents-repo remove <package-id> [options]
 agents-repo rm <package-id> [options]
+agents-repo uninstall <package-id> [options]
+agents-repo unlink <package-id> [options]
 ```
 
 `<package-id>` is a qualified id (for example `agents-repo/sample-agent`) or an
@@ -49,6 +51,13 @@ as `install` extract). Registry uninstall layout rules are defined in
 
 When the lock entry has multiple `byTarget` slots, `remove` processes every slot
 for that package.
+
+### npm parity: `unlink`
+
+`unlink` is a UX alias for this command (same behavior as `remove`, `rm`, and
+`uninstall`). agents-repo does not implement npm `link`; `unlink` always performs
+a full uninstall of configured lock artifacts, not npm-style linked-package removal
+only. See [npm-cli-parity.md](../npm-cli-parity.md).
 
 ## Exit codes
 

@@ -499,6 +499,28 @@ describe('install command subprocess with mock registry', () => {
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0');
   });
 
+  it('supports the inst npm parity alias', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-inst-alias-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const result = await runCliSubprocess(['inst', 'agents-repo/sample-agent'], { cwd });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
+  });
+
+  it('supports the add npm parity alias', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-add-alias-'));
+    tempDirs.push(cwd);
+    writeInstallConfig(cwd, mockBaseUrl);
+
+    const result = await runCliSubprocess(['add', 'agents-repo/sample-agent'], { cwd });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
+  });
+
   it('installs multiple ad-hoc package ids and persists all packages ranges', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-multi-adhoc-'));
     tempDirs.push(cwd);

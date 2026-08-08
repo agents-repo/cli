@@ -197,7 +197,7 @@ const handleInvalidUsageError = (error: Error, json: boolean): never => {
 export const registerSearchCommand = (program: Command): void => {
   program
     .command('search [query]')
-    .alias('find')
+    .aliases(['find', 's', 'se'])
     .description('Search the registry catalog')
     .option('--interactive', 'Browse and select a package interactively')
     .action(async function searchAction(

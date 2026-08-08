@@ -19,7 +19,7 @@ export interface RemoveCommandOptions {
 export const registerRemoveCommand = (program: Command): void => {
   program
     .command('remove <package-id>')
-    .alias('rm')
+    .aliases(['rm', 'uninstall', 'unlink'])
     .description('Remove an installed package and its extracted files')
     .option('-g, --global', 'Remove from the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
