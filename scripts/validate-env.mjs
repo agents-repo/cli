@@ -64,10 +64,14 @@ function satisfiesEngineWithoutSemver(version, range) {
   if (!versionTriple) {
     return false;
   }
-  const trimmed = range.trim();
-  const comparators = trimmed.split(/\s+/).filter((part) => /^[><=]/.test(part));
+  const parts = range.trim().split(/\s+/).filter(Boolean);
+  const comparators = parts.filter((part) => /^[><=]/.test(part));
+  const unsupported = parts.filter((part) => !/^[><=]/.test(part));
+  if (unsupported.length > 0) {
+    return null;
+  }
   if (comparators.length === 0) {
-    return satisfiesComparator(versionTriple, `=${trimmed}`);
+    return satisfiesComparator(versionTriple, `=${parts[0] ?? ''}`);
   }
   return comparators.every((part) => satisfiesComparator(versionTriple, part));
 }
@@ -83,7 +87,14 @@ function satisfiesEngine(version, range, packageJsonPath) {
       );
       process.exit(1);
     }
-    return satisfiesEngineWithoutSemver(version, range);
+    const satisfied = satisfiesEngineWithoutSemver(version, range);
+    if (satisfied === null) {
+      console.error(
+        'Cannot validate engines.node range format without installed dependencies; run npm ci first.'
+      );
+      process.exit(1);
+    }
+    return satisfied;
   }
 }
 

@@ -46,7 +46,8 @@ Commands (`init`, `add-target`, `install`, `update`, `remove`, `search`, `sugges
 
 ## Stack
 
-- Node.js **22.x and 24.x LTS** (minimum **22.12.0**; see `package.json` `engines.node`)
+- Node.js **22.x and 24.x LTS** (minimum **22.12.0**); `engines.node` is `>=22.12.0 <25.0.0` for npm—supported
+  lines are 22.x and 24.x ([docs/development.md](docs/development.md))
 - Recommended for cli development: `.nvmrc` **24.18.0**
 - npm 12.x (`packageManager` pinned to `npm@12.0.1`)
 - TypeScript

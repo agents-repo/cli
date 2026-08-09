@@ -11,7 +11,9 @@ const execFileAsync = promisify(execFile);
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const VALIDATE_ENV_SCRIPT = path.join(REPO_ROOT, 'scripts', 'validate-env.mjs');
-const DEFAULT_ENGINES_NODE = '>=22.12.0 <25.0.0';
+const DEFAULT_ENGINES_NODE = JSON.parse(
+  fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'),
+).engines.node;
 
 const currentNode = process.version.replace(/^v/, '');
 const currentNodeMajor = currentNode.split('.')[0];
@@ -144,6 +146,30 @@ describe('validate-env', () => {
     });
 
     assert.match(stdout, /satisfy repository requirements/);
+  });
+
+  it('exits 1 without node_modules when engines.node uses unsupported range tokens', async () => {
+    const repo = makeTempRepo({
+      nvmrc: currentNode,
+      packageManager: 'npm@12.0.1',
+      enginesNode: '22.12.0 - 24.0.0',
+    });
+    tempRepos.push(repo);
+
+    await assert.rejects(
+      () =>
+        runValidateEnv(repo, {
+          npm_config_user_agent: 'npm/12.0.1',
+          withoutInstalledDeps: true,
+        }),
+      (error) => {
+        assert.match(
+          String(error.stderr),
+          /Cannot validate engines\.node range format without installed dependencies/,
+        );
+        return true;
+      },
+    );
   });
 
   it('ignores packageManager corepack hash suffix on patch check', async () => {
