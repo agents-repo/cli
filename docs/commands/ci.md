@@ -95,8 +95,11 @@ every required `byTarget` slot exists before enabling `ci` in a pipeline.
 
 ```yaml
 - name: Install agents from lock
-  run: npx agents-repo@latest ci
+  run: npm run agents:ci
 ```
+
+Consumer repositories pin the CLI in `devDependencies` and expose `agents:ci` in
+`package.json`. Run `npm ci` before this step so `node_modules/.bin` is populated.
 
 Commit `agents-lock.json` (and `agents.json` when it changes) so CI reproduces the same
 `(package, target)` matrix as local bulk install.

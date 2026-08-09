@@ -170,11 +170,13 @@ node scripts/run-published-agents-repo.mjs init \
 In this repository, do not use bare `npx agents-repo@…` from the repo root:
 npm resolves it to the local `package.json` name and fails before `dist/` exists.
 
-Use the pinned npm scripts (same CLI version as CI):
+Use the pinned npm scripts (same published CLI version as consumer repos; the
+helper installs `agents-repo@<version>` from this repo's root `package.json`):
 
 ```bash
 npm run agents:install   # bulk sync from agents.json
 npm run agents:update    # refresh within semver ranges
+npm run agents:ci        # lock-pinned registry install (CI parity)
 ```
 
 Commit `agents.json`, `agents-lock.json`, and extracted paths (`.github/agents/`,

@@ -50,6 +50,7 @@
     "sync:ide-instructions": "node scripts/sync-ide-instructions.mjs",
     "agents:install": "node scripts/run-published-agents-repo.mjs install",
     "agents:update": "node scripts/run-published-agents-repo.mjs update",
+    "agents:ci": "node scripts/run-published-agents-repo.mjs ci",
     "test:sync": "node --test test/sync-ide-instructions.test.mjs test/validate-env.test.mjs",
     "check:secrets": "bash scripts/check-secrets.sh",
     "pretest": "tsc -p tsconfig.build.json",

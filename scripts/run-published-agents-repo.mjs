@@ -4,14 +4,22 @@
  *
  * npm 12 `npx agents-repo@latest` resolves to the local package.json (same
  * name/version) and fails before `dist/` is built. CI and npm scripts use this
- * helper to invoke the registry tarball instead.
+ * helper to invoke a pinned registry release instead.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const PUBLISHED_CLI_DIST_TAG = 'latest';
+const packageJsonPath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'package.json',
+);
+const { version: publishedCliVersion } = JSON.parse(
+  readFileSync(packageJsonPath, 'utf8'),
+);
 const args = process.argv.slice(2);
 
 const resolveNpmCliInvocation = (npmArgs) => {
@@ -36,7 +44,7 @@ const npmInstall = resolveNpmCliInvocation([
   'install',
   '--prefix',
   installRoot,
-  `agents-repo@${PUBLISHED_CLI_DIST_TAG}`,
+  `agents-repo@${publishedCliVersion}`,
 ]);
 execFileSync(npmInstall.command, npmInstall.args, { stdio: 'inherit' });
 
