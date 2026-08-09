@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 
 function parseSemverTriple(version) {
-  const match = String(version).trim().match(/^(\d+)\.(\d+)\.(\d+)/);
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(String(version).trim());
   if (!match) {
     return null;
   }
