@@ -37,14 +37,16 @@ function makeTempRepo({ nvmrc, packageManager, enginesNode = DEFAULT_ENGINES_NOD
   return dir;
 }
 
-async function runValidateEnv(cwd, env = {}) {
+async function runValidateEnv(cwd, { withoutInstalledDeps = false, ...env } = {}) {
+  const childEnv = { ...process.env, ...env };
+  if (withoutInstalledDeps) {
+    delete childEnv.NODE_PATH;
+  } else {
+    childEnv.NODE_PATH = path.join(REPO_ROOT, 'node_modules');
+  }
   return execFileAsync('node', ['scripts/validate-env.mjs'], {
     cwd,
-    env: {
-      ...process.env,
-      NODE_PATH: path.join(REPO_ROOT, 'node_modules'),
-      ...env,
-    },
+    env: childEnv,
   });
 }
 
@@ -125,6 +127,22 @@ describe('validate-env', () => {
     if (recommendedNvmrc.split('.')[0] !== currentNodeMajor) {
       assert.match(String(stderr), /Node major differs from recommended/);
     }
+    assert.match(stdout, /satisfy repository requirements/);
+  });
+
+  it('passes without node_modules when engines.node uses comparator ranges', async () => {
+    const repo = makeTempRepo({
+      nvmrc: currentNode,
+      packageManager: 'npm@12.0.1',
+      enginesNode: DEFAULT_ENGINES_NODE,
+    });
+    tempRepos.push(repo);
+
+    const { stdout } = await runValidateEnv(repo, {
+      npm_config_user_agent: 'npm/12.0.1',
+      withoutInstalledDeps: true,
+    });
+
     assert.match(stdout, /satisfy repository requirements/);
   });
 

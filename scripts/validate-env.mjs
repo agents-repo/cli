@@ -3,10 +3,89 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 
-import { fileURLToPath } from 'node:url';
+function parseSemverTriple(version) {
+  const match = String(version).trim().match(/^(\d+)\.(\d+)\.(\d+)/);
+  if (!match) {
+    return null;
+  }
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
 
-const require = createRequire(fileURLToPath(import.meta.url));
-const semver = require('semver');
+function compareSemverTriples(a, b) {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) {
+      return a[i] < b[i] ? -1 : 1;
+    }
+  }
+  return 0;
+}
+
+function satisfiesComparator(versionTriple, comparator) {
+  const trimmed = comparator.trim();
+  let op = '=';
+  let versionPart = trimmed;
+  if (trimmed.startsWith('>=')) {
+    op = '>=';
+    versionPart = trimmed.slice(2).trim();
+  } else if (trimmed.startsWith('<=')) {
+    op = '<=';
+    versionPart = trimmed.slice(2).trim();
+  } else if (trimmed.startsWith('>')) {
+    op = '>';
+    versionPart = trimmed.slice(1).trim();
+  } else if (trimmed.startsWith('<')) {
+    op = '<';
+    versionPart = trimmed.slice(1).trim();
+  } else if (trimmed.startsWith('=')) {
+    versionPart = trimmed.slice(1).trim();
+  }
+  const target = parseSemverTriple(versionPart);
+  if (!target) {
+    return false;
+  }
+  const comparison = compareSemverTriples(versionTriple, target);
+  switch (op) {
+    case '>=':
+      return comparison >= 0;
+    case '<=':
+      return comparison <= 0;
+    case '>':
+      return comparison > 0;
+    case '<':
+      return comparison < 0;
+    default:
+      return comparison === 0;
+  }
+}
+
+/** Comparator-set ranges (for example `>=22.12.0 <25.0.0`) without the semver package. */
+function satisfiesEngineWithoutSemver(version, range) {
+  const versionTriple = parseSemverTriple(version);
+  if (!versionTriple) {
+    return false;
+  }
+  const trimmed = range.trim();
+  const comparators = trimmed.split(/\s+/).filter((part) => /^[><=]/.test(part));
+  if (comparators.length === 0) {
+    return satisfiesComparator(versionTriple, `=${trimmed}`);
+  }
+  return comparators.every((part) => satisfiesComparator(versionTriple, part));
+}
+
+function satisfiesEngine(version, range, packageJsonPath) {
+  try {
+    const semver = createRequire(packageJsonPath)('semver');
+    return semver.satisfies(version, range, { includePrerelease: false });
+  } catch {
+    if (/[|^~*x]/.test(range)) {
+      console.error(
+        'Cannot validate engines.node without installed dependencies; run npm ci first.'
+      );
+      process.exit(1);
+    }
+    return satisfiesEngineWithoutSemver(version, range);
+  }
+}
 
 function resolveNpmCliInvocation() {
   const npmExecPath = process.env.npm_execpath;
@@ -37,9 +116,8 @@ function detectNpmVersion() {
 }
 
 const root = process.cwd();
-const packageJson = JSON.parse(
-  readFileSync(resolve(root, 'package.json'), 'utf8')
-);
+const packageJsonPath = resolve(root, 'package.json');
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 const pinnedNode = readFileSync(resolve(root, '.nvmrc'), 'utf8').trim();
 const pinnedNpm = String(packageJson.packageManager ?? '')
   .replace(/^npm@/, '')
@@ -60,7 +138,7 @@ if (!engineRange) {
   process.exit(1);
 }
 
-if (!semver.satisfies(currentNode, engineRange, { includePrerelease: false })) {
+if (!satisfiesEngine(currentNode, engineRange, packageJsonPath)) {
   console.error(
     `Node version mismatch: expected ${engineRange} (engines.node), got ${currentNode}`
   );
