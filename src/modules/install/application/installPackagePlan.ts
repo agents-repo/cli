@@ -10,9 +10,8 @@ import {
 } from '../../registry/infrastructure/registryRepository.js'
 import type { RegistryCatalogLoadResult } from '../../registry/infrastructure/registryRepository.js'
 import type { ResolvedAgentsConfig } from '../../config/domain/agentsConfig.js'
-import type { InstallTargetId } from '../../registry/domain/package.js'
 import type { ManifestArtifact } from '../../registry/domain/manifest.js'
-import type { RegistryPackage } from '../../registry/domain/package.js'
+import type { InstallTargetId, RegistryPackage } from '../../registry/domain/package.js'
 import { resolveInstallVersion } from './resolveInstallVersion.js'
 import { assertInstallTargetSupported } from './validateInstallTarget.js'
 

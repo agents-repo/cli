@@ -91,7 +91,9 @@ export class InstallPersistence {
         if (input.resolved.targets !== undefined) {
           patch.targets = input.resolved.targets
         }
-        patch.packages = { ...input.resolved.packages, ...(adHocRanges ?? {}) }
+        const adHocPackageRanges =
+          adHocRanges === undefined ? {} : { ...adHocRanges }
+        patch.packages = { ...input.resolved.packages, ...adHocPackageRanges }
       } else if (hasAdHocRanges) {
         patch.packages = adHocRanges
       }
@@ -109,7 +111,9 @@ export class InstallPersistence {
     }
 
     const existingLock = await this.lockFileService.read(input.resolved.lockPath)
-    const packages: AgentsLockDocument['packages'] = { ...(existingLock?.packages ?? {}) }
+    const packages: AgentsLockDocument['packages'] = existingLock?.packages
+      ? { ...existingLock.packages }
+      : {}
 
     for (const entry of input.entries) {
       const prior = packages[entry.packageId]

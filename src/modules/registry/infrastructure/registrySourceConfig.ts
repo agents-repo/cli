@@ -3,9 +3,9 @@ import {
   DEFAULT_REGISTRY_GITHUB_REPOSITORY_URL,
   DEFAULT_REGISTRY_INDEX_PATH,
   DEFAULT_REGISTRY_REF,
-  DEFAULT_REGISTRY_SOURCE_URL,
   normalizeRegistryBaseUrl,
 } from './registrySourceUrl.js'
+export { DEFAULT_REGISTRY_SOURCE_URL } from './registrySourceUrl.js'
 import {
   extractMajorVersionLineAliasFromSourceUrl,
   inferRegistryRepositoryIdentity,
@@ -185,6 +185,3 @@ export const resolveRegistryFetchSourceConfig = async (
     baseUrlRefResolution: baseSourceResolution.baseUrlRefResolution,
   })
 }
-
-// Re-export for tests that compare against webapp default source URL shape.
-export { DEFAULT_REGISTRY_SOURCE_URL }

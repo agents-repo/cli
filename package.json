@@ -60,6 +60,7 @@
     "build": "tsc -p tsconfig.build.json",
     "prepack": "tsc -p tsconfig.build.json",
     "publish:local": "HUSKY=0 npm publish --access public",
+    "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run",
     "prepare": "husky"
   },

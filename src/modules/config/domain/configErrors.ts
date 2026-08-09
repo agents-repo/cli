@@ -13,10 +13,6 @@ export abstract class ConfigError extends Error {
 export class ConfigParseError extends ConfigError {
   readonly exitCode = 3 as const
   readonly code = 'config_parse_error'
-
-  constructor(message: string) {
-    super(message)
-  }
 }
 
 export type ConfigValidationCode =
@@ -74,8 +70,4 @@ export type ConfigConflictCode =
 export class LockValidationError extends ConfigError {
   readonly exitCode = 3 as const
   readonly code = 'lock_validation_error'
-
-  constructor(message: string) {
-    super(message)
-  }
 }

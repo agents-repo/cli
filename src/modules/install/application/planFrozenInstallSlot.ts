@@ -1,8 +1,7 @@
 import { buildManifestArtifactUrl } from '../../registry/application/resolveArtifact.js'
 import type { RegistryCatalogLoadResult } from '../../registry/infrastructure/registryRepository.js'
-import type { RegistryPackage } from '../../registry/domain/package.js'
 import type { TargetLockSlot } from '../../config/domain/packageLockEntry.js'
-import type { InstallTargetId } from '../../registry/domain/package.js'
+import type { InstallTargetId, RegistryPackage } from '../../registry/domain/package.js'
 
 export interface FrozenInstallSlotPlan {
   readonly packageId: string

@@ -36,9 +36,14 @@ export const mergeTargetLockSlot = (
   const versionChanged =
     existing !== undefined && existing.version !== version
 
-  const byTarget = versionChanged
-    ? { [targetId]: slot }
-    : { ...(existing?.byTarget ?? {}), [targetId]: slot }
+  let byTarget: NormalizedPackageLockEntry['byTarget']
+  if (versionChanged) {
+    byTarget = { [targetId]: slot }
+  } else if (existing?.byTarget === undefined) {
+    byTarget = { [targetId]: slot }
+  } else {
+    byTarget = { ...existing.byTarget, [targetId]: slot }
+  }
 
   return {
     version,

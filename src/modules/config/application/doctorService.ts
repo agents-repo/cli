@@ -149,6 +149,60 @@ const runLockConfigSync = (resolved: ResolvedAgentsConfig, lock: AgentsLockDocum
   validateLockVersionRanges(resolved, lock, { force: false })
 }
 
+const skipChecksAfterConfigFailure = (checks: DoctorCheck[]): void => {
+  checks.push(
+    skipCheck('targets_configured', 'Skipped because config resolution failed'),
+    skipCheck('lock_present', 'Skipped because config resolution failed'),
+    skipCheck('lock_config_sync', 'Skipped because config resolution failed'),
+    skipCheck('registry_reachable', 'Skipped because config resolution failed'),
+    skipCheck('install_paths', 'Skipped because config resolution failed'),
+  )
+}
+
+const verifyLockSlotInstallPaths = async (options: {
+  readonly packageId: string
+  readonly target: ReturnType<typeof resolveInstallTargets>[number]
+  readonly lockEntry: AgentsLockDocument['packages'][string]
+  readonly catalogResult: RegistryCatalogLoadResult
+  readonly scope: ReturnType<typeof resolveInstallScope>
+  readonly preferOnline: boolean
+  readonly env: NodeJS.ProcessEnv
+  readonly parseIntegrityHex: (integrity: string) => string
+  readonly missingPaths: string[]
+}): Promise<void> => {
+  const slot = options.lockEntry.byTarget[options.target]
+  if (slot === undefined) {
+    return
+  }
+
+  const pkg = resolvePackageInCatalog(options.catalogResult.catalog, options.packageId)
+  const plan = planFrozenInstallSlot({
+    catalogResult: options.catalogResult,
+    pkg,
+    version: options.lockEntry.version,
+    target: options.target,
+    slot,
+  })
+
+  const zipBytes = await downloadArtifact(plan.artifactUrl, {
+    expectedSha256Hex: options.parseIntegrityHex(plan.slot.integrity),
+    preferOnline: options.preferOnline,
+    env: options.env,
+  })
+  const extractPlan = planArtifactExtractFromZip(
+    zipBytes,
+    plan.target,
+    plan.version,
+    options.scope.extractRoot,
+  )
+
+  for (const absolutePath of extractPlan.absolutePaths) {
+    if (!existsSync(absolutePath)) {
+      options.missingPaths.push(absolutePath)
+    }
+  }
+}
+
 const verifyInstallPathsFromLock = async (options: {
   readonly resolved: ResolvedAgentsConfig
   readonly lock: AgentsLockDocument
@@ -172,38 +226,21 @@ const verifyInstallPathsFromLock = async (options: {
 
   for (const target of targets) {
     for (const packageId of packageIds) {
-      const lockEntry = options.lock.packages[packageId]
-      const slot = lockEntry.byTarget[target]
-      if (slot === undefined) {
+      if (!Object.hasOwn(options.lock.packages, packageId)) {
         continue
       }
-
-      const pkg = resolvePackageInCatalog(options.catalogResult.catalog, packageId)
-      const plan = planFrozenInstallSlot({
-        catalogResult: options.catalogResult,
-        pkg,
-        version: lockEntry.version,
+      const lockEntry = options.lock.packages[packageId]
+      await verifyLockSlotInstallPaths({
+        packageId,
         target,
-        slot,
-      })
-
-      const zipBytes = await downloadArtifact(plan.artifactUrl, {
-        expectedSha256Hex: options.parseIntegrityHex(plan.slot.integrity),
+        lockEntry,
+        catalogResult: options.catalogResult,
+        scope,
         preferOnline: options.preferOnline,
         env: options.env,
+        parseIntegrityHex: options.parseIntegrityHex,
+        missingPaths,
       })
-      const extractPlan = planArtifactExtractFromZip(
-        zipBytes,
-        plan.target,
-        plan.version,
-        scope.extractRoot,
-      )
-
-      for (const absolutePath of extractPlan.absolutePaths) {
-        if (!existsSync(absolutePath)) {
-          missingPaths.push(absolutePath)
-        }
-      }
     }
   }
 
@@ -252,11 +289,7 @@ export class DoctorService {
     }
 
     if (resolved === undefined) {
-      checks.push(skipCheck('targets_configured', 'Skipped because config resolution failed'))
-      checks.push(skipCheck('lock_present', 'Skipped because config resolution failed'))
-      checks.push(skipCheck('lock_config_sync', 'Skipped because config resolution failed'))
-      checks.push(skipCheck('registry_reachable', 'Skipped because config resolution failed'))
-      checks.push(skipCheck('install_paths', 'Skipped because config resolution failed'))
+      skipChecksAfterConfigFailure(checks)
       return {
         checks,
         warnings,

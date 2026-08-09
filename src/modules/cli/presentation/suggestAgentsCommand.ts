@@ -7,38 +7,13 @@ import {
 } from '../../registry/application/suggestAgentsService.js'
 import { formatCatalogUpdatedAt } from '../../registry/application/registrySelectors.js'
 import { handleCliError } from './cliErrorHandling.js'
+import { sanitizeTerminalText } from './terminalTextSanitize.js'
 
 export interface SuggestAgentsCommandOptions {
   readonly limit?: string
 }
 
 const DESCRIPTION_MAX_LENGTH = 72
-
-const ESCAPE = String.fromCharCode(0x1b)
-const CSI = String.fromCharCode(0x9b)
-const ANSI_ESCAPE_SEQUENCE = new RegExp(`(?:${ESCAPE}|${CSI})\\[[0-9;]*[ -/]*[@-~]`, 'g')
-
-const isPrintableTerminalChar = (code: number): boolean => {
-  if (code < 0x20 || code === 0x7f) {
-    return false
-  }
-
-  if (code >= 0x80 && code <= 0x9f) {
-    return false
-  }
-
-  return true
-}
-
-const stripAnsiEscapeSequences = (value: string): string =>
-  value.replace(ANSI_ESCAPE_SEQUENCE, '')
-
-const sanitizeTerminalText = (value: string): string => {
-  const withoutAnsi = stripAnsiEscapeSequences(value)
-  return [...withoutAnsi]
-    .filter((char) => isPrintableTerminalChar(char.charCodeAt(0)))
-    .join('')
-}
 
 const truncateDescription = (value: string): string => {
   const codePoints = [...value]

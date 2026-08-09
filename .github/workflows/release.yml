@@ -130,4 +130,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.release-app-token.outputs.token }}
           HUSKY: 0
-        run: npx semantic-release
+        run: npm run release
