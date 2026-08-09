@@ -31,7 +31,7 @@ registration, and global option hooks.
 
 **Why:**
 
-- Native ESM support matches this repository (`"type": "module"`, Node 24.18.0).
+- Native ESM support matches this repository (`"type": "module"`, Node.js 22.x/24.x LTS).
 - Subcommand and alias API fits the MVP command surface (`install` / `i`,
   `search` / `find`, `list` / `ls`).
 - `preAction` hooks and `optsWithGlobals()` support root-level `--json` and

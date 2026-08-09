@@ -1,14 +1,28 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
 name: Setup Node and pinned npm
-description: Setup Node from .nvmrc, activate pinned npm via Corepack, and install dependencies.
+description: Setup Node from .nvmrc or an optional matrix version, activate pinned npm via Corepack, and install dependencies.
+
+inputs:
+  node-version:
+    description: Optional Node version (for example 22 or 24). When empty, uses .nvmrc.
+    required: false
+    default: ''
 
 runs:
   using: composite
   steps:
-    - name: Setup Node
+    - name: Setup Node from .nvmrc
+      if: inputs.node-version == ''
       uses: actions/setup-node@v6
       with:
         node-version-file: .nvmrc
+        cache: npm
+
+    - name: Setup Node from matrix input
+      if: inputs.node-version != ''
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
         cache: npm
 
     - name: Activate pinned npm

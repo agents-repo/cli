@@ -19,6 +19,14 @@ This spec defines end-to-end **install** behavior for variadic ad-hoc installs, 
 `update` commands.
 Implementation is provided by the registry, config, and install modules.
 
+## Runtime requirements
+
+The published npm package declares supported Node.js versions in `package.json` `engines.node`
+(currently Node.js **22.x** and **24.x** LTS with minimum patch **22.12.0**). End users running
+`npx agents-repo` or adding the CLI as a dependency SHOULD use a Node version that satisfies that
+range. Contributor toolchain pins (`.nvmrc`, `packageManager`) are documented in
+[`docs/development.md`](../docs/development.md) and are not part of this install protocol.
+
 ## Update command
 
 `update` and `update <package-id>` MUST execute the same pipeline steps as bulk `install` for

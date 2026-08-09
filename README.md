@@ -46,7 +46,8 @@ Commands (`init`, `add-target`, `install`, `update`, `remove`, `search`, `sugges
 
 ## Stack
 
-- Node.js 24.x (`.nvmrc` pinned to `24.18.0`)
+- Node.js **22.x and 24.x LTS** (minimum **22.12.0**; see `package.json` `engines.node`)
+- Recommended for cli development: `.nvmrc` **24.18.0**
 - npm 12.x (`packageManager` pinned to `npm@12.0.1`)
 - TypeScript
 - Vitest for unit tests

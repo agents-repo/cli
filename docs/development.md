@@ -16,13 +16,23 @@ See [CLI_WORKFLOW.md](CLI_WORKFLOW.md) for `gh` command examples.
 
 ## Toolchain
 
-This project follows the pinned runtime declared in `.nvmrc` and `package.json`.
+**Published support:** `package.json` `engines.node` (`>=22.12.0 <25.0.0`) is the contract npm
+uses when you add `agents-repo` as a dependency or run `npx agents-repo`. Supported Node.js LTS
+release lines are **22.x** and **24.x** (minimum patch **22.12.0**, driven by `commander@^15`).
+
+**Developing this repository:** `.nvmrc` recommends a pinned Node **24.x** patch for
+contributors; `npm run env:check` requires a Node version that satisfies `engines.node`, npm major
+match with `packageManager`, and warns when your Node patch differs from `.nvmrc` on the same
+major. You may develop on Node **22.x** or **24.x** when both satisfy `engines.node`.
 
 ```bash
 corepack enable npm
 corepack prepare npm@12.0.1 --activate
 npm ci
 ```
+
+npm 12, Corepack, and install-script approvals apply to **this repo’s** contributor workflow.
+Consumers installing the published CLI typically only need a supported Node version.
 
 ### Install script approvals (npm 12)
 

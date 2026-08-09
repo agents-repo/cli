@@ -11,11 +11,12 @@ const execFileAsync = promisify(execFile);
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const VALIDATE_ENV_SCRIPT = path.join(REPO_ROOT, 'scripts', 'validate-env.mjs');
+const DEFAULT_ENGINES_NODE = '>=22.12.0 <25.0.0';
 
 const currentNode = process.version.replace(/^v/, '');
 const currentNodeMajor = currentNode.split('.')[0];
 
-function makeTempRepo({ nvmrc, packageManager }) {
+function makeTempRepo({ nvmrc, packageManager, enginesNode = DEFAULT_ENGINES_NODE }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-validate-env-'));
   fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
   fs.copyFileSync(VALIDATE_ENV_SCRIPT, path.join(dir, 'scripts', 'validate-env.mjs'));
@@ -26,6 +27,7 @@ function makeTempRepo({ nvmrc, packageManager }) {
       {
         name: 'validate-env-test',
         packageManager,
+        engines: { node: enginesNode },
       },
       null,
       2,
@@ -38,7 +40,11 @@ function makeTempRepo({ nvmrc, packageManager }) {
 async function runValidateEnv(cwd, env = {}) {
   return execFileAsync('node', ['scripts/validate-env.mjs'], {
     cwd,
-    env: { ...process.env, ...env },
+    env: {
+      ...process.env,
+      NODE_PATH: path.join(REPO_ROOT, 'node_modules'),
+      ...env,
+    },
   });
 }
 
@@ -51,18 +57,20 @@ afterEach(() => {
 });
 
 describe('validate-env', () => {
-  it('exits 1 on node major mismatch', async () => {
-    const wrongMajor = currentNodeMajor === '24' ? '22.0.0' : '24.0.0';
+  it('exits 1 when node does not satisfy engines.node', async () => {
+    const incompatibleEngines =
+      currentNodeMajor === '24' ? '22.0.0' : '24.18.0';
     const repo = makeTempRepo({
-      nvmrc: wrongMajor,
+      nvmrc: currentNode,
       packageManager: 'npm@12.0.1',
+      enginesNode: incompatibleEngines,
     });
     tempRepos.push(repo);
 
     await assert.rejects(
       () => runValidateEnv(repo, { npm_config_user_agent: 'npm/12.0.1' }),
       (error) => {
-        assert.match(String(error.stderr), /Node major mismatch/);
+        assert.match(String(error.stderr), /Node version mismatch/);
         return true;
       },
     );
@@ -97,6 +105,26 @@ describe('validate-env', () => {
 
     assert.match(String(stderr), /Node patch differs/);
     assert.match(String(stderr), /npm patch differs/);
+    assert.match(stdout, /satisfy repository requirements/);
+  });
+
+  it('passes when engines allow current node but nvmrc recommends another major', async () => {
+    const recommendedNvmrc =
+      currentNodeMajor === '24' ? '24.18.0' : '22.12.0';
+    const repo = makeTempRepo({
+      nvmrc: recommendedNvmrc,
+      packageManager: 'npm@12.0.1',
+      enginesNode: DEFAULT_ENGINES_NODE,
+    });
+    tempRepos.push(repo);
+
+    const { stdout, stderr } = await runValidateEnv(repo, {
+      npm_config_user_agent: 'npm/12.0.1',
+    });
+
+    if (recommendedNvmrc.split('.')[0] !== currentNodeMajor) {
+      assert.match(String(stderr), /Node major differs from recommended/);
+    }
     assert.match(stdout, /satisfy repository requirements/);
   });
 
