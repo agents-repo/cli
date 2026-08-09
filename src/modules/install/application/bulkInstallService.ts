@@ -49,6 +49,47 @@ const resolveRequestedPackageRefs = (
   return undefined
 }
 
+const resolveBulkPackageIds = (options: {
+  readonly hasRequestedPackages: boolean
+  readonly requestedPackageRefs: readonly string[] | undefined
+  readonly resolvedPackages: Record<string, string>
+  readonly catalogResult: Awaited<ReturnType<typeof buildInstallContext>>['catalogResult']
+  readonly enforceConfiguredOnly: boolean
+}): string[] => {
+  const configuredPackageIds = Object.keys(options.resolvedPackages).sort((left, right) =>
+    left.localeCompare(right),
+  )
+
+  if (!options.hasRequestedPackages || options.requestedPackageRefs === undefined) {
+    return configuredPackageIds
+  }
+
+  const resolvedIds: string[] = []
+  const seenQualified = new Set<string>()
+
+  for (const packageRef of options.requestedPackageRefs) {
+    const qualifiedId = resolvePackageRef(packageRef, options.catalogResult.catalog.aliases)
+
+    if (
+      options.enforceConfiguredOnly &&
+      !Object.hasOwn(options.resolvedPackages, qualifiedId)
+    ) {
+      throw new ConfigValidationError(
+        `Package ${qualifiedId} is not listed in agents.json packages`,
+        'package_not_configured',
+      )
+    }
+
+    const pkg = resolvePackageInCatalog(options.catalogResult.catalog, qualifiedId)
+    if (!seenQualified.has(pkg.id)) {
+      seenQualified.add(pkg.id)
+      resolvedIds.push(pkg.id)
+    }
+  }
+
+  return resolvedIds
+}
+
 export class BulkInstallService {
   private readonly configResolver = new ConfigResolver()
   private readonly installPersistence = new InstallPersistence()
@@ -96,9 +137,11 @@ export class BulkInstallService {
       bootstrapWarnings = [...detection.warnings]
     }
 
-    let packageIds = Object.keys(resolved.packages).sort((left, right) => left.localeCompare(right))
+    const configuredPackageIds = Object.keys(resolved.packages).sort((left, right) =>
+      left.localeCompare(right),
+    )
 
-    if (packageIds.length === 0 && !hasRequestedPackages) {
+    if (configuredPackageIds.length === 0 && !hasRequestedPackages) {
       return []
     }
 
@@ -112,32 +155,15 @@ export class BulkInstallService {
     const { targets, scope, catalogResult, warnings: contextWarnings } = context
     const warnings = [...bootstrapWarnings, ...contextWarnings]
 
-    if (hasRequestedPackages) {
-      const resolvedIds: string[] = []
-      const seenQualified = new Set<string>()
-
-      for (const packageRef of requestedPackageRefs) {
-        const qualifiedId = resolvePackageRef(
-          packageRef,
-          catalogResult.catalog.aliases,
-        )
-
-        if (enforceConfiguredOnly && !Object.hasOwn(resolved.packages, qualifiedId)) {
-          throw new ConfigValidationError(
-            `Package ${qualifiedId} is not listed in agents.json packages`,
-            'package_not_configured',
-          )
-        }
-
-        const pkg = resolvePackageInCatalog(catalogResult.catalog, qualifiedId)
-        if (!seenQualified.has(pkg.id)) {
-          seenQualified.add(pkg.id)
-          resolvedIds.push(pkg.id)
-        }
-      }
-
-      packageIds = resolvedIds
-    }
+    const packageIds = hasRequestedPackages
+      ? resolveBulkPackageIds({
+          hasRequestedPackages,
+          requestedPackageRefs,
+          resolvedPackages: resolved.packages,
+          catalogResult,
+          enforceConfiguredOnly,
+        })
+      : configuredPackageIds
 
     if (packageIds.length === 0) {
       return []

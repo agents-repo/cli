@@ -55,7 +55,7 @@ export const planArtifactExtractFromZip = (
       continue
     }
 
-    if (entryName.indexOf('..') !== -1) {
+    if (entryName.includes('..')) {
       throw new InstallRuntimeError(
         'path_traversal',
         `Refusing to read unsafe archive entry: ${entryName}`,
@@ -65,7 +65,7 @@ export const planArtifactExtractFromZip = (
     assertZipEntryPathSafe(entryName)
 
     const mappedName = mapZipEntryToExtractPath(targetId, entryName)
-    if (mappedName.indexOf('..') !== -1) {
+    if (mappedName.includes('..')) {
       throw new InstallRuntimeError(
         'path_traversal',
         `Refusing to read unsafe mapped path: ${mappedName}`,

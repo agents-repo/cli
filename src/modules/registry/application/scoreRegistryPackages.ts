@@ -61,7 +61,7 @@ const dependencyLeafOrAliasPoints = (
     return 1
   }
 
-  return aliasKeys.some((alias) => alias === signal.value) ? 1 : 0
+  return aliasKeys.includes(signal.value) ? 1 : 0
 }
 
 const readmeTokenPoints = (

@@ -7,6 +7,65 @@ import { isPlainObject } from '../infrastructure/jsonDocument.js'
 import { getRegistryRefDefault, getRegistryUrlAlias } from './schemaGate.js'
 import { parseInstallTargetsArray } from './resolveTargets.js'
 
+const parseManagedPackages = (
+  packagesValue: unknown,
+): Record<string, string> | undefined => {
+  if (packagesValue === undefined) {
+    return undefined
+  }
+
+  if (!isPlainObject(packagesValue)) {
+    throw new ConfigValidationError('packages must be an object', 'type_mismatch')
+  }
+
+  const packages: Record<string, string> = {}
+  for (const [key, value] of Object.entries(packagesValue)) {
+    if (typeof value !== 'string') {
+      throw new ConfigValidationError(`packages.${key} must be a string`, 'type_mismatch')
+    }
+    packages[key] = value
+  }
+  return packages
+}
+
+const resolveManagedRegistryFromActiveTarget = (
+  activeTarget: Record<string, unknown>,
+): RegistryConfig | undefined => {
+  const registryUrlAlias = getRegistryUrlAlias(activeTarget)
+  if (isPlainObject(activeTarget.registry)) {
+    const url = activeTarget.registry.url
+    const ref = activeTarget.registry.ref
+    if (typeof url === 'string') {
+      return {
+        url,
+        ref: typeof ref === 'string' ? ref : DEFAULT_REGISTRY_REF,
+      }
+    }
+    if (registryUrlAlias) {
+      return {
+        url: registryUrlAlias,
+        ref: typeof ref === 'string' ? ref : getRegistryRefDefault(activeTarget),
+      }
+    }
+    if (typeof ref === 'string') {
+      return {
+        url: DEFAULT_REGISTRY_CONFIG.url,
+        ref,
+      }
+    }
+    return undefined
+  }
+
+  if (registryUrlAlias) {
+    return {
+      url: registryUrlAlias,
+      ref: getRegistryRefDefault(activeTarget),
+    }
+  }
+
+  return undefined
+}
+
 export const extractCliManagedConfig = (
   activeTarget: Record<string, unknown>,
 ): CliManagedConfig => {
@@ -39,46 +98,14 @@ export const extractCliManagedConfig = (
     managed.targets = parseInstallTargetsArray(activeTarget.targets, 'targets')
   }
 
-  if (activeTarget.packages !== undefined) {
-    if (!isPlainObject(activeTarget.packages)) {
-      throw new ConfigValidationError('packages must be an object', 'type_mismatch')
-    }
-
-    const packages: Record<string, string> = {}
-    for (const [key, value] of Object.entries(activeTarget.packages)) {
-      if (typeof value !== 'string') {
-        throw new ConfigValidationError(`packages.${key} must be a string`, 'type_mismatch')
-      }
-      packages[key] = value
-    }
+  const packages = parseManagedPackages(activeTarget.packages)
+  if (packages !== undefined) {
     managed.packages = packages
   }
 
-  const registryUrlAlias = getRegistryUrlAlias(activeTarget)
-  if (isPlainObject(activeTarget.registry)) {
-    const url = activeTarget.registry.url
-    const ref = activeTarget.registry.ref
-    if (typeof url === 'string') {
-      managed.registry = {
-        url,
-        ref: typeof ref === 'string' ? ref : DEFAULT_REGISTRY_REF,
-      }
-    } else if (registryUrlAlias) {
-      managed.registry = {
-        url: registryUrlAlias,
-        ref: typeof ref === 'string' ? ref : getRegistryRefDefault(activeTarget),
-      }
-    } else if (typeof ref === 'string') {
-      managed.registry = {
-        url: DEFAULT_REGISTRY_CONFIG.url,
-        ref,
-      }
-    }
-  } else if (registryUrlAlias) {
-    managed.registry = {
-      url: registryUrlAlias,
-      ref: getRegistryRefDefault(activeTarget),
-    }
+  const registry = resolveManagedRegistryFromActiveTarget(activeTarget)
+  if (registry !== undefined) {
+    managed.registry = registry
   }
 
   return managed
