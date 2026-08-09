@@ -254,6 +254,164 @@ const verifyInstallPathsFromLock = async (options: {
   }
 }
 
+const resolveDoctorConfig = async (
+  configResolver: ConfigResolver,
+  options: DoctorServiceOptions,
+  checks: DoctorCheck[],
+  warnings: string[],
+): Promise<ResolvedAgentsConfig | undefined> => {
+  try {
+    const resolved = await configResolver.resolve({
+      cwd: options.cwd ?? process.cwd(),
+      env: options.env ?? process.env,
+      globalScope: false,
+      waiveConflicts: options.yes ?? false,
+    })
+    checks.push(passCheck('config_schema', 'agents.json resolved successfully'))
+    for (const warning of resolved.warnings) {
+      warnings.push(warning.message)
+    }
+    return resolved
+  } catch (error) {
+    checks.push(
+      failCheck(
+        'config_schema',
+        error instanceof Error ? error.message : 'Config resolution failed',
+        error,
+      ),
+    )
+    return undefined
+  }
+}
+
+const runDoctorTargetsCheck = (
+  resolved: ResolvedAgentsConfig,
+  checks: DoctorCheck[],
+): boolean => {
+  try {
+    resolveInstallTargets(resolved)
+    checks.push(passCheck('targets_configured', 'Install targets are configured'))
+    return true
+  } catch (error) {
+    checks.push(
+      failCheck(
+        'targets_configured',
+        error instanceof Error ? error.message : 'Install targets are not configured',
+        error,
+      ),
+    )
+    return false
+  }
+}
+
+const runDoctorLockCheck = async (
+  lockFileService: LockFileService,
+  lockPath: string,
+  checks: DoctorCheck[],
+): Promise<AgentsLockDocument | null> => {
+  try {
+    const lock = await lockFileService.read(lockPath)
+    if (lock === null) {
+      checks.push(
+        failCheck(
+          'lock_present',
+          'agents-lock.json is missing',
+          new LockValidationError('agents-lock.json is missing'),
+        ),
+      )
+      return null
+    }
+
+    checks.push(passCheck('lock_present', 'agents-lock.json is present and valid'))
+    return lock
+  } catch (error) {
+    checks.push(
+      failCheck(
+        'lock_present',
+        error instanceof Error ? error.message : 'Lock validation failed',
+        error,
+      ),
+    )
+    return null
+  }
+}
+
+const runDoctorLockConfigSyncCheck = (
+  resolved: ResolvedAgentsConfig,
+  lock: AgentsLockDocument | null,
+  targetsConfiguredPassed: boolean,
+  checks: DoctorCheck[],
+): void => {
+  if (lock === null) {
+    checks.push(skipCheck('lock_config_sync', 'Skipped because lock is missing or invalid'))
+    return
+  }
+
+  if (!targetsConfiguredPassed) {
+    checks.push(skipCheck('lock_config_sync', 'Skipped because install targets are not configured'))
+    return
+  }
+
+  try {
+    runLockConfigSync(resolved, lock)
+    checks.push(passCheck('lock_config_sync', 'Config and lock are in sync'))
+  } catch (error) {
+    checks.push(
+      failCheck(
+        'lock_config_sync',
+        error instanceof Error ? error.message : 'Config and lock are out of sync',
+        error,
+      ),
+    )
+  }
+}
+
+const runDoctorInstallPathsCheck = async (options: {
+  readonly resolved: ResolvedAgentsConfig
+  readonly lock: AgentsLockDocument | null
+  readonly catalogResult: RegistryCatalogLoadResult | undefined
+  readonly checks: DoctorCheck[]
+  readonly cwd: string
+  readonly env: NodeJS.ProcessEnv
+  readonly preferOnline: boolean
+  readonly lockFileService: LockFileService
+}): Promise<void> => {
+  const lockSyncPassed = options.checks.some(
+    (check) => check.id === 'lock_config_sync' && check.status === 'pass',
+  )
+
+  if (!lockSyncPassed || options.lock === null || options.catalogResult === undefined) {
+    options.checks.push(
+      skipCheck(
+        'install_paths',
+        'Skipped because lock sync or registry checks did not pass',
+      ),
+    )
+    return
+  }
+
+  try {
+    await verifyInstallPathsFromLock({
+      resolved: options.resolved,
+      lock: options.lock,
+      catalogResult: options.catalogResult,
+      cwd: options.cwd,
+      env: options.env,
+      preferOnline: options.preferOnline,
+      parseIntegrityHex: (integrity) => options.lockFileService.parseIntegrityHex(integrity),
+    })
+    options.checks.push(passCheck('install_paths', 'Expected install paths exist on disk'))
+  } catch (error) {
+    options.checks.push(
+      failCheck(
+        'install_paths',
+        error instanceof Error ? error.message : 'Install path verification failed',
+        error,
+      ),
+    )
+  }
+}
+
 export class DoctorService {
   private readonly configResolver = new ConfigResolver()
   private readonly lockFileService = new LockFileService()
@@ -265,29 +423,7 @@ export class DoctorService {
     const checks: DoctorCheck[] = []
     const warnings: string[] = []
 
-    let resolved: ResolvedAgentsConfig | undefined
-
-    try {
-      resolved = await this.configResolver.resolve({
-        cwd,
-        env,
-        globalScope: false,
-        waiveConflicts: options.yes ?? false,
-      })
-      checks.push(passCheck('config_schema', 'agents.json resolved successfully'))
-      for (const warning of resolved.warnings) {
-        warnings.push(warning.message)
-      }
-    } catch (error) {
-      checks.push(
-        failCheck(
-          'config_schema',
-          error instanceof Error ? error.message : 'Config resolution failed',
-          error,
-        ),
-      )
-    }
-
+    const resolved = await resolveDoctorConfig(this.configResolver, options, checks, warnings)
     if (resolved === undefined) {
       skipChecksAfterConfigFailure(checks)
       return {
@@ -297,63 +433,9 @@ export class DoctorService {
       }
     }
 
-    let targetsConfiguredPassed = false
-    try {
-      resolveInstallTargets(resolved)
-      targetsConfiguredPassed = true
-      checks.push(passCheck('targets_configured', 'Install targets are configured'))
-    } catch (error) {
-      checks.push(
-        failCheck(
-          'targets_configured',
-          error instanceof Error ? error.message : 'Install targets are not configured',
-          error,
-        ),
-      )
-    }
-
-    let lock: AgentsLockDocument | null = null
-    try {
-      lock = await this.lockFileService.read(resolved.lockPath)
-      if (lock === null) {
-        checks.push(
-          failCheck(
-            'lock_present',
-            'agents-lock.json is missing',
-            new LockValidationError('agents-lock.json is missing'),
-          ),
-        )
-      } else {
-        checks.push(passCheck('lock_present', 'agents-lock.json is present and valid'))
-      }
-    } catch (error) {
-      checks.push(
-        failCheck(
-          'lock_present',
-          error instanceof Error ? error.message : 'Lock validation failed',
-          error,
-        ),
-      )
-    }
-
-    if (lock === null) {
-      checks.push(skipCheck('lock_config_sync', 'Skipped because lock is missing or invalid'))
-    } else if (!targetsConfiguredPassed) {
-      checks.push(skipCheck('lock_config_sync', 'Skipped because install targets are not configured'))
-    } else {
-      try {
-        runLockConfigSync(resolved, lock)
-        checks.push(passCheck('lock_config_sync', 'Config and lock are in sync'))
-      } catch (error) {
-        checks.push(
-          failCheck(
-            'lock_config_sync',
-            error instanceof Error ? error.message : 'Config and lock are out of sync',
-            error,
-          ),
-        )
-      }
-    }
+    const targetsConfiguredPassed = runDoctorTargetsCheck(resolved, checks)
+    const lock = await runDoctorLockCheck(this.lockFileService, resolved.lockPath, checks)
+    runDoctorLockConfigSyncCheck(resolved, lock, targetsConfiguredPassed, checks)
 
     const catalogResult = await this.runRegistryCheck(
       checks,
@@ -366,39 +448,16 @@ export class DoctorService {
           },
     )
 
-    const lockSyncPassed = checks.some(
-      (check) => check.id === 'lock_config_sync' && check.status === 'pass',
-    )
-
-    if (!lockSyncPassed || lock === null || catalogResult === undefined) {
-      checks.push(
-        skipCheck(
-          'install_paths',
-          'Skipped because lock sync or registry checks did not pass',
-        ),
-      )
-    } else {
-      try {
-        await verifyInstallPathsFromLock({
-          resolved,
-          lock,
-          catalogResult,
-          cwd,
-          env,
-          preferOnline,
-          parseIntegrityHex: (integrity) => this.lockFileService.parseIntegrityHex(integrity),
-        })
-        checks.push(passCheck('install_paths', 'Expected install paths exist on disk'))
-      } catch (error) {
-        checks.push(
-          failCheck(
-            'install_paths',
-            error instanceof Error ? error.message : 'Install path verification failed',
-            error,
-          ),
-        )
-      }
-    }
+    await runDoctorInstallPathsCheck({
+      resolved,
+      lock,
+      catalogResult,
+      checks,
+      cwd,
+      env,
+      preferOnline,
+      lockFileService: this.lockFileService,
+    })
 
     return {
       checks,

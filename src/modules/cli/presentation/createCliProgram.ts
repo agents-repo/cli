@@ -56,7 +56,10 @@ export const createCliProgram = (): Command => {
     .option('--json', 'Machine-readable output')
     .option('--verbose', 'Detailed logging')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
-    .option('--dry-run', 'Resolve install through artifact selection without download or save')
+    .option(
+      '--dry-run',
+      'Preview without saving: install skips download; remove downloads locked ZIPs to list paths that would be deleted',
+    )
     .option('--no-save', 'Skip agents.json and lock writes')
     .option(
       '--prefer-online',

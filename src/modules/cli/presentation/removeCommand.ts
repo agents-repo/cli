@@ -20,7 +20,9 @@ export const registerRemoveCommand = (program: Command): void => {
   program
     .command('remove <package-id>')
     .aliases(['rm', 'uninstall', 'unlink'])
-    .description('Remove an installed package and its extracted files')
+    .description(
+      'Remove an installed package and its extracted files (with --dry-run, downloads locked artifacts to list paths without deleting)',
+    )
     .option('-g, --global', 'Remove from the global agents-repo home directory')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
     .option('--force', 'Delete files even when modified since install')
