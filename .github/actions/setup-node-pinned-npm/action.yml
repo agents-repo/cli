@@ -12,17 +12,17 @@ runs:
   using: composite
   steps:
     - name: Setup Node from .nvmrc
-      if: inputs.node-version == ''
+      if: ${{ inputs['node-version'] == '' }}
       uses: actions/setup-node@v6
       with:
         node-version-file: .nvmrc
         cache: npm
 
     - name: Setup Node from matrix input
-      if: inputs.node-version != ''
+      if: ${{ inputs['node-version'] != '' }}
       uses: actions/setup-node@v6
       with:
-        node-version: ${{ inputs.node-version }}
+        node-version: ${{ inputs['node-version'] }}
         cache: npm
 
     - name: Activate pinned npm
