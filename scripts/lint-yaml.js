@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- roots are fixed repo-relative paths under .github */
 import fs from "node:fs";
 import path from "node:path";
 import yaml from "js-yaml";

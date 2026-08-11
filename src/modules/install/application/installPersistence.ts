@@ -76,40 +76,36 @@ export class InstallPersistence {
 
     const adHocRanges = input.adHocPackageRanges
     const hasAdHocRanges = adHocRanges !== undefined && Object.keys(adHocRanges).length > 0
-
     const shouldWriteConfig = isGreenfieldConfigCreate(input.resolved) || hasAdHocRanges
 
     if (shouldWriteConfig) {
-      const patch: {
-        targets?: InstallTargetId[]
-        registry?: ResolvedAgentsConfig['registry']
-        packages?: Record<string, string>
-      } = {}
-
-      if (isGreenfieldConfigCreate(input.resolved)) {
-        patch.registry = input.resolved.registry
-        if (input.resolved.targets !== undefined) {
-          patch.targets = input.resolved.targets
-        }
-        const adHocPackageRanges =
-          adHocRanges === undefined ? {} : { ...adHocRanges }
-        patch.packages = { ...input.resolved.packages, ...adHocPackageRanges }
-      } else if (hasAdHocRanges) {
-        patch.packages = adHocRanges
-      }
-
-      const merged = this.configMerger.merge(input.resolved.rawDocument, patch, {
-        gateMode: input.resolved.gateMode,
-        force: true,
-      })
-
-      await this.agentsJsonRepository.write(input.resolved.configPath, merged)
+      await this.writeConfigPatch(input.resolved, adHocRanges, hasAdHocRanges)
     }
 
     if (!input.writeLock) {
       return
     }
 
+    await this.writeLockEntries(input)
+  }
+
+  private async writeConfigPatch(
+    resolved: ResolvedAgentsConfig,
+    adHocRanges: Record<string, string> | undefined,
+    hasAdHocRanges: boolean,
+  ): Promise<void> {
+    const patch = buildConfigPatch(resolved, adHocRanges, hasAdHocRanges)
+    const merged = this.configMerger.merge(resolved.rawDocument, patch, {
+      gateMode: resolved.gateMode,
+      force: true,
+    })
+
+    await this.agentsJsonRepository.write(resolved.configPath, merged)
+  }
+
+  private async writeLockEntries(
+    input: BulkInstallPersistenceInput,
+  ): Promise<void> {
     const existingLock = await this.lockFileService.read(input.resolved.lockPath)
     const packages: AgentsLockDocument['packages'] = existingLock?.packages
       ? { ...existingLock.packages }
@@ -134,4 +130,36 @@ export class InstallPersistence {
 
     await this.lockFileService.write(input.resolved.lockPath, lockDocument)
   }
+}
+
+const buildConfigPatch = (
+  resolved: ResolvedAgentsConfig,
+  adHocRanges: Record<string, string> | undefined,
+  hasAdHocRanges: boolean,
+): {
+  targets?: InstallTargetId[]
+  registry?: ResolvedAgentsConfig['registry']
+  packages?: Record<string, string>
+} => {
+  const patch: {
+    targets?: InstallTargetId[]
+    registry?: ResolvedAgentsConfig['registry']
+    packages?: Record<string, string>
+  } = {}
+
+  if (isGreenfieldConfigCreate(resolved)) {
+    patch.registry = resolved.registry
+    if (resolved.targets !== undefined) {
+      patch.targets = resolved.targets
+    }
+    const adHocPackageRanges = adHocRanges === undefined ? {} : { ...adHocRanges }
+    patch.packages = { ...resolved.packages, ...adHocPackageRanges }
+    return patch
+  }
+
+  if (hasAdHocRanges) {
+    patch.packages = adHocRanges
+  }
+
+  return patch
 }

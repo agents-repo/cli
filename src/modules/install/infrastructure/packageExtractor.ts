@@ -137,6 +137,70 @@ const resolveOnDiskWritePlan = async (options: {
   }
 }
 
+const openZipOrThrow = (zipBytes: Buffer): AdmZip => {
+  try {
+    return new AdmZip(zipBytes)
+  } catch (error) {
+    throw new InstallZipSecurityError(
+      'ERR_ZIP_MALFORMED_ENTRY',
+      `Cannot open ZIP artifact: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+}
+
+const writeMappedZipEntry = async (options: {
+  readonly entry: AdmZip.IZipEntry
+  readonly targetId: InstallTargetId
+  readonly resolvedRoot: string
+  readonly extractOptions: ExtractPackageArtifactOptions
+  readonly writtenPaths: string[]
+  readonly rollbackEntries: ExtractRollbackEntry[]
+}): Promise<void> => {
+  const { entry, targetId, resolvedRoot, extractOptions, writtenPaths, rollbackEntries } = options
+  const entryName = entry.entryName
+  if (entryName.endsWith('/')) {
+    return
+  }
+
+  if (entryName.includes('..')) {
+    throw new InstallRuntimeError(
+      'path_traversal',
+      `Refusing to extract unsafe archive entry: ${entryName}`,
+    )
+  }
+
+  assertZipEntryPathSafe(entryName)
+
+  const mappedName = mapZipEntryToExtractPath(targetId, entryName)
+  if (mappedName.includes('..')) {
+    throw new InstallRuntimeError(
+      'path_traversal',
+      `Refusing to extract unsafe mapped path: ${mappedName}`,
+    )
+  }
+
+  const destination = resolveContainedExtractPath(resolvedRoot, mappedName)
+  assertDestinationWithinRoot(resolvedRoot, destination)
+
+  const entryBytes = entry.getData()
+  const incomingHex = sha256HexOfBytes(entryBytes)
+  const plan = await resolveOnDiskWritePlan({
+    destination,
+    resolvedRoot,
+    incomingHex,
+    extractOptions,
+  })
+
+  if (plan.action === 'skip') {
+    return
+  }
+
+  await mkdir(path.dirname(destination), { recursive: true })
+  await writeFile(destination, entryBytes)
+  writtenPaths.push(destination)
+  rollbackEntries.push({ path: destination, previousBytes: plan.previousBytes })
+}
+
 export const extractPackageArtifact = async (
   zipBytes: Buffer,
   targetId: InstallTargetId,
@@ -150,64 +214,21 @@ export const extractPackageArtifact = async (
     throw new InstallZipSecurityError(blocking.code, blocking.message)
   }
 
-  let zip: AdmZip
-  try {
-    zip = new AdmZip(zipBytes)
-  } catch (error) {
-    throw new InstallZipSecurityError(
-      'ERR_ZIP_MALFORMED_ENTRY',
-      `Cannot open ZIP artifact: ${error instanceof Error ? error.message : String(error)}`,
-    )
-  }
-
+  const zip = openZipOrThrow(zipBytes)
   const resolvedRoot = path.resolve(extractRoot)
   const writtenPaths: string[] = []
   const rollbackEntries: ExtractRollbackEntry[] = []
 
   try {
     for (const entry of zip.getEntries()) {
-      const entryName = entry.entryName
-      if (entryName.endsWith('/')) {
-        continue
-      }
-
-      if (entryName.includes('..')) {
-        throw new InstallRuntimeError(
-          'path_traversal',
-          `Refusing to extract unsafe archive entry: ${entryName}`,
-        )
-      }
-
-      assertZipEntryPathSafe(entryName)
-
-      const mappedName = mapZipEntryToExtractPath(targetId, entryName)
-      if (mappedName.includes('..')) {
-        throw new InstallRuntimeError(
-          'path_traversal',
-          `Refusing to extract unsafe mapped path: ${mappedName}`,
-        )
-      }
-
-      const destination = resolveContainedExtractPath(resolvedRoot, mappedName)
-      assertDestinationWithinRoot(resolvedRoot, destination)
-
-      const entryBytes = entry.getData()
-      const incomingHex = sha256HexOfBytes(entryBytes)
-      const plan = await resolveOnDiskWritePlan({
-        destination,
+      await writeMappedZipEntry({
+        entry,
+        targetId,
         resolvedRoot,
-        incomingHex,
         extractOptions,
+        writtenPaths,
+        rollbackEntries,
       })
-
-      if (plan.action === 'skip') {
-        continue
-      }
-
-      await mkdir(path.dirname(destination), { recursive: true })
-      await writeFile(destination, entryBytes)
-      writtenPaths.push(destination)
-      rollbackEntries.push({ path: destination, previousBytes: plan.previousBytes })
     }
   } catch (error) {
     await rollbackExtractEntries(rollbackEntries)

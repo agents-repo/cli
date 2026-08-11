@@ -47,6 +47,28 @@ const fetchArtifactBytes = async (
   return Buffer.from(arrayBuffer)
 }
 
+const tryReadVerifiedCache = async (
+  blobPath: string,
+  verifyOnce: (bytes: Buffer) => Buffer,
+): Promise<Buffer | null> => {
+  const cachedBytes = await readBlobIfExists(blobPath)
+  if (cachedBytes === null) {
+    return null
+  }
+
+  try {
+    return verifyOnce(cachedBytes)
+  } catch {
+    try {
+      await deleteBlob(blobPath)
+    } catch {
+      // Best-effort stale entry removal; refetch from network below.
+    }
+  }
+
+  return null
+}
+
 export const downloadArtifact = async (
   artifactUrl: string,
   options: DownloadArtifactOptions,
@@ -67,18 +89,9 @@ export const downloadArtifact = async (
   const canWriteCache = shouldWriteArtifactCache(env, writeCache)
 
   if (canReadCache) {
-    const cachedBytes = await readBlobIfExists(blobPath)
-
-    if (cachedBytes !== null) {
-      try {
-        return verifyOnce(cachedBytes)
-      } catch {
-        try {
-          await deleteBlob(blobPath)
-        } catch {
-          // Best-effort stale entry removal; refetch from network below.
-        }
-      }
+    const cached = await tryReadVerifiedCache(blobPath, verifyOnce)
+    if (cached !== null) {
+      return cached
     }
   }
 

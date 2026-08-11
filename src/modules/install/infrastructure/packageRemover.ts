@@ -85,6 +85,42 @@ const pruneEmptyParents = async (
   }
 }
 
+const evaluateRemovalCandidate = async (options: {
+  readonly absolutePath: string
+  readonly relative: string
+  readonly expectedHex: string
+  readonly resolvedRoot: string
+  readonly force: boolean
+}): Promise<{ readonly action: 'delete' } | { readonly action: 'skip'; readonly warning: string }> => {
+  const { absolutePath, relative, expectedHex, resolvedRoot, force } = options
+
+  try {
+    await assertNoSymlinksAlongPath(resolvedRoot, absolutePath)
+    const stats = await lstat(absolutePath)
+    if (!stats.isFile()) {
+      return { action: 'skip', warning: `Skipped non-file path: ${relative}` }
+    }
+
+    if (!force) {
+      const actualHex = await sha256HexOfFile(absolutePath)
+      if (actualHex !== expectedHex) {
+        return {
+          action: 'skip',
+          warning: `Skipped modified file (use --force to delete): ${relative}`,
+        }
+      }
+    }
+  } catch (error) {
+    if (isEnoentError(error)) {
+      return { action: 'skip', warning: `File already absent: ${relative}` }
+    }
+
+    throw error
+  }
+
+  return { action: 'delete' }
+}
+
 export const removeInstalledFiles = async (
   filePaths: readonly string[],
   extractRoot: string,
@@ -107,28 +143,17 @@ export const removeInstalledFiles = async (
       continue
     }
 
-    try {
-      await assertNoSymlinksAlongPath(resolvedRoot, absolutePath)
-      const stats = await lstat(absolutePath)
-      if (!stats.isFile()) {
-        warnings.push(`Skipped non-file path: ${relative}`)
-        continue
-      }
+    const decision = await evaluateRemovalCandidate({
+      absolutePath,
+      relative,
+      expectedHex,
+      resolvedRoot,
+      force,
+    })
 
-      if (!force) {
-        const actualHex = await sha256HexOfFile(absolutePath)
-        if (actualHex !== expectedHex) {
-          warnings.push(`Skipped modified file (use --force to delete): ${relative}`)
-          continue
-        }
-      }
-    } catch (error) {
-      if (isEnoentError(error)) {
-        warnings.push(`File already absent: ${relative}`)
-        continue
-      }
-
-      throw error
+    if (decision.action === 'skip') {
+      warnings.push(decision.warning)
+      continue
     }
 
     await rm(absolutePath, { force: true })

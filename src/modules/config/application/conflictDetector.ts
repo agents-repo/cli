@@ -91,6 +91,25 @@ export class ConflictDetector {
     return result.warnings
   }
 
+  private validateManagedKey(
+    key: (typeof CLI_MANAGED_KEYS)[number],
+    value: unknown,
+    path: string,
+  ): ConfigConflictRecord[] {
+    switch (key) {
+      case 'schemaVersion':
+        return typeof value === 'string' ? [] : [typeMismatch(path, 'schemaVersion must be a string')]
+      case 'targets':
+        return this.validateTargetsArray(value, path)
+      case 'registry':
+        return this.validateRegistry(value, path)
+      case 'packages':
+        return this.validatePackages(value, path)
+      default:
+        return []
+    }
+  }
+
   private validateActiveTarget(
     activeTarget: Record<string, unknown>,
     gateMode: SchemaGateMode,
@@ -113,27 +132,7 @@ export class ConflictDetector {
         continue
       }
 
-      const value = activeTarget[key]
-      const path = `${prefix}${key}`
-
-      switch (key) {
-        case 'schemaVersion':
-          if (typeof value !== 'string') {
-            errors.push(typeMismatch(path, 'schemaVersion must be a string'))
-          }
-          break
-        case 'targets':
-          errors.push(...this.validateTargetsArray(value, path))
-          break
-        case 'registry':
-          errors.push(...this.validateRegistry(value, path))
-          break
-        case 'packages':
-          errors.push(...this.validatePackages(value, path))
-          break
-        default:
-          break
-      }
+      errors.push(...this.validateManagedKey(key, activeTarget[key], `${prefix}${key}`))
     }
 
     if (REGISTRY_URL_MIGRATION_KEY in activeTarget) {

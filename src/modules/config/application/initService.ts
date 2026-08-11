@@ -1,6 +1,7 @@
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import { ProjectTargetDetector } from '../../target/application/projectTargetDetector.js'
 import type { TargetDetectionResult } from '../../target/domain/targetDetection.js'
+import type { AgentsConfigDocument, SchemaGateMode } from '../domain/agentsConfig.js'
 import type { ConfigConflictRecord } from '../domain/configErrors.js'
 import { ConfigValidationError } from '../domain/configErrors.js'
 import type { InitResult } from '../domain/initResult.js'
@@ -56,65 +57,34 @@ export class InitService {
       rawDocument === null ||
       (gateMode === 'greenfield' && Object.keys(rawDocument).length === 0)
 
-    let warnings: InitResult['warnings'] = []
-    if (rawDocument !== null) {
-      if (gateMode === 'top-level-ours') {
-        this.conflictDetector.detectOrThrow(rawDocument, gateMode, { waiveConflicts: yes })
-      } else {
-        warnings = this.conflictDetector.detectOrThrow(rawDocument, gateMode, {
-          waiveConflicts: yes,
-        })
-      }
-    }
-
-    const activeTarget =
-      rawDocument === null ? {} : getActiveGateTarget(rawDocument, gateMode)
-    const existingManaged = extractCliManagedConfig(activeTarget)
-    const namespaceManaged =
-      rawDocument === null || gateMode !== 'top-level-ours'
-        ? {}
-        : extractCliManagedConfig(getNamespaceBlock(rawDocument) ?? {})
-
-    const existingTargets = resolveTargetsFromManaged(existingManaged)
-    const namespaceTargets = resolveTargetsFromManaged(namespaceManaged)
-    const effectiveTargets = resolveTargetsFromManaged({
-      ...namespaceManaged,
-      ...existingManaged,
-      targets: existingManaged.targets ?? namespaceManaged.targets,
-    })
+    let warnings = this.collectInitialWarnings(rawDocument, gateMode, yes)
+    const managedSlices = this.resolveManagedTargetSlices(rawDocument, gateMode)
 
     const resolved = await this.resolveTargets({
       cwd,
       force,
       verbose: options.verbose ?? false,
       cliTargetIds: options.targetIds,
-      existingTargets: effectiveTargets,
-      topTargets: existingTargets,
-      namespaceTargets,
+      existingTargets: managedSlices.effectiveTargets,
+      topTargets: managedSlices.existingTargets,
+      namespaceTargets: managedSlices.namespaceTargets,
     })
 
     if (resolved.detectionWarnings.length > 0) {
       warnings = [...warnings, ...resolved.detectionWarnings]
     }
 
-    const patch: {
-      targets?: InstallTargetId[]
-    } = {}
+    const patch: { targets?: InstallTargetId[] } = {}
     if (resolved.targets !== undefined) {
       patch.targets = resolved.targets
     }
 
     const merged = this.configMerger.merge(rawDocument, patch, { gateMode, force })
-
-    const finalWarnings =
-      rawDocument !== null && gateMode === 'top-level-ours'
-        ? this.conflictDetector.detectOrThrow(merged, gateMode, { waiveConflicts: yes })
-        : warnings
+    const finalWarnings = this.finalizeWarnings(rawDocument, gateMode, merged, yes, warnings)
 
     await this.agentsJsonRepository.write(configPath, merged)
 
-    const mergedActive =
-      getActiveGateTarget(merged, gateMode)
+    const mergedActive = getActiveGateTarget(merged, gateMode)
     const finalTargets = resolveTargetsFromManaged(extractCliManagedConfig(mergedActive))
 
     return {
@@ -124,6 +94,66 @@ export class InitService {
       warnings: finalWarnings,
       created,
     }
+  }
+
+  private collectInitialWarnings(
+    rawDocument: AgentsConfigDocument | null,
+    gateMode: SchemaGateMode,
+    yes: boolean,
+  ): InitResult['warnings'] {
+    if (rawDocument === null) {
+      return []
+    }
+
+    if (gateMode === 'top-level-ours') {
+      this.conflictDetector.detectOrThrow(rawDocument, gateMode, { waiveConflicts: yes })
+      return []
+    }
+
+    return this.conflictDetector.detectOrThrow(rawDocument, gateMode, {
+      waiveConflicts: yes,
+    })
+  }
+
+  private resolveManagedTargetSlices(
+    rawDocument: AgentsConfigDocument | null,
+    gateMode: SchemaGateMode,
+  ): {
+    readonly existingTargets: InstallTargetId[] | undefined
+    readonly namespaceTargets: InstallTargetId[] | undefined
+    readonly effectiveTargets: InstallTargetId[] | undefined
+  } {
+    const activeTarget =
+      rawDocument === null ? {} : getActiveGateTarget(rawDocument, gateMode)
+    const existingManaged = extractCliManagedConfig(activeTarget)
+    const namespaceManaged =
+      rawDocument === null || gateMode !== 'top-level-ours'
+        ? {}
+        : extractCliManagedConfig(getNamespaceBlock(rawDocument) ?? {})
+
+    return {
+      existingTargets: resolveTargetsFromManaged(existingManaged),
+      namespaceTargets: resolveTargetsFromManaged(namespaceManaged),
+      effectiveTargets: resolveTargetsFromManaged({
+        ...namespaceManaged,
+        ...existingManaged,
+        targets: existingManaged.targets ?? namespaceManaged.targets,
+      }),
+    }
+  }
+
+  private finalizeWarnings(
+    rawDocument: AgentsConfigDocument | null,
+    gateMode: SchemaGateMode,
+    merged: AgentsConfigDocument,
+    yes: boolean,
+    warnings: InitResult['warnings'],
+  ): InitResult['warnings'] {
+    if (rawDocument !== null && gateMode === 'top-level-ours') {
+      return this.conflictDetector.detectOrThrow(merged, gateMode, { waiveConflicts: yes })
+    }
+
+    return warnings
   }
 
   private parseCliTargetIds(raw: readonly string[] | undefined): InstallTargetId[] | undefined {
