@@ -293,40 +293,58 @@ const validateClaudeEntry = (
   validateFrontmatterVersion(entry, name, expectedVersion, issues, 'claude')
 }
 
+const tryOpenZip = (
+  zipBytes: Buffer,
+): { readonly ok: true; readonly zip: AdmZip } | { readonly ok: false; readonly issues: ZipValidationIssue[] } => {
+  try {
+    return { ok: true, zip: new AdmZip(zipBytes) }
+  } catch (error) {
+    return {
+      ok: false,
+      issues: [err('ERR_ZIP_MALFORMED_ENTRY', `Cannot open ZIP — ${String(error)}`)],
+    }
+  }
+}
+
+const validateCommonEntryChecks = (
+  entry: AdmZip.IZipEntry,
+  name: string,
+  issues: ZipValidationIssue[],
+  seenExact: Set<string>,
+  seenLower: Map<string, string>,
+): boolean => {
+  if (!validateEntryPath(name, issues)) {
+    return false
+  }
+
+  if (!validateNotSymlink(entry, name, issues)) {
+    return false
+  }
+
+  trackEntryCollisions(name, issues, seenExact, seenLower)
+  return validateDisallowedPayload(name, issues)
+}
+
 const scanSnapshotZipBuffer = (
   zipBytes: Buffer,
   opts: { type: 'deployment' | 'source'; expectedVersion: string },
 ): ZipValidationIssue[] => {
-  const issues: ZipValidationIssue[] = []
-
-  let zip: AdmZip
-  try {
-    zip = new AdmZip(zipBytes)
-  } catch (error) {
-    return [err('ERR_ZIP_MALFORMED_ENTRY', `Cannot open ZIP — ${String(error)}`)]
+  const opened = tryOpenZip(zipBytes)
+  if (!opened.ok) {
+    return opened.issues
   }
 
+  const issues: ZipValidationIssue[] = []
   const seenExact = new Set<string>()
   const seenLower = new Map<string, string>()
 
-  for (const entry of zip.getEntries()) {
+  for (const entry of opened.zip.getEntries()) {
     const name = entry.entryName
-
     if (name.endsWith('/')) {
       continue
     }
 
-    if (!validateEntryPath(name, issues)) {
-      continue
-    }
-
-    if (!validateNotSymlink(entry, name, issues)) {
-      continue
-    }
-
-    trackEntryCollisions(name, issues, seenExact, seenLower)
-
-    if (!validateDisallowedPayload(name, issues)) {
+    if (!validateCommonEntryChecks(entry, name, issues, seenExact, seenLower)) {
       continue
     }
 
@@ -338,6 +356,21 @@ const scanSnapshotZipBuffer = (
   return issues
 }
 
+const validateTargetSpecificEntry = (
+  entry: AdmZip.IZipEntry,
+  name: string,
+  targetId: InstallTargetId,
+  expectedVersion: string,
+  issues: ZipValidationIssue[],
+): void => {
+  if (targetId === 'claude-code') {
+    validateClaudeEntry(entry, name, expectedVersion, issues)
+    return
+  }
+
+  validateSkillEntry(entry, name, issues)
+}
+
 export const scanTargetArtifactZipBuffer = (
   zipBytes: Buffer,
   targetId: InstallTargetId,
@@ -347,43 +380,26 @@ export const scanTargetArtifactZipBuffer = (
     return scanSnapshotZipBuffer(zipBytes, { type: 'deployment', expectedVersion })
   }
 
-  const issues: ZipValidationIssue[] = []
-  let zip: AdmZip
-  try {
-    zip = new AdmZip(zipBytes)
-  } catch (error) {
-    return [err('ERR_ZIP_MALFORMED_ENTRY', `Cannot open ZIP — ${String(error)}`)]
+  const opened = tryOpenZip(zipBytes)
+  if (!opened.ok) {
+    return opened.issues
   }
 
+  const issues: ZipValidationIssue[] = []
   const seenExact = new Set<string>()
   const seenLower = new Map<string, string>()
 
-  for (const entry of zip.getEntries()) {
+  for (const entry of opened.zip.getEntries()) {
     const name = entry.entryName
     if (name.endsWith('/')) {
       continue
     }
 
-    if (!validateEntryPath(name, issues)) {
+    if (!validateCommonEntryChecks(entry, name, issues, seenExact, seenLower)) {
       continue
     }
 
-    if (!validateNotSymlink(entry, name, issues)) {
-      continue
-    }
-
-    trackEntryCollisions(name, issues, seenExact, seenLower)
-
-    if (!validateDisallowedPayload(name, issues)) {
-      continue
-    }
-
-    if (targetId === 'claude-code') {
-      validateClaudeEntry(entry, name, expectedVersion, issues)
-      continue
-    }
-
-    validateSkillEntry(entry, name, issues)
+    validateTargetSpecificEntry(entry, name, targetId, expectedVersion, issues)
   }
 
   return issues

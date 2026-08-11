@@ -46,21 +46,10 @@ export class ConfigResolver {
     const activeTarget =
       rawDocument === null ? {} : getActiveGateTarget(rawDocument, gateMode)
     const managed = extractCliManagedConfig(activeTarget)
-
-    let registry = managed.registry ?? DEFAULT_REGISTRY_CONFIG
-    const registryUrlOverride = env[ENV_AGENTS_REPO_REGISTRY_URL]?.trim()
-    if (registryUrlOverride) {
-      registry = { ...registry, url: registryUrlOverride }
-      try {
-        const refFromUrl = new URL(registryUrlOverride).searchParams.get('ref')?.trim()
-        if (refFromUrl !== undefined && refFromUrl.length > 0) {
-          registry = { ...registry, ref: refFromUrl }
-        }
-      } catch {
-        // Keep configured ref when override is not a parseable URL.
-      }
-    }
-
+    const registry = applyRegistryUrlOverride(
+      managed.registry ?? DEFAULT_REGISTRY_CONFIG,
+      env[ENV_AGENTS_REPO_REGISTRY_URL]?.trim(),
+    )
     const packages = managed.packages ?? {}
     const resolvedTargets = resolveTargetsFromManaged(managed)
 
@@ -81,4 +70,25 @@ export class ConfigResolver {
       rawDocument,
     }
   }
+}
+
+const applyRegistryUrlOverride = (
+  registry: ResolvedAgentsConfig['registry'],
+  registryUrlOverride: string | undefined,
+): ResolvedAgentsConfig['registry'] => {
+  if (!registryUrlOverride) {
+    return registry
+  }
+
+  let next = { ...registry, url: registryUrlOverride }
+  try {
+    const refFromUrl = new URL(registryUrlOverride).searchParams.get('ref')?.trim()
+    if (refFromUrl !== undefined && refFromUrl.length > 0) {
+      next = { ...next, ref: refFromUrl }
+    }
+  } catch {
+    // Keep configured ref when override is not a parseable URL.
+  }
+
+  return next
 }

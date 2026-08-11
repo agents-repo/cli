@@ -34,6 +34,37 @@ const isMetadataInstallTargetStatus = (
   )
 }
 
+const parseCompatibilityTargetEntry = (
+  entry: unknown,
+  seen: Set<string>,
+): MetadataCompatibilityTarget => {
+  if (!isPlainObject(entry)) {
+    throw new MetadataSchemaError('metadata.json compatibility.targets entries must be objects')
+  }
+
+  const id = entry.id
+  const status = entry.status
+
+  if (!isInstallTargetId(id)) {
+    throw new MetadataSchemaError(
+      `metadata.json compatibility.targets id must be one of: ${INSTALL_TARGET_IDS.join(', ')}`,
+    )
+  }
+
+  if (!isMetadataInstallTargetStatus(status)) {
+    throw new MetadataSchemaError(
+      'metadata.json compatibility.targets status must be supported, experimental, or planned',
+    )
+  }
+
+  if (seen.has(id)) {
+    throw new MetadataSchemaError(`metadata.json compatibility.targets contains duplicate id: ${id}`)
+  }
+
+  seen.add(id)
+  return { id, status }
+}
+
 const parseCompatibilityObject = (value: unknown): PackageCompatibility => {
   if (!isPlainObject(value)) {
     throw new MetadataSchemaError('metadata.json compatibility must be an object when provided')
@@ -54,31 +85,7 @@ const parseCompatibilityObject = (value: unknown): PackageCompatibility => {
   const seen = new Set<string>()
 
   for (const entry of rawTargets) {
-    if (!isPlainObject(entry)) {
-      throw new MetadataSchemaError('metadata.json compatibility.targets entries must be objects')
-    }
-
-    const id = entry.id
-    const status = entry.status
-
-    if (!isInstallTargetId(id)) {
-      throw new MetadataSchemaError(
-        `metadata.json compatibility.targets id must be one of: ${INSTALL_TARGET_IDS.join(', ')}`,
-      )
-    }
-
-    if (!isMetadataInstallTargetStatus(status)) {
-      throw new MetadataSchemaError(
-        'metadata.json compatibility.targets status must be supported, experimental, or planned',
-      )
-    }
-
-    if (seen.has(id)) {
-      throw new MetadataSchemaError(`metadata.json compatibility.targets contains duplicate id: ${id}`)
-    }
-
-    seen.add(id)
-    targets.push({ id, status })
+    targets.push(parseCompatibilityTargetEntry(entry, seen))
   }
 
   return { canonicalFormat, targets }

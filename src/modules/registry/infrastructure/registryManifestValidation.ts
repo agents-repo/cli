@@ -33,6 +33,36 @@ const isManifestArtifact = (value: unknown): value is ManifestArtifact => {
   return true
 }
 
+const areArtifactsValidForVersion = (
+  artifacts: unknown,
+  version: string,
+): boolean => {
+  if (!Array.isArray(artifacts) || artifacts.length === 0) {
+    return false
+  }
+
+  const seenTargets = new Set<string>()
+
+  for (const artifact of artifacts) {
+    if (!isManifestArtifact(artifact)) {
+      return false
+    }
+
+    if (seenTargets.has(artifact.target)) {
+      return false
+    }
+
+    seenTargets.add(artifact.target)
+
+    const expectedFile = `${version}-${artifact.target}.zip`
+    if (artifact.file !== expectedFile) {
+      return false
+    }
+  }
+
+  return true
+}
+
 const isManifestVersionEntry = (value: unknown): value is ManifestVersionEntry => {
   if (!isRecord(value)) {
     return false
@@ -53,28 +83,8 @@ const isManifestVersionEntry = (value: unknown): value is ManifestVersionEntry =
     return false
   }
 
-  if (!Array.isArray(artifacts) || artifacts.length === 0) {
+  if (!areArtifactsValidForVersion(artifacts, version)) {
     return false
-  }
-
-  const seenTargets = new Set<string>()
-
-  for (const artifact of artifacts) {
-    if (!isManifestArtifact(artifact)) {
-      return false
-    }
-
-    if (seenTargets.has(artifact.target)) {
-      return false
-    }
-
-    seenTargets.add(artifact.target)
-
-    const expectedFile = `${version}-${artifact.target}.zip`
-
-    if (artifact.file !== expectedFile) {
-      return false
-    }
   }
 
   return Number.isFinite(Date.parse(createdAt))

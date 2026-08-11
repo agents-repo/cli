@@ -71,6 +71,33 @@ const dedupeSignals = (entries: ProjectMetadataSignal[]): ProjectMetadataSignal[
   return result
 }
 
+const collectNameSignals = (record: Record<string, unknown>): ProjectMetadataSignal[] => {
+  if (typeof record.name !== 'string' || record.name.trim().length === 0) {
+    return []
+  }
+
+  return expandScopedName(record.name).map((token) => ({ value: token, source: 'name' as const }))
+}
+
+const collectDependencySignals = (record: Record<string, unknown>): ProjectMetadataSignal[] => {
+  const signals: ProjectMetadataSignal[] = []
+
+  for (const field of DEPENDENCY_FIELDS) {
+    const section = record[field]
+    if (typeof section !== 'object' || section === null) {
+      continue
+    }
+
+    for (const depName of Object.keys(section)) {
+      for (const token of expandScopedName(depName)) {
+        signals.push({ value: token, source: 'dependency' })
+      }
+    }
+  }
+
+  return signals
+}
+
 const readPackageJsonSignals = (
   cwd: string,
   warnings: string[],
@@ -94,28 +121,7 @@ const readPackageJsonSignals = (
   }
 
   const record = parsed as Record<string, unknown>
-  const signals: ProjectMetadataSignal[] = []
-
-  if (typeof record.name === 'string' && record.name.trim().length > 0) {
-    for (const token of expandScopedName(record.name)) {
-      signals.push({ value: token, source: 'name' })
-    }
-  }
-
-  for (const field of DEPENDENCY_FIELDS) {
-    const section = record[field]
-    if (typeof section !== 'object' || section === null) {
-      continue
-    }
-
-    for (const depName of Object.keys(section)) {
-      for (const token of expandScopedName(depName)) {
-        signals.push({ value: token, source: 'dependency' })
-      }
-    }
-  }
-
-  return signals
+  return [...collectNameSignals(record), ...collectDependencySignals(record)]
 }
 
 const tokenizeReadme = (content: string): string[] => {

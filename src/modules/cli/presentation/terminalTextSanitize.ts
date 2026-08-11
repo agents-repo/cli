@@ -1,4 +1,4 @@
-/* eslint-disable no-control-regex, sonarjs/no-control-regex, sonarjs/single-character-alternation, security/detect-non-literal-regexp -- ANSI escape bytes are intentional */
+/* eslint-disable security/detect-non-literal-regexp -- ANSI escape bytes are intentional */
 const ANSI_ESCAPE_SEQUENCE = new RegExp(
   String.raw`(?:${String.fromCodePoint(0x1b)}|${String.fromCodePoint(0x9b)})\[[0-9;]*[ -/]*[@-~]`,
   'g',

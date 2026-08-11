@@ -28,32 +28,44 @@ const parseManagedPackages = (
   return packages
 }
 
+const resolveRegistryFromObject = (
+  registry: Record<string, unknown>,
+  registryUrlAlias: string | undefined,
+  activeTarget: Record<string, unknown>,
+): RegistryConfig | undefined => {
+  const url = registry.url
+  const ref = registry.ref
+
+  if (typeof url === 'string') {
+    return {
+      url,
+      ref: typeof ref === 'string' ? ref : DEFAULT_REGISTRY_REF,
+    }
+  }
+
+  if (registryUrlAlias) {
+    return {
+      url: registryUrlAlias,
+      ref: typeof ref === 'string' ? ref : getRegistryRefDefault(activeTarget),
+    }
+  }
+
+  if (typeof ref === 'string') {
+    return {
+      url: DEFAULT_REGISTRY_CONFIG.url,
+      ref,
+    }
+  }
+
+  return undefined
+}
+
 const resolveManagedRegistryFromActiveTarget = (
   activeTarget: Record<string, unknown>,
 ): RegistryConfig | undefined => {
   const registryUrlAlias = getRegistryUrlAlias(activeTarget)
   if (isPlainObject(activeTarget.registry)) {
-    const url = activeTarget.registry.url
-    const ref = activeTarget.registry.ref
-    if (typeof url === 'string') {
-      return {
-        url,
-        ref: typeof ref === 'string' ? ref : DEFAULT_REGISTRY_REF,
-      }
-    }
-    if (registryUrlAlias) {
-      return {
-        url: registryUrlAlias,
-        ref: typeof ref === 'string' ? ref : getRegistryRefDefault(activeTarget),
-      }
-    }
-    if (typeof ref === 'string') {
-      return {
-        url: DEFAULT_REGISTRY_CONFIG.url,
-        ref,
-      }
-    }
-    return undefined
+    return resolveRegistryFromObject(activeTarget.registry, registryUrlAlias, activeTarget)
   }
 
   if (registryUrlAlias) {

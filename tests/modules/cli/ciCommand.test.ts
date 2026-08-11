@@ -85,6 +85,61 @@ const writeDualPackageProject = (cwd: string, baseUrl: string): void => {
   );
 };
 
+const writeJsonResponse = (response: import('node:http').ServerResponse, body: unknown): void => {
+  response.writeHead(200, { 'Content-Type': 'application/json' });
+  response.end(JSON.stringify(body));
+};
+
+const writeBinaryResponse = (response: import('node:http').ServerResponse, body: Buffer): void => {
+  response.writeHead(200);
+  response.end(body);
+};
+
+const handleCiMockRegistryRequest = (
+  url: string,
+  response: import('node:http').ServerResponse,
+): boolean => {
+  if (url.includes('/packages/index.json')) {
+    writeJsonResponse(response, makeDualPackageInstallCatalog());
+    return true;
+  }
+
+  if (url.includes('/agents-repo/sample-agent/versions/manifest.json')) {
+    writeJsonResponse(response, mockManifest);
+    return true;
+  }
+
+  if (url.includes('/agents-repo/other-agent/versions/manifest.json')) {
+    writeJsonResponse(response, mockOtherManifest);
+    return true;
+  }
+
+  if (url.includes('/agents-repo/sample-agent/') && url.includes('/metadata.json')) {
+    writeJsonResponse(response, makeInstallTestMetadata());
+    return true;
+  }
+
+  if (url.includes('/agents-repo/other-agent/') && url.includes('/metadata.json')) {
+    writeJsonResponse(response, {
+      ...makeInstallTestMetadata(),
+      name: 'other-agent',
+    });
+    return true;
+  }
+
+  if (url.includes('/agents-repo/sample-agent/') && url.includes('1.0.0-cursor.zip')) {
+    writeBinaryResponse(response, zipBytes);
+    return true;
+  }
+
+  if (url.includes('/agents-repo/other-agent/') && url.includes('1.0.0-cursor.zip')) {
+    writeBinaryResponse(response, otherZipBytes);
+    return true;
+  }
+
+  return false;
+};
+
 describe('ci command subprocess with mock registry', () => {
   const tempDirs: string[] = [];
   let mockServer: Server;
@@ -93,51 +148,7 @@ describe('ci command subprocess with mock registry', () => {
   beforeAll(async () => {
     const server = createServer((request, response) => {
       const url = request.url ?? '/';
-
-      if (url.includes('/packages/index.json')) {
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify(makeDualPackageInstallCatalog()));
-        return;
-      }
-
-      if (url.includes('/agents-repo/sample-agent/versions/manifest.json')) {
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify(mockManifest));
-        return;
-      }
-
-      if (url.includes('/agents-repo/other-agent/versions/manifest.json')) {
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify(mockOtherManifest));
-        return;
-      }
-
-      if (url.includes('/agents-repo/sample-agent/') && url.includes('/metadata.json')) {
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify(makeInstallTestMetadata()));
-        return;
-      }
-
-      if (url.includes('/agents-repo/other-agent/') && url.includes('/metadata.json')) {
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(
-          JSON.stringify({
-            ...makeInstallTestMetadata(),
-            name: 'other-agent',
-          }),
-        );
-        return;
-      }
-
-      if (url.includes('/agents-repo/sample-agent/') && url.includes('1.0.0-cursor.zip')) {
-        response.writeHead(200);
-        response.end(zipBytes);
-        return;
-      }
-
-      if (url.includes('/agents-repo/other-agent/') && url.includes('1.0.0-cursor.zip')) {
-        response.writeHead(200);
-        response.end(otherZipBytes);
+      if (handleCiMockRegistryRequest(url, response)) {
         return;
       }
 
