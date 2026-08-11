@@ -87,12 +87,31 @@
     "eslint-plugin-sonarjs": "^4.1.0",
     "globals": "^17.7.0",
     "husky": "^9.1.7",
-    "js-yaml": "^4.3.0",
-    "markdownlint-cli2": "^0.23.0",
+    "js-yaml": "^4.3.1",
+    "markdownlint-cli2": "^0.23.2",
     "semantic-release": "^25.0.6",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.63.0",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "brace-expansion@^1": "1.1.18",
+    "brace-expansion@^2": "2.1.4",
+    "brace-expansion@^5": "5.0.9",
+    "ip-address": "^10.4.0",
+    "tar": "^7.5.22",
+    "undici@^6": "^6.28.0",
+    "undici@^7": "^7.29.0",
+    "undici@^8": "^8.9.0",
+    "js-yaml@^3": "3.15.1",
+    "js-yaml@^5": "5.2.2",
+    "postcss": "^8.5.23",
+    "npm": {
+      "brace-expansion": "5.0.9",
+      "ip-address": "^10.4.0",
+      "tar": "^7.5.22",
+      "undici": "^6.28.0"
+    }
   },
   "allowScripts": {}
 }
