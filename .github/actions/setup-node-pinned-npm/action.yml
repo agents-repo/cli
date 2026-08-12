@@ -11,6 +11,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Restore actionlint bootstrap cache
+      uses: actions/cache@v4
+      with:
+        path: .cache/actionlint
+        key: actionlint-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/actionlint_*_checksums.txt', 'scripts/lint-workflows.mjs') }}
+
     - name: Setup Node from .nvmrc
       if: ${{ inputs['node-version'] == '' }}
       uses: actions/setup-node@v6
