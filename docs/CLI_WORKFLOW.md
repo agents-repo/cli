@@ -29,7 +29,8 @@ Use the matching issue form under `.github/ISSUE_TEMPLATE/` when available.
 gh issue create --repo agents-repo/cli --title "feat: short description" --body-file <file>
 ```
 
-Match the issue title prefix to the work category.
+Match the issue title prefix to the work category (`fix:`, `feat:`, `chore:`,
+`docs:`).
 
 ## 2. Create Branch
 

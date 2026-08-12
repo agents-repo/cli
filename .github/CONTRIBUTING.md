@@ -71,8 +71,9 @@ See the organization [Required Workflow][org-rw] for shared norms.
    a linked private or advisory tracking issue. Otherwise, reference the
    private security advisory identifier (for example `GHSA-...`).
 2. **Maintainer emergency hotfix** — Work on a `fix/<issue-number>-<slug>`
-   branch only with prior maintainer approval. Do not use a separate `hotfix/`
-   prefix. Delivery to `main` is still via merged pull request.
+   branch only with prior maintainer approval documented in an issue or
+   advisory. Do not use a separate `hotfix/` prefix. Delivery to `main` is
+   still via merged pull request.
 
 ## Branch Naming
 
