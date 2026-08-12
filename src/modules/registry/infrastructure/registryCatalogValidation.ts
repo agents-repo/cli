@@ -127,6 +127,10 @@ const isRegistryPackage = (value: unknown): value is RegistryPackage => {
     return false
   }
 
+  if (value.chatWeb !== undefined && typeof value.chatWeb !== 'boolean') {
+    return false
+  }
+
   return true
 }
 

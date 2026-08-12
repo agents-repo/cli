@@ -32,6 +32,7 @@ jobs:
 
       - name: Verify registry package installs from lock
         run: |
+          npm run build
           rm -rf .github/agents .cursor/skills .claude/agents .agents/skills
           npm run agents:ci
           drift_paths=(

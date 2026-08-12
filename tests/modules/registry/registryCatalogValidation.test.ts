@@ -33,6 +33,32 @@ describe('isRegistryCatalog', () => {
     expect(isRegistryCatalog(payload)).toBe(true)
   })
 
+  it('accepts index schema 1.4.0 optional chatWeb', () => {
+    const pkg = makeValidPackage()
+    pkg.chatWeb = true
+
+    expect(
+      isRegistryCatalog({
+        schemaVersion: '1.4.0',
+        updatedAt: '2026-08-11T23:33:43.898Z',
+        packages: [pkg],
+      }),
+    ).toBe(true)
+  })
+
+  it('rejects non-boolean chatWeb', () => {
+    const pkg = makeValidPackage()
+    pkg.chatWeb = 'yes'
+
+    expect(
+      isRegistryCatalog({
+        schemaVersion: '1.4.0',
+        updatedAt: '2026-08-11T23:33:43.898Z',
+        packages: [pkg],
+      }),
+    ).toBe(false)
+  })
+
   it('rejects legacy inactive status', () => {
     const pkg = makeValidPackage()
     pkg.status = 'inactive'

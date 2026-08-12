@@ -1,22 +1,20 @@
 #!/usr/bin/env node
 /**
- * Run a published agents-repo CLI release from this repository root.
+ * Run the agents-repo CLI from this repository root.
  *
  * npm 12 `npx agents-repo@latest` resolves to the local package.json (same
- * name/version) and fails before `dist/` is built. CI and npm scripts use this
- * helper to invoke a pinned registry release instead.
+ * name/version) and fails before `dist/` is built. Prefer the local `dist/`
+ * binary when it exists so this repo can dogfood unpublished schema support.
+ * Otherwise install `agents-repo@<package.json version>` from npm.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const packageJsonPath = join(
-  dirname(fileURLToPath(import.meta.url)),
-  '..',
-  'package.json',
-);
+const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+const packageJsonPath = join(packageRoot, 'package.json');
 const { version: publishedCliVersion } = JSON.parse(
   readFileSync(packageJsonPath, 'utf8'),
 );
@@ -39,25 +37,31 @@ if (args.length === 0) {
   process.exit(1);
 }
 
-const installRoot = mkdtempSync(join(tmpdir(), 'agents-repo-published-'));
-const npmInstall = resolveNpmCliInvocation([
-  'install',
-  '--prefix',
-  installRoot,
-  `agents-repo@${publishedCliVersion}`,
-]);
-execFileSync(npmInstall.command, npmInstall.args, { stdio: 'inherit' });
+const localCliEntry = join(packageRoot, 'dist', 'bin', 'agents-repo.js');
+const resolveCliEntry = () => {
+  if (existsSync(localCliEntry)) {
+    return localCliEntry;
+  }
 
-const cliEntry = join(
-  installRoot,
-  'node_modules',
-  'agents-repo',
-  'dist',
-  'bin',
-  'agents-repo.js',
-);
+  const installRoot = mkdtempSync(join(tmpdir(), 'agents-repo-published-'));
+  const npmInstall = resolveNpmCliInvocation([
+    'install',
+    '--prefix',
+    installRoot,
+    `agents-repo@${publishedCliVersion}`,
+  ]);
+  execFileSync(npmInstall.command, npmInstall.args, { stdio: 'inherit' });
+  return join(
+    installRoot,
+    'node_modules',
+    'agents-repo',
+    'dist',
+    'bin',
+    'agents-repo.js',
+  );
+};
 
-execFileSync(process.execPath, [cliEntry, ...args], {
+execFileSync(process.execPath, [resolveCliEntry(), ...args], {
   stdio: 'inherit',
   cwd: process.cwd(),
 });

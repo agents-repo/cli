@@ -41,4 +41,31 @@ describe('isPackageManifest', () => {
 
     expect(isPackageManifest(manifest)).toBe(false)
   })
+
+  it('accepts manifest 1.2.0 optional instructions fields', () => {
+    const manifest = makeValidManifest()
+    manifest.schemaVersion = '1.2.0'
+    manifest.versions[0].instructionsArtifact = 'instructions.json'
+    manifest.versions[0].instructionsSha256 =
+      'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+
+    expect(isPackageManifest(manifest)).toBe(true)
+  })
+
+  it('rejects instructionsArtifact without instructionsSha256', () => {
+    const manifest = makeValidManifest()
+    manifest.schemaVersion = '1.2.0'
+    manifest.versions[0].instructionsArtifact = 'instructions.json'
+
+    expect(isPackageManifest(manifest)).toBe(false)
+  })
+
+  it('rejects instructionsSha256 without instructionsArtifact', () => {
+    const manifest = makeValidManifest()
+    manifest.schemaVersion = '1.2.0'
+    manifest.versions[0].instructionsSha256 =
+      'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+
+    expect(isPackageManifest(manifest)).toBe(false)
+  })
 })
