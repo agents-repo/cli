@@ -3,7 +3,10 @@
 This document describes the **GitHub CLI (`gh`) contributor workflow** for this
 repository. It is not documentation for the `agents-repo` product CLI commands.
 
-See `.github/CONTRIBUTING.md` **Required Workflow** for normative rules.
+See `.github/CONTRIBUTING.md` **Required Workflow** for normative rules and the
+organization
+[branch prefix reference](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#branch-prefix-reference)
+for prefix mapping.
 
 User-facing `agents-repo` command documentation lives under `docs/commands/`.
 See [commands/init.md](commands/init.md) for the `init` command.
@@ -26,11 +29,18 @@ Use the matching issue form under `.github/ISSUE_TEMPLATE/` when available.
 gh issue create --repo agents-repo/cli --title "feat: short description" --body-file <file>
 ```
 
+Match the issue title prefix to the work category.
+
 ## 2. Create Branch
+
+Choose `<prefix>` from the issue category. Examples:
+
+- `feat/8-install-package`
+- `docs/88-update-pr-guidance`
 
 ```bash
 git checkout main && git pull
-git checkout -b "chore/<issue-number>-<slug>"
+git checkout -b "<prefix>/<issue-number>-<slug>"
 ```
 
 ## 3. Push Branch and Open Draft Pull Request
@@ -41,7 +51,7 @@ git push -u origin HEAD
 
 gh pr create --repo agents-repo/cli --draft \
   --base main \
-  --title "chore: short description" \
+  --title "feat: short description" \
   --body-file .github/pull_request_template.md
 ```
 

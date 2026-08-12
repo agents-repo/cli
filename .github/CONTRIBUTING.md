@@ -70,10 +70,14 @@ See the organization [Required Workflow][org-rw] for shared norms.
    `## Related Issues`, use `Closes #<issue-number>` when maintainers provide
    a linked private or advisory tracking issue. Otherwise, reference the
    private security advisory identifier (for example `GHSA-...`).
-2. **Maintainer emergency hotfix** — Work on a hotfix branch only with prior
-   maintainer approval. Delivery to `main` is still via merged pull request.
+2. **Maintainer emergency hotfix** — Work on a `fix/<issue-number>-<slug>`
+   branch only with prior maintainer approval. Do not use a separate `hotfix/`
+   prefix. Delivery to `main` is still via merged pull request.
 
 ## Branch Naming
+
+Branch names MUST follow `<prefix>/<issue-number>-<slug>`, where `<slug>` is
+short lowercase kebab-case.
 
 | Work type | Prefix | Example |
 | --- | --- | --- |
@@ -82,6 +86,9 @@ See the organization [Required Workflow][org-rw] for shared norms.
 | Feature proposal | `feat/` | `feat/8-install-package` |
 | Task or chore | `chore/` | `chore/1-bootstrap-cli-scaffolding` |
 | Documentation-only work | `docs/` | `docs/88-update-pr-guidance` |
+
+See the organization [branch prefix reference](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#branch-prefix-reference)
+for the canonical cross-repo mapping.
 
 ## Commit Message Convention
 
