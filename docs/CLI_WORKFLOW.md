@@ -51,7 +51,7 @@ git push -u origin HEAD
 
 gh pr create --repo agents-repo/cli --draft \
   --base main \
-  --title "feat: short description" \
+  --title "<type>: short description" \
   --body-file .github/pull_request_template.md
 ```
 
