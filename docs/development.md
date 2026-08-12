@@ -71,7 +71,11 @@ npm run check:secrets
 on `.github/workflows/`). Run `npm run lint:workflows` before pushing workflow
 changes. See the organization
 [GitHub Actions workflow linting](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#github-actions-workflow-linting)
-norm.
+norm. When bumping `ACTIONLINT_VERSION` in `scripts/lint-workflows.mjs`, replace
+`scripts/actionlint_<version>_checksums.txt` with the matching file from the
+[actionlint GitHub release](https://github.com/rhysd/actionlint/releases) and
+remove the previous version's checksums file. Keep the same pin across
+organization repositories.
 
 For local CLI binary testing after code changes:
 
