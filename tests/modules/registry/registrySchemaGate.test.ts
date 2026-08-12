@@ -7,6 +7,7 @@ import {
 
 describe('registrySchemaGate', () => {
   it('accepts supported index schema versions and warns on deprecated', () => {
+    expect(assertIndexSchemaVersion('1.4.0')).toEqual({ warnings: [] })
     expect(assertIndexSchemaVersion('1.3.0')).toEqual({ warnings: [] })
     expect(assertIndexSchemaVersion('1.0.0').warnings[0]).toContain('deprecated')
   })
@@ -17,6 +18,7 @@ describe('registrySchemaGate', () => {
 
   it('accepts supported manifest schema versions', () => {
     expect(() => assertManifestSchemaVersion('1.1.0')).not.toThrow()
+    expect(() => assertManifestSchemaVersion('1.2.0')).not.toThrow()
   })
 
   it('rejects eol manifest schema versions', () => {

@@ -38,6 +38,7 @@ export interface RegistryPackage {
   }
   quickstart?: string
   installTargets?: InstallTargetEntry[]
+  chatWeb?: boolean
 }
 
 export interface RegistryCatalog {

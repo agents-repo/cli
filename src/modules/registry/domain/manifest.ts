@@ -12,6 +12,8 @@ export interface ManifestVersionEntry {
   srcArtifact: string
   srcSha256: string
   createdAt: string
+  instructionsArtifact?: string
+  instructionsSha256?: string
 }
 
 export interface PackageManifest {

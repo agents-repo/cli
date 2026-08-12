@@ -63,6 +63,18 @@ const areArtifactsValidForVersion = (
   return true
 }
 
+const hasValidInstructionsFields = (value: Record<string, unknown>): boolean => {
+  if (value.instructionsArtifact === undefined) {
+    return value.instructionsSha256 === undefined
+  }
+
+  return (
+    value.instructionsArtifact === 'instructions.json' &&
+    typeof value.instructionsSha256 === 'string' &&
+    SHA256_PATTERN.test(value.instructionsSha256)
+  )
+}
+
 const isManifestVersionEntry = (value: unknown): value is ManifestVersionEntry => {
   if (!isRecord(value)) {
     return false
@@ -84,6 +96,10 @@ const isManifestVersionEntry = (value: unknown): value is ManifestVersionEntry =
   }
 
   if (!areArtifactsValidForVersion(artifacts, version)) {
+    return false
+  }
+
+  if (!hasValidInstructionsFields(value)) {
     return false
   }
 
