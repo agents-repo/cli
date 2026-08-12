@@ -59,4 +59,13 @@ describe('isPackageManifest', () => {
 
     expect(isPackageManifest(manifest)).toBe(false)
   })
+
+  it('rejects instructionsSha256 without instructionsArtifact', () => {
+    const manifest = makeValidManifest()
+    manifest.schemaVersion = '1.2.0'
+    manifest.versions[0].instructionsSha256 =
+      'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+
+    expect(isPackageManifest(manifest)).toBe(false)
+  })
 })
