@@ -118,13 +118,22 @@ When opening tracking issues, agents MUST use the matching category form in
 - feature proposal: `.github/ISSUE_TEMPLATE/feature-proposal.yml`
 - task or chore: `.github/ISSUE_TEMPLATE/task-chore.yml`
 
-Branch names MUST follow `<prefix>/<issue-number>-<slug>`:
+Documentation-only work uses the task/chore issue category and the `docs/`
+branch prefix.
+
+Branch names MUST follow `<prefix>/<issue-number>-<slug>`, where `<slug>` is
+short lowercase kebab-case:
 
 - bug or inconsistency: `fix/`
 - spec change: `spec/`
 - feature proposal: `feat/`
 - task or chore: `chore/`
 - documentation-only work: `docs/`
+
+See `.github/CONTRIBUTING.md` **Branch Naming** and the organization
+[branch prefix reference](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#branch-prefix-reference).
+Branch prefix categorizes work; conventional **commit** (or squash-merge)
+prefix determines automated release bumps.
 
 ## Commit Message Convention
 
