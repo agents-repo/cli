@@ -57,7 +57,11 @@ When cache is enabled and `--prefer-online` is not set:
 2. If the blob exists, read bytes and verify SHA-256 once against the expected digest.
    - On match, return bytes without network fetch.
    - On mismatch, delete the blob and continue to step 3.
-3. Fetch artifact bytes from the registry URL.
+3. Fetch artifact bytes from the registry URL. Transient `registry_fetch_error`
+   failures (including HTTP 522) MUST be retried up to 3 attempts, with backoff
+   of 2s then 4s between failures. Abort (`AbortError` or an aborted `signal`)
+   MUST NOT be retried. Tooling MUST NOT retry SHA-256 verification, ZIP security
+   scan, lock drift, or schema errors as fetch failures.
 4. Verify SHA-256 once against the expected digest.
 5. If cache writes are allowed, atomically write the blob (temporary file in the same directory,
    then rename).

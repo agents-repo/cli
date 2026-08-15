@@ -84,6 +84,9 @@ They may remain in the lock from earlier partial installs; `list` may still disp
 - Versions and artifacts come from the lock only (`resolvedRef` + per-slot `artifact` / `integrity`).
 - Each required slot is downloaded, checksum-verified, ZIP-scanned, and extracted like
   [`install`](install.md), without updating `agents.json` or the lock.
+- Artifact ZIP download retries transient `[registry_fetch_error]` (including HTTP 522) up to 3
+  attempts with 2s then 4s backoff. Abort is not retried. Lock drift, checksum mismatch, ZIP
+  security, and schema errors still fail immediately.
 - Re-running `ci` when on-disk bytes match the lock artifact skips writes. When a managed file
   differs from the lock artifact, `ci` overwrites it (reproduce lock). This is independent of
   `--force`, which only waives `lock_version_range_mismatch` against `agents.json` ranges.

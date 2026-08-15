@@ -132,6 +132,11 @@ Before network fetch, tooling SHOULD read verified artifact bytes from the on-di
 [`artifact-cache.md`](artifact-cache.md) unless `AGENTS_REPO_NO_CACHE` is set or `--prefer-online`
 is passed. Cache lookup uses the expected SHA-256 hex from the manifest entry or lock slot.
 
+Network fetch of artifact bytes MUST retry transient `registry_fetch_error` failures (including
+HTTP 522) per [`artifact-cache.md`](artifact-cache.md) (3 attempts, 2s then 4s backoff). Abort
+MUST NOT be retried. SHA-256 verification in step 9 MUST run once on the successful payload and
+MUST NOT be retried as a fetch.
+
 ### 9. SHA-256 verify
 
 Downloaded or cached bytes MUST match `artifacts[].sha256` (bare lowercase hex) from the manifest
