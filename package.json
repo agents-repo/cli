@@ -1,6 +1,6 @@
 {
   "name": "agents-repo",
-  "version": "1.20.0",
+  "version": "1.20.1",
   "description": "Official CLI for installing and managing agents-repo packages.",
   "license": "MIT",
   "author": "Agents Repo (https://github.com/agents-repo)",
