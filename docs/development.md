@@ -87,6 +87,22 @@ node dist/bin/agents-repo.js --version
 Pre-commit hooks run `npm run lint:all`, `npm run test:sync`, and
 `npm run sync:ide-instructions -- --check` through Husky.
 
+## SonarQube Cloud
+
+Automatic Analysis reads [`.sonarcloud.properties`](../.sonarcloud.properties)
+on each push to the default branch or a pull request branch. It does **not**
+read `sonar-project.properties` (that filename is for CI-based analysis).
+
+`sonar.sources` and `sonar.tests` must be disjoint directory lists (no
+wildcards). `sonar.sources` is `src,scripts,docs,specs` — not `.` — so
+`test/` and `tests/` are not nested under sources. Do not set `sonar.sources`
+to `.` while `sonar.tests` lists nested directories; Automatic Analysis fails
+with “Source and test paths overlap”.
+
+Coverage report paths (`sonar.javascript.lcov.reportPaths`) and other external
+analyzer reports are unsupported under Automatic Analysis. Do not add them
+while Automatic Analysis is on.
+
 ## Project Layout
 
 ```text
