@@ -1,4 +1,4 @@
-# CLI Install Protocol Specification (1.0.0)
+# CLI Install Protocol Specification (1.1.0)
 
 This document defines the normative install pipeline for the agents-repo CLI.
 
@@ -11,7 +11,8 @@ RFC 2119.
 
 | Version | Applies To | Status | Notes |
 | --- | --- | --- | --- |
-| `1.0.0` | spec document version | current | Initial release |
+| `1.1.0` | spec document version | current | Forward-compatible registry schemaVersion gate |
+| `1.0.0` | spec document version | supported | Initial release |
 
 ## Purpose
 
@@ -86,7 +87,36 @@ index or artifacts. Store the concrete value in `agents-lock.json` `resolvedRef`
 ### 3. Fetch index
 
 - Path: `packages/index.json`.
-- Reject unsupported index `schemaVersion` per registry `index-schema.md`.
+- Classify index `schemaVersion` against the vendored lifecycle in
+  `src/modules/registry/domain/schemaVersions.ts` (`current`, `supported`, `deprecated`,
+  `eol`) **before** treating the document as fatal. The allowlist remains explicit;
+  unknown same-major newer versions are a forward-compat safety net until the next CLI
+  release updates those constants.
+  - Versions in `eol` MUST be rejected with `index_schema_error`.
+  - Versions in `supported` or `deprecated` MUST proceed. Deprecated versions SHOULD
+    warn with `Index schemaVersion "<ver>" is deprecated; consider upgrading catalog
+    consumers`.
+  - Unknown versions whose major matches vendored `current` **and** that are
+    semver-greater than `current` MUST NOT fail solely because the version string is
+    unknown, **if** the payload still validates against the latest supported catalog
+    schema (unknown fields ignored). The CLI MUST warn with
+    `Index schemaVersion "<ver>" is newer than this CLI; consider upgrading
+    agents-repo`.
+  - Unknown versions with a **different major** than vendored `current` MUST be
+    rejected with `index_schema_error`.
+  - Unknown versions that are not a same-major newer bump (malformed, older-but-unlisted)
+    MUST be rejected with `index_schema_error`.
+  - If a same-major newer document **fails** latest-supported structural validation, the
+    CLI MUST reject it (generic catalog schema mismatch). That is a breaking payload,
+    not an additive bump.
+- When `schemaVersion` is a present string, classify it **before** structural catalog
+  validation so callers see `Unsupported index schemaVersion` for eol, other-major,
+  malformed, and older-unlisted versions, not a generic catalog mismatch when the
+  version itself is the problem. A missing or non-string `schemaVersion` remains a
+  generic catalog schema mismatch.
+- Example: vendored current `1.4.0`. Registry publishes `1.5.0` with an extra optional
+  field and a valid `1.4.0` required field set. Install MUST warn and proceed. Registry
+  publishes `2.0.0`, or a `1.5.0` document missing `owner`. Install MUST fail.
 - Resolve leaf package ids via `aliases` when present.
 
 ### 4. Resolve package
@@ -101,7 +131,31 @@ index or artifacts. Store the concrete value in `agents-lock.json` `resolvedRef`
 ### 5. Fetch manifest
 
 - Path: `packages/<namespace>/<package>/versions/manifest.json`.
-- Reject unsupported manifest `schemaVersion`.
+- Classify manifest `schemaVersion` against the vendored lifecycle in
+  `src/modules/registry/domain/schemaVersions.ts` **before** treating the document as
+  fatal, using the same classified gate as fetch-index.
+  - Versions in `eol` MUST be rejected with `manifest_schema_error`.
+  - Versions in `supported` or `deprecated` MUST proceed. Deprecated versions SHOULD
+    warn.
+  - Unknown versions whose major matches vendored `current` **and** that are
+    semver-greater than `current` MUST NOT fail solely because the version string is
+    unknown, **if** the payload still validates against the latest supported manifest
+    schema (unknown fields ignored). The CLI MUST warn with
+    `Manifest schemaVersion "<ver>" is newer than this CLI; consider upgrading
+    agents-repo`.
+  - Unknown versions with a **different major** than vendored `current` MUST be
+    rejected with `manifest_schema_error`.
+  - Unknown versions that are not a same-major newer bump (malformed, older-but-unlisted)
+    MUST be rejected with `manifest_schema_error`.
+  - If a same-major newer document **fails** latest-supported structural validation, the
+    CLI MUST reject it (generic manifest schema mismatch).
+- When `schemaVersion` is a present string, classify it **before** structural manifest
+  validation so callers see `Unsupported manifest schemaVersion` for eol, other-major,
+  malformed, and older-unlisted versions. A missing or non-string `schemaVersion`
+  remains a generic manifest schema mismatch.
+- Example: vendored current `1.2.0`. Registry publishes `1.3.0` with an extra optional
+  version-entry field. Install MUST warn and proceed. Manifest `1.0.0` (`eol`) MUST
+  fail.
 
 ### 6. Pick version
 

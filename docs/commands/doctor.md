@@ -37,13 +37,17 @@ Project scope only in the initial release; global `doctor -g` is reserved for a 
 Skipped checks appear when prerequisites fail (for example `lock_config_sync` when the lock is
 missing). `doctor` runs independent checks where possible instead of failing on the first error.
 
+`registry_reachable` fails (exit `3`, `index_schema_error`) when the catalog `schemaVersion` is
+eol, other-major, malformed, or older-unlisted. Deprecated or newer-than-CLI additive index
+versions pass the check and appear in `warnings`.
+
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | All executed checks passed |
 | `1` | Registry network or transport failure |
-| `3` | Config, lock, or install path validation failure |
+| `3` | Config, lock, install path, or registry schema validation failure |
 | `4` | Dual-definition conflict when `--yes` is not set |
 
 The process exit code is the **highest severity** among failed checks.

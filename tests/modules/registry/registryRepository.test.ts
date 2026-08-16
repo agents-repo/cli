@@ -145,6 +145,102 @@ describe('loadRegistryCatalog', () => {
     await expect(loadRegistryCatalog()).rejects.toThrow(IndexSchemaError)
   })
 
+  it('warns and proceeds for unknown same-major newer index schema versions', async () => {
+    vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
+      sourceUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      configuredBaseUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      baseUrl: 'https://registry-proxy.example.workers.dev/?ref=main',
+      indexPath: 'packages/index.json',
+      indexUrl: 'https://registry-proxy.example.workers.dev/packages/index.json?ref=main',
+      configuredGithubRepositoryUrl: 'https://github.com/agents-repo/registry/tree/v2.x',
+      baseUrlRefResolution: null,
+    })
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...makeTestCatalog('1.5.0'),
+          extraOptional: true,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+
+    const result = await loadRegistryCatalog()
+
+    expect(result.catalog.packages).toHaveLength(1)
+    expect(result.warnings).toEqual([
+      'Index schemaVersion "1.5.0" is newer than this CLI; consider upgrading agents-repo',
+    ])
+  })
+
+  it('rejects other-major index schema versions before structural validation', async () => {
+    vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
+      sourceUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      configuredBaseUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      baseUrl: 'https://registry-proxy.example.workers.dev/?ref=main',
+      indexPath: 'packages/index.json',
+      indexUrl: 'https://registry-proxy.example.workers.dev/packages/index.json?ref=main',
+      configuredGithubRepositoryUrl: 'https://github.com/agents-repo/registry/tree/v2.x',
+      baseUrlRefResolution: null,
+    })
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ schemaVersion: '2.0.0', not: 'a catalog' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(loadRegistryCatalog()).rejects.toSatisfy((error: unknown) => {
+      return (
+        error instanceof IndexSchemaError
+        && error.message.includes('Unsupported index schemaVersion "2.0.0"')
+      )
+    })
+  })
+
+  it('rejects same-major newer catalogs that fail structural validation', async () => {
+    vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
+      sourceUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      configuredBaseUrl: 'https://registry-proxy.example.workers.dev?ref=main',
+      baseUrl: 'https://registry-proxy.example.workers.dev/?ref=main',
+      indexPath: 'packages/index.json',
+      indexUrl: 'https://registry-proxy.example.workers.dev/packages/index.json?ref=main',
+      configuredGithubRepositoryUrl: 'https://github.com/agents-repo/registry/tree/v2.x',
+      baseUrlRefResolution: null,
+    })
+
+    const catalog = makeTestCatalog('1.5.0')
+    const withoutOwner = {
+      ...catalog,
+      packages: catalog.packages.map((pkg) => ({
+        id: pkg.id,
+        namespace: pkg.namespace,
+        package: pkg.package,
+        name: pkg.name,
+        description: pkg.description,
+        latest: pkg.latest,
+        tags: pkg.tags,
+        status: pkg.status,
+        category: pkg.category,
+        estimateOverallCost: pkg.estimateOverallCost,
+      })),
+    }
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(withoutOwner), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(loadRegistryCatalog()).rejects.toThrow(RegistryCatalogValidationError)
+  })
+
   it('throws RegistryFetchError on HTTP failures', async () => {
     vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
       sourceUrl: 'https://registry-proxy.example.workers.dev?ref=main',
@@ -179,13 +275,14 @@ describe('loadPackageManifest', () => {
       }),
     )
 
-    const manifest = await loadPackageManifest(
+    const { manifest, warnings } = await loadPackageManifest(
       'https://raw.githubusercontent.com/agents-repo/registry/main',
       'agents-repo',
       'demo',
     )
 
     expect(manifest.latest).toBe('1.0.0')
+    expect(warnings).toEqual([])
   })
 
   it('rejects eol manifest schema versions', async () => {
@@ -199,5 +296,49 @@ describe('loadPackageManifest', () => {
     await expect(
       loadPackageManifest('https://raw.githubusercontent.com/agents-repo/registry/main', 'agents-repo', 'demo'),
     ).rejects.toThrow(ManifestSchemaError)
+  })
+
+  it('warns and proceeds for unknown same-major newer manifest schema versions', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...makeTestManifest('1.3.0'),
+          extraOptional: true,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+
+    const { manifest, warnings } = await loadPackageManifest(
+      'https://raw.githubusercontent.com/agents-repo/registry/main',
+      'agents-repo',
+      'demo',
+    )
+
+    expect(manifest.latest).toBe('1.0.0')
+    expect(warnings).toEqual([
+      'Manifest schemaVersion "1.3.0" is newer than this CLI; consider upgrading agents-repo',
+    ])
+  })
+
+  it('rejects other-major manifest schema versions before structural validation', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ schemaVersion: '2.0.0', not: 'a manifest' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(
+      loadPackageManifest('https://raw.githubusercontent.com/agents-repo/registry/main', 'agents-repo', 'demo'),
+    ).rejects.toSatisfy((error: unknown) => {
+      return (
+        error instanceof ManifestSchemaError
+        && error.message.includes('Unsupported manifest schemaVersion "2.0.0"')
+      )
+    })
   })
 })

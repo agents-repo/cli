@@ -26,6 +26,11 @@ export interface RegistryCatalogLoadResult {
   warnings: string[]
 }
 
+export interface PackageManifestLoadResult {
+  manifest: PackageManifest
+  warnings: string[]
+}
+
 export interface LoadRegistryCatalogOptions {
   readonly signal?: AbortSignal
   readonly bypassTagCache?: boolean
@@ -46,6 +51,15 @@ const fetchJson = async (url: string, signal: AbortSignal | undefined): Promise<
   }
 
   return response.json()
+}
+
+const readSchemaVersionString = (payload: unknown): string | undefined => {
+  if (typeof payload !== 'object' || payload === null || !('schemaVersion' in payload)) {
+    return undefined
+  }
+
+  const { schemaVersion } = payload
+  return typeof schemaVersion === 'string' ? schemaVersion : undefined
 }
 
 export const loadRegistryCatalog = async (
@@ -70,11 +84,13 @@ export const loadRegistryCatalog = async (
     )
   }
 
+  const schemaVersion = readSchemaVersionString(payload)
+  const warnings =
+    schemaVersion === undefined ? [] : assertIndexSchemaVersion(schemaVersion).warnings
+
   if (!isRegistryCatalog(payload)) {
     throw new RegistryCatalogValidationError('Registry payload does not match expected catalog schema')
   }
-
-  const { warnings } = assertIndexSchemaVersion(payload.schemaVersion)
 
   return {
     catalog: payload,
@@ -90,7 +106,7 @@ export const loadPackageManifest = async (
   namespace: string,
   packageId: string,
   options: { signal?: AbortSignal } = {},
-): Promise<PackageManifest> => {
+): Promise<PackageManifestLoadResult> => {
   const manifestUrl = buildRegistryManifestUrl(registryBaseUrl, namespace, packageId)
 
   let payload: unknown
@@ -107,13 +123,18 @@ export const loadPackageManifest = async (
     )
   }
 
+  const schemaVersion = readSchemaVersionString(payload)
+  const warnings =
+    schemaVersion === undefined ? [] : assertManifestSchemaVersion(schemaVersion).warnings
+
   if (!isPackageManifest(payload)) {
     throw new ManifestSchemaError('Manifest payload does not match expected schema')
   }
 
-  assertManifestSchemaVersion(payload.schemaVersion)
-
-  return payload
+  return {
+    manifest: payload,
+    warnings,
+  }
 }
 
 export const loadPackageMetadata = async (

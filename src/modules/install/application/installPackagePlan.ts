@@ -33,11 +33,12 @@ export const planPackageInstall = async (options: {
   const statusPolicy = evaluatePackageStatusPolicy(pkg.status, pkg.id)
   options.warnings.push(...statusPolicy.warnings)
 
-  const manifest = await loadPackageManifest(
+  const { manifest, warnings: manifestWarnings } = await loadPackageManifest(
     options.catalogResult.registryBaseUrl,
     pkg.namespace,
     pkg.package,
   )
+  options.warnings.push(...manifestWarnings)
 
   const semverRange = options.resolved.packages[pkg.id]
   const version = resolveInstallVersion(manifest, pkg.id, semverRange)
