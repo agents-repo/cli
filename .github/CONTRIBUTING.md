@@ -12,6 +12,16 @@ Because this is an AI-first project, contributor guidance must stay explicit.
 When you change setup, automation, or review expectations, update the matching
 docs in the same pull request.
 
+## Docs and repository pages
+
+For user guides and cross-repo documentation, see [agents-repo.org/docs](https://agents-repo.org/docs/).
+For this repository's overview on the public site, see [agents-repo.org/repositories/cli](https://agents-repo.org/repositories/cli).
+
+When you change a user-facing or contributor workflow in this
+repository, update the corresponding page(s) in
+[agents-repo/webapp](https://github.com/agents-repo/webapp) under
+`src/content/docs/` in the same PR or an immediate follow-up.
+
 ## Before You Start
 
 1. Confirm the task scope and expected outcome.
