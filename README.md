@@ -137,3 +137,15 @@ See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md),
 [docs/development.md](docs/development.md), and
 [docs/npm-publishing.md](docs/npm-publishing.md) (npm releases and trusted
 publishing).
+
+## Docs and repository pages
+
+For user guides and cross-repo documentation, see
+[agents-repo.org/docs/](https://agents-repo.org/docs/).
+For this repository's overview on the public site, see
+[agents-repo.org/repositories/cli/](https://agents-repo.org/repositories/cli/).
+
+When you change a user-facing or contributor workflow in this
+repository, update the corresponding page(s) in
+[agents-repo/webapp](https://github.com/agents-repo/webapp) under
+`src/content/docs/` in the same PR or an immediate follow-up.
