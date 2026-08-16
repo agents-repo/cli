@@ -6,7 +6,7 @@ import {
   type DoctorCheck,
 } from '../../../src/modules/config/application/doctorService.js'
 import { ConfigValidationError } from '../../../src/modules/config/domain/configErrors.js'
-import { RegistryFetchError } from '../../../src/modules/registry/domain/errors.js'
+import { IndexSchemaError, RegistryFetchError } from '../../../src/modules/registry/domain/errors.js'
 import { InstallRuntimeError } from '../../../src/modules/install/domain/installErrors.js'
 
 describe('computeDoctorExitCode', () => {
@@ -50,6 +50,10 @@ describe('exitCodeForDoctorError', () => {
 
   it('maps registry fetch errors to exit 1', () => {
     expect(exitCodeForDoctorError(new RegistryFetchError('fetch failed', 503))).toBe(1)
+  })
+
+  it('maps index schema errors to exit 3', () => {
+    expect(exitCodeForDoctorError(new IndexSchemaError('unsupported', '2.0.0'))).toBe(3)
   })
 
   it('maps integrity mismatch to exit 3', () => {

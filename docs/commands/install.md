@@ -95,7 +95,15 @@ The command follows [`specs/cli-protocol.md`](../../specs/cli-protocol.md):
 
 1. Load config (with env overrides)
 2. Resolve registry ref (including major-line aliases such as `v2.x`)
-3. Fetch catalog, manifest, and metadata
+3. Fetch catalog, manifest, and metadata. Registry index and manifest
+   `schemaVersion` values use a classified gate: listed and deprecated versions
+   proceed (deprecated warns); unknown same-major newer additive documents warn
+   (`Index schemaVersion "<ver>" is newer than this CLI; consider upgrading
+   agents-repo` / the matching Manifest line) and proceed when the payload still
+   matches the latest supported shape; eol, other-major, malformed, and
+   older-unlisted versions fail with `index_schema_error` /
+   `manifest_schema_error` (exit `3`). Same-major newer documents that fail
+   structural validation also fail with a generic schema mismatch.
 4. Pick version and artifact for the install target
 5. Download ZIP (read-through artifact cache when enabled), verify SHA-256, run ZIP security scan
 6. Extract using registry install-target path rules
@@ -132,6 +140,10 @@ not retried as fetch failures. Install `--dry-run` does not download and does no
 | `2` | Usage error |
 | `3` | Validation failure (missing target, unsupported target, package not found, schema errors) |
 | `4` | Dual-definition conflict in config (without `--yes`) |
+
+Hard registry `schemaVersion` failures (`index_schema_error` / `manifest_schema_error`) use
+exit `3`. Same-major newer additive schemas warn and still exit `0` when the rest of install
+succeeds.
 
 ## Examples
 

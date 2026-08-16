@@ -234,6 +234,41 @@ const handleInstallMockRegistryRequest = (
   return handleInstallMockRegistryFallback(url, response);
 };
 
+const startCustomMockRegistry = async (
+  handler: (url: string, response: import('node:http').ServerResponse) => boolean,
+): Promise<{ server: Server; baseUrl: string }> => {
+  const server = createServer((request, response) => {
+    const url = request.url ?? '/';
+    if (handler(url, response)) {
+      return;
+    }
+
+    response.writeHead(404);
+    response.end('not found');
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      resolve();
+    });
+  });
+
+  const address = server.address();
+  if (address === null || typeof address === 'string') {
+    throw new Error('Failed to bind mock registry server');
+  }
+
+  return {
+    server,
+    baseUrl: `http://127.0.0.1:${address.port}/?ref=v2.0.0`,
+  };
+};
+
+const parseCliJsonError = (stderr: string): { code: string; message: string } => {
+  const payload = JSON.parse(stderr.trim()) as { error: { code: string; message: string } };
+  return payload.error;
+};
+
 const handleInstallMockRegistryFallback = (
   url: string,
   response: import('node:http').ServerResponse,
@@ -852,5 +887,78 @@ describe('install command multi-target verbose summary', () => {
     expect(result.stdout).toContain(
       'Would install agents-repo/sample-agent@1.0.0 to 2 targets: cursor, github-copilot',
     );
+  });
+});
+
+describe('install command subprocess registry schemaVersion gate', () => {
+  const tempDirs: string[] = [];
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('exits 3 with index_schema_error for other-major catalog schemaVersion', async () => {
+    const started = await startCustomMockRegistry((url, response) => {
+      if (url.includes('/packages/index.json')) {
+        writeJsonResponse(response, { schemaVersion: '2.0.0', not: 'a catalog' });
+        return true;
+      }
+
+      return false;
+    });
+
+    try {
+      const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-index-schema-'));
+      tempDirs.push(cwd);
+      writeInstallConfig(cwd, started.baseUrl);
+
+      const result = await runCliSubprocess(
+        ['--json', '--dry-run', 'install', 'agents-repo/sample-agent'],
+        { cwd },
+      );
+
+      expect(result.status).toBe(3);
+      const error = parseCliJsonError(result.stderr);
+      expect(error.code).toBe('index_schema_error');
+      expect(error.message).toContain('Unsupported index schemaVersion "2.0.0"');
+    } finally {
+      await stopMockRegistryServer(started.server);
+    }
+  });
+
+  it('exits 3 with manifest_schema_error for other-major manifest schemaVersion', async () => {
+    const started = await startCustomMockRegistry((url, response) => {
+      if (url.includes('/packages/index.json')) {
+        writeJsonResponse(response, makeDualPackageInstallCatalog());
+        return true;
+      }
+
+      if (url.includes('/versions/manifest.json')) {
+        writeJsonResponse(response, { schemaVersion: '2.0.0', not: 'a manifest' });
+        return true;
+      }
+
+      return false;
+    });
+
+    try {
+      const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-cli-manifest-schema-'));
+      tempDirs.push(cwd);
+      writeInstallConfig(cwd, started.baseUrl);
+
+      const result = await runCliSubprocess(
+        ['--json', '--dry-run', 'install', 'agents-repo/sample-agent'],
+        { cwd },
+      );
+
+      expect(result.status).toBe(3);
+      const error = parseCliJsonError(result.stderr);
+      expect(error.code).toBe('manifest_schema_error');
+      expect(error.message).toContain('Unsupported manifest schemaVersion "2.0.0"');
+    } finally {
+      await stopMockRegistryServer(started.server);
+    }
   });
 });

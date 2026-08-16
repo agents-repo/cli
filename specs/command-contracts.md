@@ -1,4 +1,4 @@
-# Command Contracts Specification (1.0.0)
+# Command Contracts Specification (1.1.0)
 
 This document defines global CLI flags, exit codes, environment overrides, and command surfaces
 for the agents-repo CLI.
@@ -12,7 +12,8 @@ RFC 2119.
 
 | Version | Applies To | Status | Notes |
 | --- | --- | --- | --- |
-| `1.0.0` | spec document version | current | Initial release |
+| `1.1.0` | spec document version | current | Forward-compatible registry schemaVersion gate |
+| `1.0.0` | spec document version | supported | Initial release |
 
 ## Purpose
 
@@ -104,6 +105,15 @@ detection before fan-out. Bulk `install` / `update` MUST NOT run detection.
 **Global scope:** `-g` resolves and persists `agents.json` + `agents-lock.json` under
 `~/.agents-repo/` (or `AGENTS_REPO_HOME`). Project `agents.json` / `agents-lock.json` MUST NOT be
 modified when `-g` is set.
+
+**Registry schemaVersion:** `install` and `update` load the catalog and package manifests through
+the classified gate in `cli-protocol.md`. Hard failures MUST exit `3` with `index_schema_error` or
+`manifest_schema_error`. Deprecated index versions SHOULD warn. Unknown same-major newer index or
+manifest versions MUST warn with
+`Index schemaVersion "<ver>" is newer than this CLI; consider upgrading agents-repo` or
+`Manifest schemaVersion "<ver>" is newer than this CLI; consider upgrading agents-repo` and MUST
+NOT exit `3` solely because the version string is unknown. Warnings appear in stderr as
+`warning: …` (text) and in the `warnings` array (`--json`).
 
 ### `add-target`
 
@@ -284,7 +294,10 @@ Process exit code MUST be the highest severity among failed checks: config or va
 (exit `3`, including lock validation), dual-definition conflicts when not waived (exit `4`), registry
 network or transport failures (exit `1`), success when no check failed (exit `0`). Skipped checks MUST
 NOT affect the exit code. Config resolver warnings (including waived dual-definition) MUST appear in
-`warnings` but MUST NOT alone change the exit code.
+`warnings` but MUST NOT alone change the exit code. Catalog schema warnings (deprecated or
+newer-than-CLI index `schemaVersion`) MUST appear in `warnings` and MUST NOT alone fail
+`registry_reachable` or change the exit code. Classified index schema rejects
+(`index_schema_error`) MUST fail `registry_reachable` with exit `3`.
 
 Contrast [`list`](#list): incomplete `byTarget` for configured targets is a warning on `list` (exit
 `0`) and MUST be a failed `lock_config_sync` check on `doctor` (exit `3`). Contrast [`ci`](#ci):
@@ -325,7 +338,7 @@ Tooling MUST NOT implement subset or selective install unless a new spec issue r
 | `0` | Success |
 | `1` | General or runtime failure (registry/network errors MAY use this code) |
 | `2` | Invalid usage or CLI flags |
-| `3` | Config or validation error (see config-schema and lock-schema validation tables) |
+| `3` | Config or validation error (including `index_schema_error` / `manifest_schema_error`) |
 | `4` | Conflict detected and not waived (`--yes` absent) |
 
 When `--yes` is present, conflicts downgrade to warnings; tooling MUST exit `0` on success.

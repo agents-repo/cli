@@ -1,5 +1,7 @@
 // Vendored from https://github.com/agents-repo/registry/blob/main/specs/schema-versions.json
 // Update when registry schema lifecycle changes.
+// `supported` is the explicit allowlist. Unknown same-major versions greater than `current`
+// may still proceed after structural validation (forward-compatible gate).
 
 export const INDEX_SCHEMA_VERSIONS = {
   current: '1.4.0',
