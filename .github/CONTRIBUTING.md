@@ -14,8 +14,10 @@ docs in the same pull request.
 
 ## Docs and repository pages
 
-For user guides and cross-repo documentation, see [agents-repo.org/docs](https://agents-repo.org/docs/).
-For this repository's overview on the public site, see [agents-repo.org/repositories/cli](https://agents-repo.org/repositories/cli).
+For user guides and cross-repo documentation, see
+[agents-repo.org/docs/](https://agents-repo.org/docs/).
+For this repository's overview on the public site, see
+[agents-repo.org/repositories/cli/](https://agents-repo.org/repositories/cli/).
 
 When you change a user-facing or contributor workflow in this
 repository, update the corresponding page(s) in
