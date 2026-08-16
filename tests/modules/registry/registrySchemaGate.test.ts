@@ -41,6 +41,7 @@ describe('registrySchemaGate', () => {
         'Manifest schemaVersion "1.3.0" is newer than this CLI; consider upgrading agents-repo',
       ],
     })
+    expect(assertManifestSchemaVersion('1.2.1').warnings[0]).toContain('newer than this CLI')
   })
 
   it('rejects eol manifest schema versions', () => {
@@ -49,5 +50,7 @@ describe('registrySchemaGate', () => {
 
   it('rejects unknown manifest schema versions', () => {
     expect(() => assertManifestSchemaVersion('2.0.0')).toThrow(ManifestSchemaError)
+    expect(() => assertManifestSchemaVersion('1.1.5')).toThrow(ManifestSchemaError)
+    expect(() => assertManifestSchemaVersion('not-a-version')).toThrow(ManifestSchemaError)
   })
 })

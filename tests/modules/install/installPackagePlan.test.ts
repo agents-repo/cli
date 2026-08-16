@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { planPackageInstall } from '../../../src/modules/install/application/installPackagePlan.js'
+import { ManifestSchemaError } from '../../../src/modules/registry/domain/errors.js'
 import type { ResolvedAgentsConfig } from '../../../src/modules/config/domain/agentsConfig.js'
 import type { RegistryCatalogLoadResult } from '../../../src/modules/registry/infrastructure/registryRepository.js'
 import {
@@ -99,5 +100,37 @@ describe('planPackageInstall', () => {
     expect(warnings).toEqual([
       'Manifest schemaVersion "1.3.0" is newer than this CLI; consider upgrading agents-repo',
     ])
+  })
+
+  it('rejects other-major manifest schema versions', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = toFetchUrl(input)
+
+      if (url.includes('versions/manifest.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ schemaVersion: '2.0.0', not: 'a manifest' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      return Promise.resolve(new Response('not found', { status: 404 }))
+    })
+
+    await expect(
+      planPackageInstall({
+        catalogResult: makeCatalogResult(),
+        resolved: makeResolvedConfig(),
+        packageId: 'agents-repo/sample-agent',
+        target: 'cursor',
+        warnings: [],
+      }),
+    ).rejects.toSatisfy((error: unknown) => {
+      return (
+        error instanceof ManifestSchemaError
+        && error.message.includes('Unsupported manifest schemaVersion "2.0.0"')
+      )
+    })
   })
 })

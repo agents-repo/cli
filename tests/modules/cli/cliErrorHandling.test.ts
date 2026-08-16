@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getCliExitCode, writeCliError } from '../../../src/modules/cli/presentation/cliErrorHandling.js';
 import { ConfigValidationError, LockValidationError } from '../../../src/modules/config/domain/configErrors.js';
-import { NoMatchingVersionError, RegistryFetchError } from '../../../src/modules/registry/domain/errors.js';
+import {
+  IndexSchemaError,
+  ManifestSchemaError,
+  NoMatchingVersionError,
+  RegistryFetchError,
+} from '../../../src/modules/registry/domain/errors.js';
 import { resetCliGlobals, setCliGlobals } from '../../../src/modules/cli/application/cliGlobals.js';
 
 describe('cliErrorHandling', () => {
@@ -63,6 +68,14 @@ describe('cliErrorHandling', () => {
     expect(getCliExitCode(new NoMatchingVersionError('agents-repo/demo', '^9.0.0'))).toBe(3);
   });
 
+  it('maps index schema errors to exit code 3', () => {
+    expect(getCliExitCode(new IndexSchemaError('Unsupported index schemaVersion "2.0.0"', '2.0.0'))).toBe(3);
+  });
+
+  it('maps manifest schema errors to exit code 3', () => {
+    expect(getCliExitCode(new ManifestSchemaError('Unsupported manifest schemaVersion "2.0.0"', '2.0.0'))).toBe(3);
+  });
+
   it('writes stable registry error codes in json mode', () => {
     setCliGlobals({ json: true, verbose: false, yes: false, dryRun: false, noSave: false, preferOnline: false });
     const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
@@ -92,6 +105,42 @@ describe('cliErrorHandling', () => {
         error: {
           code: 'registry_fetch_error',
           message: 'Registry request failed with status 503',
+        },
+      })}\n`,
+    );
+
+    stderr.mockRestore();
+  });
+
+  it('writes stable index schema error codes in json mode', () => {
+    setCliGlobals({ json: true, verbose: false, yes: false, dryRun: false, noSave: false, preferOnline: false });
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    writeCliError(new IndexSchemaError('Unsupported index schemaVersion "2.0.0"', '2.0.0'));
+
+    expect(stderr).toHaveBeenCalledWith(
+      `${JSON.stringify({
+        error: {
+          code: 'index_schema_error',
+          message: 'Unsupported index schemaVersion "2.0.0"',
+        },
+      })}\n`,
+    );
+
+    stderr.mockRestore();
+  });
+
+  it('writes stable manifest schema error codes in json mode', () => {
+    setCliGlobals({ json: true, verbose: false, yes: false, dryRun: false, noSave: false, preferOnline: false });
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    writeCliError(new ManifestSchemaError('Unsupported manifest schemaVersion "2.0.0"', '2.0.0'));
+
+    expect(stderr).toHaveBeenCalledWith(
+      `${JSON.stringify({
+        error: {
+          code: 'manifest_schema_error',
+          message: 'Unsupported manifest schemaVersion "2.0.0"',
         },
       })}\n`,
     );

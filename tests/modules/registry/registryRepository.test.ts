@@ -341,4 +341,23 @@ describe('loadPackageManifest', () => {
       )
     })
   })
+
+  it('rejects same-major newer manifests that fail structural validation', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ schemaVersion: '1.3.0', extraOptional: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(
+      loadPackageManifest('https://raw.githubusercontent.com/agents-repo/registry/main', 'agents-repo', 'demo'),
+    ).rejects.toSatisfy((error: unknown) => {
+      return (
+        error instanceof ManifestSchemaError
+        && error.message.includes('Manifest payload does not match expected schema')
+        && !error.message.includes('Unsupported manifest schemaVersion')
+      )
+    })
+  })
 })

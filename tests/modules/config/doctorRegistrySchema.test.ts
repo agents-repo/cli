@@ -96,4 +96,29 @@ describe('DoctorService registry schemaVersion gate', () => {
     )
     expect(result.exitCode).toBe(0)
   })
+
+  it('passes registry_reachable with deprecated catalog warnings', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-doctor-index-deprecated-'))
+    tempDirs.push(cwd)
+    writeProject(cwd)
+
+    loadRegistryCatalogMock.mockResolvedValue({
+      catalog: makeInstallTestCatalog(),
+      indexUrl: 'https://registry-proxy.example.workers.dev/packages/index.json?ref=v2.0.0',
+      registryBaseUrl: 'https://registry-proxy.example.workers.dev',
+      baseUrlRefResolution: null,
+      warnings: [
+        'Index schemaVersion "1.0.0" is deprecated; consider upgrading catalog consumers',
+      ],
+    })
+
+    const result = await new DoctorService().run({ cwd })
+    const check = result.checks.find((entry) => entry.id === 'registry_reachable')
+
+    expect(check?.status).toBe('pass')
+    expect(result.warnings).toContain(
+      'Index schemaVersion "1.0.0" is deprecated; consider upgrading catalog consumers',
+    )
+    expect(result.exitCode).toBe(0)
+  })
 })
