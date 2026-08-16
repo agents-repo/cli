@@ -119,7 +119,9 @@ When the lock version matches but a managed file was edited locally, the command
 
 Verified registry ZIP artifacts are cached under `{AGENTS_REPO_HOME}/cache/` (npm-style
 content-addressed blobs). See [`specs/artifact-cache.md`](../../specs/artifact-cache.md).
-Install `--dry-run` does not download and does not write the cache.
+Artifact ZIP download retries transient `[registry_fetch_error]` (including HTTP 522) up to 3
+attempts with 2s then 4s backoff; abort, checksum mismatch, ZIP security, and schema errors are
+not retried as fetch failures. Install `--dry-run` does not download and does not write the cache.
 
 ## Exit codes
 

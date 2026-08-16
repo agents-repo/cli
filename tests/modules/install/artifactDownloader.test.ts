@@ -176,3 +176,180 @@ describe('downloadArtifact cache', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('downloadArtifact fetch retry', () => {
+  let tempHome: string
+  let fetchSpy: MockInstance<typeof fetch>
+  let previousNoCache: string | undefined
+  let sleepCalls: number[]
+
+  beforeEach(() => {
+    tempHome = mkdtempSync(path.join(os.tmpdir(), 'agents-artifact-retry-'))
+    previousNoCache = process.env[ENV_AGENTS_REPO_NO_CACHE]
+    delete process.env[ENV_AGENTS_REPO_NO_CACHE]
+    sleepCalls = []
+    fetchSpy = vi.spyOn(globalThis, 'fetch')
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    rmSync(tempHome, { recursive: true, force: true })
+    if (previousNoCache === undefined) {
+      delete process.env[ENV_AGENTS_REPO_NO_CACHE]
+    } else {
+      process.env[ENV_AGENTS_REPO_NO_CACHE] = previousNoCache
+    }
+  })
+
+  const env = (): NodeJS.ProcessEnv => ({
+    ...process.env,
+    AGENTS_REPO_HOME: tempHome,
+  })
+
+  const sleep = (ms: number): Promise<void> => {
+    sleepCalls.push(ms)
+    return Promise.resolve()
+  }
+
+  const download = (overrides: { signal?: AbortSignal } = {}) =>
+    downloadArtifact('https://example.test/artifact.zip', {
+      expectedSha256Hex: sampleSha256,
+      writeCache: false,
+      env: env(),
+      sleep,
+      ...overrides,
+    })
+
+  it('retries HTTP 522 then succeeds without extra SHA-256 fetches', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(new Response(null, { status: 522, statusText: '<none>' }))
+      .mockResolvedValueOnce(new Response(sampleBytes, { status: 200 }))
+
+    const bytes = await download()
+
+    expect(bytes.equals(sampleBytes)).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(sleepCalls).toEqual([2000])
+  })
+
+  it('retries two failures then succeeds with 2s then 4s backoff', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(new Response(null, { status: 522, statusText: '<none>' }))
+      .mockResolvedValueOnce(new Response(null, { status: 522, statusText: '<none>' }))
+      .mockResolvedValueOnce(new Response(sampleBytes, { status: 200 }))
+
+    const bytes = await download()
+
+    expect(bytes.equals(sampleBytes)).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    expect(sleepCalls).toEqual([2000, 4000])
+  })
+
+  it('throws the last RegistryFetchError after three HTTP 522s', async () => {
+    fetchSpy.mockResolvedValue(new Response(null, { status: 522, statusText: '<none>' }))
+
+    await expect(download()).rejects.toMatchObject({
+      name: 'RegistryFetchError',
+      code: 'registry_fetch_error',
+      statusCode: 522,
+    })
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    expect(sleepCalls).toEqual([2000, 4000])
+  })
+
+  it('does not sleep when the first fetch succeeds', async () => {
+    fetchSpy.mockResolvedValue(new Response(sampleBytes, { status: 200 }))
+
+    await download()
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(sleepCalls).toEqual([])
+  })
+
+  it('does not retry SHA-256 mismatch after HTTP 200', async () => {
+    fetchSpy.mockResolvedValue(new Response(Buffer.from('wrong-bytes'), { status: 200 }))
+
+    await expect(download()).rejects.toMatchObject({
+      name: 'InstallRuntimeError',
+      code: 'integrity_mismatch',
+    })
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(sleepCalls).toEqual([])
+  })
+
+  it('does not retry AbortError', async () => {
+    const controller = new AbortController()
+    fetchSpy.mockImplementation(() => {
+      controller.abort()
+      return Promise.reject(new DOMException('This operation was aborted', 'AbortError'))
+    })
+
+    await expect(download({ signal: controller.signal })).rejects.toMatchObject({
+      name: 'AbortError',
+    })
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(sleepCalls).toEqual([])
+  })
+
+  it('retries a thrown fetch failure then succeeds', async () => {
+    fetchSpy
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(new Response(sampleBytes, { status: 200 }))
+
+    const bytes = await download()
+
+    expect(bytes.equals(sampleBytes)).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(sleepCalls).toEqual([2000])
+  })
+
+  it('does not start another fetch when abort fires during backoff', async () => {
+    const controller = new AbortController()
+    fetchSpy.mockResolvedValue(new Response(null, { status: 522, statusText: '<none>' }))
+
+    const abortingSleep = (ms: number, signal?: AbortSignal): Promise<void> => {
+      sleepCalls.push(ms)
+      controller.abort()
+      if (signal?.aborted) {
+        return Promise.reject(new DOMException('This operation was aborted', 'AbortError'))
+      }
+
+      return Promise.resolve()
+    }
+
+    await expect(
+      downloadArtifact('https://example.test/artifact.zip', {
+        expectedSha256Hex: sampleSha256,
+        writeCache: false,
+        env: env(),
+        signal: controller.signal,
+        sleep: abortingSleep,
+      }),
+    ).rejects.toMatchObject({ name: 'AbortError' })
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(sleepCalls).toEqual([2000])
+  })
+
+  it('does not start another fetch when backoff resolves after abort', async () => {
+    const controller = new AbortController()
+    fetchSpy.mockResolvedValue(new Response(null, { status: 522, statusText: '<none>' }))
+
+    const resolvingSleepAfterAbort = (ms: number): Promise<void> => {
+      sleepCalls.push(ms)
+      controller.abort()
+      return Promise.resolve()
+    }
+
+    await expect(
+      downloadArtifact('https://example.test/artifact.zip', {
+        expectedSha256Hex: sampleSha256,
+        writeCache: false,
+        env: env(),
+        signal: controller.signal,
+        sleep: resolvingSleepAfterAbort,
+      }),
+    ).rejects.toMatchObject({ name: 'AbortError' })
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(sleepCalls).toEqual([2000])
+  })
+})
