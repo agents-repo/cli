@@ -291,6 +291,18 @@ describe('downloadArtifact fetch retry', () => {
     expect(sleepCalls).toEqual([])
   })
 
+  it('retries a thrown fetch failure then succeeds', async () => {
+    fetchSpy
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(new Response(sampleBytes, { status: 200 }))
+
+    const bytes = await download()
+
+    expect(bytes.equals(sampleBytes)).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(sleepCalls).toEqual([2000])
+  })
+
   it('does not start another fetch when abort fires during backoff', async () => {
     const controller = new AbortController()
     fetchSpy.mockResolvedValue(new Response(null, { status: 522, statusText: '<none>' }))
@@ -312,6 +324,29 @@ describe('downloadArtifact fetch retry', () => {
         env: env(),
         signal: controller.signal,
         sleep: abortingSleep,
+      }),
+    ).rejects.toMatchObject({ name: 'AbortError' })
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(sleepCalls).toEqual([2000])
+  })
+
+  it('does not start another fetch when backoff resolves after abort', async () => {
+    const controller = new AbortController()
+    fetchSpy.mockResolvedValue(new Response(null, { status: 522, statusText: '<none>' }))
+
+    const resolvingSleepAfterAbort = (ms: number): Promise<void> => {
+      sleepCalls.push(ms)
+      controller.abort()
+      return Promise.resolve()
+    }
+
+    await expect(
+      downloadArtifact('https://example.test/artifact.zip', {
+        expectedSha256Hex: sampleSha256,
+        writeCache: false,
+        env: env(),
+        signal: controller.signal,
+        sleep: resolvingSleepAfterAbort,
       }),
     ).rejects.toMatchObject({ name: 'AbortError' })
     expect(fetchSpy).toHaveBeenCalledTimes(1)

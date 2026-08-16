@@ -42,10 +42,6 @@ const defaultSleep = async (ms: number, signal?: AbortSignal): Promise<void> => 
     return
   }
 
-  if (signal?.aborted) {
-    throw toAbortError(signal)
-  }
-
   if (!signal) {
     await new Promise<void>((resolve) => {
       setTimeout(resolve, ms)
@@ -55,22 +51,33 @@ const defaultSleep = async (ms: number, signal?: AbortSignal): Promise<void> => 
 
   const abortSignal = signal
   await new Promise<void>((resolve, reject) => {
+    let settled = false
+
     const timer = setTimeout(() => {
-      cleanup()
+      if (settled) {
+        return
+      }
+
+      settled = true
+      abortSignal.removeEventListener('abort', onAbort)
       resolve()
     }, ms)
 
     const onAbort = (): void => {
-      cleanup()
+      if (settled) {
+        return
+      }
+
+      settled = true
+      clearTimeout(timer)
+      abortSignal.removeEventListener('abort', onAbort)
       reject(toAbortError(abortSignal))
     }
 
-    const cleanup = (): void => {
-      clearTimeout(timer)
-      abortSignal.removeEventListener('abort', onAbort)
-    }
-
     abortSignal.addEventListener('abort', onAbort, { once: true })
+    if (abortSignal.aborted) {
+      onAbort()
+    }
   })
 }
 
@@ -114,6 +121,15 @@ const fetchArtifactBytesOnce = async (
   }
 }
 
+const throwIfAborted = (signal: AbortSignal | undefined): void => {
+  if (signal?.aborted) {
+    throw toAbortError(signal)
+  }
+}
+
+const toLastFetchError = (error: unknown): Error =>
+  error instanceof Error ? error : new RegistryFetchError('Unknown artifact download error')
+
 const fetchArtifactBytes = async (
   artifactUrl: string,
   signal: AbortSignal | undefined,
@@ -122,6 +138,8 @@ const fetchArtifactBytes = async (
   let lastError: Error | undefined
 
   for (let attempt = 1; attempt <= ARTIFACT_FETCH_MAX_ATTEMPTS; attempt += 1) {
+    throwIfAborted(signal)
+
     try {
       return await fetchArtifactBytesOnce(artifactUrl, signal)
     } catch (error) {
@@ -129,10 +147,9 @@ const fetchArtifactBytes = async (
         throw error
       }
 
-      lastError =
-        error instanceof Error
-          ? error
-          : new RegistryFetchError('Unknown artifact download error')
+      throwIfAborted(signal)
+
+      lastError = toLastFetchError(error)
       if (attempt === ARTIFACT_FETCH_MAX_ATTEMPTS) {
         break
       }
