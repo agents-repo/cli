@@ -82,6 +82,7 @@ npm ci
 | `npm run sync:ide-instructions` | Regenerate IDE instruction mirrors |
 | `npm run agents:install` | Install registry workflow packages from `agents.json` |
 | `npm run agents:update` | Refresh installed packages within semver ranges |
+| `npm run slides:check` | Rebuild/check committed Marp PDFs |
 
 Run the full PR baseline locally:
 
@@ -144,6 +145,8 @@ For user guides and cross-repo documentation, see
 [agents-repo.org/docs/](https://agents-repo.org/docs/).
 For this repository's overview on the public site, see
 [agents-repo.org/repositories/cli/](https://agents-repo.org/repositories/cli/).
+
+Presentation slides (PDF): [docs/slides/README.md](docs/slides/README.md).
 
 When you change a user-facing or contributor workflow in this
 repository, update the corresponding page(s) in
