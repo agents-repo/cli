@@ -47,6 +47,9 @@
     "lint:yaml": "node scripts/lint-yaml.js",
     "lint:workflows": "node scripts/lint-workflows.mjs",
     "lint:all": "markdownlint-cli2 \"**/*.md\" \"**/.*/**/*.md\" && eslint . && node scripts/lint-yaml.js && npm run lint:workflows",
+    "slides:build": "node scripts/slides.mjs build",
+    "slides:preview:html": "node scripts/slides.mjs preview",
+    "slides:check": "node scripts/slides.mjs check",
     "sync:ide-instructions": "node scripts/sync-ide-instructions.mjs",
     "agents:install": "node scripts/run-published-agents-repo.mjs install",
     "agents:update": "node scripts/run-published-agents-repo.mjs update",
@@ -72,6 +75,8 @@
     "semver": "^7.8.5"
   },
   "devDependencies": {
+    "@marp-team/marp-cli": "4.5.0",
+    "@marp-team/marp-core": "4.4.0",
     "@eslint/js": "^10.0.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
