@@ -21,4 +21,3 @@ ignores:
   - ".agents/skills/**"
   - ".claude/agents/**"
   - ".github/agents/**"
-  - "docs/slides/cli-usage.md"
