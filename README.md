@@ -82,7 +82,7 @@ npm ci
 | `npm run sync:ide-instructions` | Regenerate IDE instruction mirrors |
 | `npm run agents:install` | Install registry workflow packages from `agents.json` |
 | `npm run agents:update` | Refresh installed packages within semver ranges |
-| `npm run slides:check` | Rebuild/check committed Marp PDFs |
+| `npm run slides:check` | Check Marp fingerprints, PDF headers, and Chrome rebuild |
 
 Run the full PR baseline locally:
 
