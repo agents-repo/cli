@@ -21,7 +21,7 @@ export interface RegistryConfig {
 }
 
 export const DEFAULT_REGISTRY_CONFIG: RegistryConfig = {
-  url: 'https://registry-proxy.maiconfz.workers.dev',
+  url: 'https://registry.agents-repo.org',
   ref: DEFAULT_REGISTRY_REF,
 }
 

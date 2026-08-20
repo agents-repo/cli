@@ -1,7 +1,7 @@
 export const canonicalTopLevelConfig = {
   schemaVersion: '1.0.0',
   registry: {
-    url: 'https://registry-proxy.maiconfz.workers.dev',
+    url: 'https://registry.agents-repo.org',
     ref: 'v2.x',
   },
   targets: ['cursor'],
@@ -26,7 +26,7 @@ export const namespaceConfig = {
       'agents-repo/hello-agent': '^1.0.0',
     },
     registry: {
-      url: 'https://registry-proxy.maiconfz.workers.dev',
+      url: 'https://registry.agents-repo.org',
       ref: 'v2.x',
     },
   },
@@ -55,7 +55,7 @@ export const namespaceOnlyTargetConfig = {
   schemaVersion: '1.0.0',
   packages: {},
   registry: {
-    url: 'https://registry-proxy.maiconfz.workers.dev',
+    url: 'https://registry.agents-repo.org',
     ref: 'v2.x',
   },
   '@agents-repo': {
@@ -69,7 +69,7 @@ export const conflictingTopLevelConfig = {
   targets: ['cursor'],
   packages: {},
   registry: {
-    url: 'https://registry-proxy.maiconfz.workers.dev',
+    url: 'https://registry.agents-repo.org',
     ref: 'v2.x',
   },
   '@agents-repo': {
@@ -82,7 +82,7 @@ export const legacyTargetOnlyConfig = {
   target: 'cursor',
   packages: {},
   registry: {
-    url: 'https://registry-proxy.maiconfz.workers.dev',
+    url: 'https://registry.agents-repo.org',
     ref: 'v2.x',
   },
 } as const

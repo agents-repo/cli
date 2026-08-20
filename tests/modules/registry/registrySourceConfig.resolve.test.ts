@@ -26,8 +26,8 @@ describe('resolveRegistryFetchSourceConfig', () => {
     const source = await resolveRegistryFetchSourceConfig()
 
     expect(source.baseUrlRefResolution).toEqual({ alias: 'v2.x', resolvedRef: 'v2.0.0' })
-    expect(source.baseUrl).toBe('https://registry-proxy.maiconfz.workers.dev/?ref=v2.0.0')
-    expect(source.indexUrl).toBe('https://registry-proxy.maiconfz.workers.dev/packages/index.json?ref=v2.0.0')
+    expect(source.baseUrl).toBe('https://registry.agents-repo.org/?ref=v2.0.0')
+    expect(source.indexUrl).toBe('https://registry.agents-repo.org/packages/index.json?ref=v2.0.0')
   })
 
   it('resolves major-version line refs before building fetch URLs', async () => {
