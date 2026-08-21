@@ -75,7 +75,7 @@ When `registry` is absent during resolution, tooling MUST apply this default:
 
 ```json
 {
-  "url": "https://registry-proxy.maiconfz.workers.dev",
+  "url": "https://registry.agents-repo.org",
   "ref": "v2.x"
 }
 ```
@@ -212,7 +212,7 @@ Artifact ZIP cache files live under `{agentsRepoHome}/cache/` per
 {
   "schemaVersion": "1.0.0",
   "registry": {
-    "url": "https://registry-proxy.maiconfz.workers.dev",
+    "url": "https://registry.agents-repo.org",
     "ref": "v2.x"
   },
   "targets": [

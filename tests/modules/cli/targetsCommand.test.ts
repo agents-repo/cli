@@ -207,7 +207,7 @@ describe('targets command', () => {
         targets: ['cursor'],
         packages: {},
         registry: {
-          url: 'https://registry-proxy.maiconfz.workers.dev',
+          url: 'https://registry.agents-repo.org',
           ref: 'v2.x',
         },
         '@agents-repo': {

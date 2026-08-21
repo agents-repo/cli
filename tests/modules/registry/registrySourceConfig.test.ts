@@ -8,15 +8,15 @@ import {
 describe('registrySourceConfig', () => {
   it('builds source URL from registry config url and ref', () => {
     expect(buildSourceUrlFromRegistryConfig(DEFAULT_REGISTRY_CONFIG)).toBe(
-      'https://registry-proxy.maiconfz.workers.dev/?ref=v2.x',
+      'https://registry.agents-repo.org/?ref=v2.x',
     )
   })
 
   it('returns configured source for default registry config', () => {
     const source = getRegistrySourceConfig()
 
-    expect(source.configuredBaseUrl).toBe('https://registry-proxy.maiconfz.workers.dev/?ref=v2.x')
-    expect(source.indexUrl).toBe('https://registry-proxy.maiconfz.workers.dev/packages/index.json?ref=v2.x')
+    expect(source.configuredBaseUrl).toBe('https://registry.agents-repo.org/?ref=v2.x')
+    expect(source.indexUrl).toBe('https://registry.agents-repo.org/packages/index.json?ref=v2.x')
     expect(source.configuredGithubRepositoryUrl).toBe('https://github.com/agents-repo/registry/tree/v2.x')
   })
 

@@ -57,8 +57,8 @@ describe('loadRegistryCatalog', () => {
     const indexUrl = 'https://registry-proxy.example.workers.dev/packages/index.json?ref=v2.0.0'
 
     vi.spyOn(registrySourceConfig, 'resolveRegistryFetchSourceConfig').mockResolvedValue({
-      sourceUrl: 'https://registry-proxy.maiconfz.workers.dev?ref=v2.x',
-      configuredBaseUrl: 'https://registry-proxy.maiconfz.workers.dev?ref=v2.x',
+      sourceUrl: 'https://registry.agents-repo.org?ref=v2.x',
+      configuredBaseUrl: 'https://registry.agents-repo.org?ref=v2.x',
       baseUrl: 'https://registry-proxy.example.workers.dev/?ref=v2.0.0',
       indexPath: 'packages/index.json',
       indexUrl,

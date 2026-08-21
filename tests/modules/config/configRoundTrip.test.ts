@@ -78,7 +78,7 @@ describe('config round-trip integration', () => {
       schemaVersion: '1.0.0',
       targets: ['cursor'],
       packages: {},
-      registry: { url: 'https://registry-proxy.maiconfz.workers.dev', ref: 'v2.x' },
+      registry: { url: 'https://registry.agents-repo.org', ref: 'v2.x' },
       '@agents-repo': {
         targets: ['claude-code'],
       },

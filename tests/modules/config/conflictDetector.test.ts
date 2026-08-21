@@ -131,10 +131,10 @@ describe('ConflictDetector', () => {
     const result = detector.detect(
       {
         schemaVersion: '1.0.0',
-        registry: { ref: 'v2.x', url: 'https://registry-proxy.maiconfz.workers.dev' },
+        registry: { ref: 'v2.x', url: 'https://registry.agents-repo.org' },
         packages: {},
         '@agents-repo': {
-          registry: { url: 'https://registry-proxy.maiconfz.workers.dev', ref: 'v2.x' },
+          registry: { url: 'https://registry.agents-repo.org', ref: 'v2.x' },
         },
       },
       'top-level-ours',
