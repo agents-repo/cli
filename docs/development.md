@@ -85,6 +85,12 @@ norm. When bumping `ACTIONLINT_VERSION` in `scripts/lint-workflows.mjs`, replace
 remove the previous version's checksums file. Keep the same pin across
 organization repositories.
 
+PR baseline CI always uses Node 24 from `.nvmrc` for the required `baseline`
+job. Chrome/`slides:check` and `agents:ci` are path-filtered extras. Optional
+`compat-node22` covers `engines.node` when `.nvmrc`, npm lockfiles, or the
+pinned Node setup action change. Release validate also runs Node 22. See
+[PR baseline extras (path filters)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pr-baseline-extras-path-filters).
+
 For local CLI binary testing after code changes:
 
 ```bash

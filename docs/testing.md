@@ -10,7 +10,7 @@ and the full validation list in [development.md](development.md#local-validation
 
 | Command | When to use |
 | --- | --- |
-| `npm run test` | Full suite — **same as PR baseline CI** |
+| `npm run test` | Full suite — **local handoff and PR baseline always-on tests** |
 | `npm run test:watch` | Local TDD while writing tests |
 | `npm run test:sync` | Tooling script tests only (`node --test`) |
 
@@ -33,6 +33,7 @@ Co-located `src/**/*.test.ts` files are also supported by `vitest.config.ts`.
 
 ## PR baseline
 
-CI runs `npm run test`, which triggers `pretest` (`npm run build`) then
-`test:sync` and `vitest run`. Bin subprocess tests require the compiled
-`dist/` output.
+CI always runs `npm run test` on Node 24 (`.nvmrc`), which triggers `pretest`
+(`npm run build`) then `test:sync` and `vitest run`. Bin subprocess tests
+require the compiled `dist/` output. Chrome/`slides:check` and `agents:ci` are
+path-filtered extras. Optional `compat-node22` is not a required check.
