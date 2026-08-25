@@ -31,6 +31,14 @@ corepack prepare npm@12.0.1 --activate
 npm ci
 ```
 
+### Cursor Cloud
+
+Cloud Agents use `.cursor/environment.json` and `.cursor/install.sh` (same
+pinned Node/npm, then `HUSKY=0 npm ci`). `/exec-daemon/node` (Node 22) may
+precede nvm on `PATH`; prepend the pinned Node bin before `npm run env:check`
+and other scripts. See the **Cursor Cloud environment** section in
+`.github/copilot-instructions.md`.
+
 npm 12, Corepack, and install-script approvals apply to **this repo’s** contributor workflow.
 Consumers installing the published CLI typically only need a supported Node version.
 
