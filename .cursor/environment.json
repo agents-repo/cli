@@ -1,0 +1,4 @@
+{
+  "name": "agents-repo/cli",
+  "install": "bash .cursor/install.sh"
+}
