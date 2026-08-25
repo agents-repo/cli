@@ -56,6 +56,13 @@ test('pr-baseline.yml turns every extra this job defines on', () => {
   assert.equal(matches.node22, true);
 });
 
+test('path-filter matcher turns every extra this job defines on', () => {
+  const matches = matchPathGroups(['scripts/ci-pr-path-filters.mjs']);
+  assert.equal(matches.slides, true);
+  assert.equal(matches.agents, true);
+  assert.equal(matches.node22, true);
+});
+
 test('rename previous_filename is collected for matching', () => {
   const paths = collectChangedPaths([
     { filename: 'src/bin/agents-repo.ts', previous_filename: 'agents.json' },

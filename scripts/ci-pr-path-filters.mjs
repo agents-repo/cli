@@ -5,10 +5,12 @@ import { pathToFileURL } from 'node:url';
 
 const NPM_LOCKFILES = ['package.json', 'package-lock.json'];
 const PR_BASELINE_WORKFLOW = '.github/workflows/pr-baseline.yml';
+const PATH_FILTER_MATCHER = 'scripts/ci-pr-path-filters.mjs';
 
 /**
  * Repo-specific extra groups for PR baseline.
  * npm lockfiles MUST NOT be copied into `agents` (checksum exception).
+ * The matcher is in every extra this job defines, matching pr-baseline.yml.
  */
 export const PATH_GROUPS = {
   slides: {
@@ -17,6 +19,7 @@ export const PATH_GROUPS = {
       'scripts/slides.mjs',
       ...NPM_LOCKFILES,
       PR_BASELINE_WORKFLOW,
+      PATH_FILTER_MATCHER,
     ],
     exclude: [],
   },
@@ -29,6 +32,7 @@ export const PATH_GROUPS = {
       '.claude/agents/**',
       '.agents/skills/**',
       PR_BASELINE_WORKFLOW,
+      PATH_FILTER_MATCHER,
     ],
     exclude: [],
   },
@@ -39,6 +43,7 @@ export const PATH_GROUPS = {
       ...NPM_LOCKFILES,
       '.github/actions/setup-node-pinned-npm/**',
       PR_BASELINE_WORKFLOW,
+      PATH_FILTER_MATCHER,
     ],
     exclude: [],
   },

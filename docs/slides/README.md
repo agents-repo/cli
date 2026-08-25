@@ -33,5 +33,6 @@ diffs to `docs/slides/pdf/*.pdf`. Rebuild errors no longer hide earlier drift.
 After editing the deck, run `npm run slides:build` and commit `docs/slides/pdf/`.
 
 PR baseline CI runs Chrome + `slides:check` only when slide paths, npm
-lockfiles, or `.github/workflows/pr-baseline.yml` change. See the organization
+lockfiles, `.github/workflows/pr-baseline.yml`, or
+`scripts/ci-pr-path-filters.mjs` change. See the organization
 [PR baseline extras (path filters)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pr-baseline-extras-path-filters).
