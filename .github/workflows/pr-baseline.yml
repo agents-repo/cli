@@ -6,20 +6,39 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
-  baseline:
+  changes:
+    name: Path filters
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: ['22', '24']
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      slides: ${{ steps.match.outputs.slides }}
+      agents: ${{ steps.match.outputs.agents }}
+      node22: ${{ steps.match.outputs.node22 }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Match changed paths
+        id: match
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/ci-pr-path-filters.mjs
+
+  baseline:
+    name: baseline
+    needs: changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Setup Node and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
-        with:
-          node-version: ${{ matrix.node-version }}
 
       - name: Validate runtime
         run: npm run env:check
@@ -31,16 +50,23 @@ jobs:
         run: npm run sync:ide-instructions -- --check
 
       - name: Setup Chrome for Marp PDF
+        if: needs.changes.outputs.slides == 'true'
         uses: browser-actions/setup-chrome@48ad923757ca74d66703209fe939badbdf80f2f4 # v2.2.0
         id: setup-chrome
 
       - name: Check slide PDF drift
+        if: needs.changes.outputs.slides == 'true'
         env:
           PUPPETEER_EXECUTABLE_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROME_NO_SANDBOX: '1'
         run: npm run slides:check
 
+      - name: Skip slide PDF check
+        if: needs.changes.outputs.slides != 'true'
+        run: echo "Skipping slides:check; PR paths do not match the slides group (docs/slides/**, scripts/slides.mjs, npm lockfiles, .github/workflows/pr-baseline.yml, or scripts/ci-pr-path-filters.mjs)."
+
       - name: Verify registry package installs from lock
+        if: needs.changes.outputs.agents == 'true'
         run: |
           npm run build
           rm -rf .github/agents .cursor/skills .claude/agents .agents/skills
@@ -55,6 +81,41 @@ jobs:
           )
           git diff --exit-code -- "${drift_paths[@]}"
           test -z "$(git status --porcelain -- "${drift_paths[@]}")"
+
+      - name: Skip registry package checksum
+        if: needs.changes.outputs.agents != 'true'
+        run: echo "Skipping agents:ci checksum; PR paths do not match agents definition files (agents.json, agents-lock.json, extracted agent paths, pr-baseline.yml, or scripts/ci-pr-path-filters.mjs). npm lockfiles alone do not trigger this step."
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Secret scan
+        run: npm run check:secrets
+
+  compat-node22:
+    name: compat-node22
+    needs: changes
+    if: needs.changes.outputs.node22 == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node 22 and pinned npm
+        uses: ./.github/actions/setup-node-pinned-npm
+        with:
+          node-version: '22'
+
+      - name: Validate runtime
+        run: npm run env:check
+
+      - name: Run lints
+        run: npm run lint:all
 
       - name: Typecheck
         run: npm run typecheck

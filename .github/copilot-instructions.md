@@ -61,6 +61,11 @@ See `docs/testing.md` for test conventions.
 
 If a command cannot be run, explicitly say why in the handoff.
 
+Local handoff keeps this full set. PR baseline CI path-filters Chrome/`slides:check`
+and `agents:ci`. npm lockfiles do **not** trigger `agents:ci`. Optional
+`compat-node22` is not a required check. See the organization
+[PR baseline extras (path filters)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pr-baseline-extras-path-filters).
+
 ## Pre-ready handoff
 
 Before handoff on a task branch, agents MUST complete the organization
