@@ -5,7 +5,7 @@ Registry workflow packages install skills under `.agents/skills/` (Codex),
 (Claude). Do **not** hand-edit extracted files; update `agents.json` and run
 `npm run agents:install` or `npm run agents:update`, then `npm run agents:ci`.
 
-See [CONTRIBUTING.md — Registry workflow packages](../.github/CONTRIBUTING.md)
+See [CONTRIBUTING.md — Registry workflow packages](../.github/CONTRIBUTING.md#registry-workflow-packages-cli)
 for package management.
 
 ## Skill routing
@@ -34,8 +34,9 @@ for package management.
 | `findings-fixer` | Triage and fix merged review findings | After review comments |
 | `github-pr-review-triage` | Triage PR review threads via `gh` | PR feedback loop |
 
-Install path for each skill: `.agents/skills/<skill-name>/SKILL.md` (mirrored
-under `.cursor/skills/`, `.github/agents/`, `.claude/agents/`).
+Install paths vary by target: `.agents/skills/<skill-name>/SKILL.md` and
+`.cursor/skills/<skill-name>/SKILL.md` (Codex and Cursor); Copilot uses
+`.github/agents/<id>.agent.md`; Claude uses `.claude/agents/<id>.md`.
 
 ## Suggested flow
 

@@ -51,8 +51,8 @@ npm run sync:ide-instructions
 
 Do **not** hand-edit extracted files under `.agents/skills/`, `.cursor/skills/`,
 `.github/agents/`, or `.claude/agents/`. See
-[CONTRIBUTING.md — Registry workflow packages](.github/CONTRIBUTING.md#registry-workflow-packages-cli)
-and [docs/AGENT_SKILLS.md](docs/AGENT_SKILLS.md).
+[CONTRIBUTING.md — Registry workflow packages](CONTRIBUTING.md#registry-workflow-packages-cli)
+and [docs/AGENT_SKILLS.md](../docs/AGENT_SKILLS.md).
 
 ## Architectural Decisions
 

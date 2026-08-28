@@ -60,7 +60,10 @@ npm run lint:all && npm run typecheck && npm run test
 
 ## 5. Copilot environment preflight parity
 
-**Goal:** Confirm Copilot environment workflow matches local handoff core checks.
+**Goal:** Confirm Copilot environment workflow runs the same core runtime checks
+as this scenario (`env:check`, `lint:all`, `typecheck`, `test`). Full local
+handoff may also include `check:secrets` and `sync:ide-instructions --check`;
+those are not part of the Copilot environment workflow.
 
 **Validation:**
 
@@ -68,4 +71,4 @@ npm run lint:all && npm run typecheck && npm run test
 npm run env:check && npm run lint:all && npm run typecheck && npm run test
 ```
 
-CI: `.github/workflows/copilot-environment.yml` should run the same subset.
+CI: `.github/workflows/copilot-environment.yml` runs this subset only.
