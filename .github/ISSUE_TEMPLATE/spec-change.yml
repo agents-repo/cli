@@ -33,6 +33,10 @@ body:
         - specs/lock-schema.md
         - specs/cli-protocol.md
         - specs/command-contracts.md
+        - specs/target-detection.md
+        - specs/artifact-cache.md
+        - specs/global-install-state.md
+        - specs/suggest-agents.md
     validations:
       required: true
 
