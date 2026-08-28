@@ -102,8 +102,8 @@ workflow change MUST be documented.
 ## Pull Requests
 
 Use `.github/pull_request_template.md`. See
-[CONTRIBUTING.md — Required Workflow](.github/CONTRIBUTING.md#required-workflow)
-and [issue/PR templates](.github/CONTRIBUTING.md#issue-and-pr-template-enforcement).
+[CONTRIBUTING.md — Required Workflow](CONTRIBUTING.md#required-workflow)
+and [issue/PR templates](CONTRIBUTING.md#before-you-start).
 
 ## Required Workflow (Task Start)
 
