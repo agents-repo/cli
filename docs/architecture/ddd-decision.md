@@ -89,9 +89,11 @@ Before public release, the CLI does **not** read legacy shapes:
 
 ## Status
 
-Commands shipped: `init`, `install`, `update`, `search`, `list`. Multi-target install uses
-`BulkInstallService` fan-out; lock normalization lives in
-`config/domain/packageLockEntry.ts`.
+Commands shipped: `init`, `install`, `update`, `remove`, `search`, `list`,
+`ci`, `doctor`, `add-target`, `targets`, `suggest-agents`. Multi-target install
+uses `BulkInstallService` fan-out; lock normalization lives in
+`config/domain/packageLockEntry.ts`. See [ARCHITECTURE.md](../ARCHITECTURE.md)
+for the current capability matrix.
 
 ## Why This Decision Exists
 

@@ -20,6 +20,9 @@ Mandatory for all changes:
 - `docs/development.md`
 - `docs/testing.md`
 - `docs/ARCHITECTURE.md`
+- `docs/AGENT_SKILLS.md`
+- `docs/CLI_WORKFLOW.md`
+- `docs/AI_GUIDELINES.md`
 - `specs/` (when behavior is normative)
 - `.github/CONTRIBUTING.md`
 - `.github/pull_request_template.md`
@@ -34,6 +37,22 @@ docs/specs in the same change.
 
 If code and docs/specs disagree, resolve the mismatch in the same change by
 updating docs/specs or aligning implementation.
+
+## Registry workflow packages
+
+This repository dogfoods registry workflow packages via `agents.json`. After
+changing package versions:
+
+```bash
+npm run agents:install   # or agents:update
+npm run agents:ci
+npm run sync:ide-instructions
+```
+
+Do **not** hand-edit extracted files under `.agents/skills/`, `.cursor/skills/`,
+`.github/agents/`, or `.claude/agents/`. See
+[CONTRIBUTING.md — Registry workflow packages](CONTRIBUTING.md#registry-workflow-packages-cli)
+and [docs/AGENT_SKILLS.md](../docs/AGENT_SKILLS.md).
 
 ## Architectural Decisions
 
