@@ -31,8 +31,8 @@ When `install` or `update` applies a republished artifact:
 ## Doctor checks
 
 - `legacy_path_encoding` — fails when a lock entry lacks `pathEncodingVersion` but the locked
-  artifact still uses legacy flat skill paths. Re-install or update after registry artifacts are
-  republished.
+  artifact still uses legacy flat skill or Claude agent paths. Re-install or update after registry
+  artifacts are republished.
 - `agent_path_collision` — fails when two locked packages would extract to the same relative path.
   Qualified install-leaf artifacts prevent this for packages that share a source agent id.
 

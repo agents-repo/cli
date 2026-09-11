@@ -1,25 +1,13 @@
 import type { InstallTargetId } from '../../registry/domain/package.js'
+import {
+  LEGACY_CLAUDE_ENTRY_PATTERN,
+  LEGACY_SKILL_ENTRY_PATTERN,
+  QUALIFIED_CLAUDE_ENTRY_PATTERN,
+  QUALIFIED_SKILL_ENTRY_PATTERN,
+} from './installPathPatterns.js'
 
 /** Registry manifest `artifacts[].pathEncoding` value for qualified install-leaf ZIPs. */
 export const PATH_ENCODING_VERSION = 1
-
-const ID_SEGMENT = '[a-z0-9]+(?:-[a-z0-9]+)*'
-
-const LEGACY_SKILL_ENTRY_PATTERN = new RegExp(
-  `^(?:\\.cursor/skills|\\.agents/skills)/${ID_SEGMENT}/SKILL\\.md$`,
-)
-
-const QUALIFIED_SKILL_ENTRY_PATTERN = new RegExp(
-  `^(?:\\.cursor/skills|\\.agents/skills)/${ID_SEGMENT}/${ID_SEGMENT}/${ID_SEGMENT}/SKILL\\.md$`,
-)
-
-const QUALIFIED_CLAUDE_ENTRY_PATTERN = new RegExp(
-  `^\\.claude/agents/${ID_SEGMENT}/${ID_SEGMENT}/${ID_SEGMENT}\\.md$`,
-)
-
-const LEGACY_CLAUDE_ENTRY_PATTERN = new RegExp(
-  `^\\.claude/agents/${ID_SEGMENT}\\.md$`,
-)
 
 export const computeInstallLeaf = (
   namespace: string,
@@ -84,9 +72,7 @@ export const inferPathEncodingVersionFromZipEntries = (
       return PATH_ENCODING_VERSION
     }
 
-    if (inferred === undefined) {
-      inferred = entryEncoding
-    }
+    inferred ??= entryEncoding
   }
 
   return inferred
@@ -94,4 +80,12 @@ export const inferPathEncodingVersionFromZipEntries = (
 
 export const isLegacySkillRelativePath = (relativePath: string): boolean => {
   return LEGACY_SKILL_ENTRY_PATTERN.test(relativePath)
+}
+
+export const isLegacyClaudeRelativePath = (relativePath: string): boolean => {
+  return LEGACY_CLAUDE_ENTRY_PATTERN.test(relativePath)
+}
+
+export const isLegacyRelativePath = (relativePath: string): boolean => {
+  return isLegacySkillRelativePath(relativePath) || isLegacyClaudeRelativePath(relativePath)
 }

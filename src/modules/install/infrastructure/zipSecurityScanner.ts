@@ -8,22 +8,16 @@ const ZIP_UNIX_MODE_MASK = 0xffff
 const ZIP_UNIX_TYPE_MASK = 0xf000
 const ZIP_SYMLINK_TYPE = 0xa000
 
-const ID_SEGMENT = '[a-z0-9]+(?:-[a-z0-9]+)*'
-const DEPLOYMENT_ZIP_ENTRY_PATTERN = new RegExp(
-  `^agents/${ID_SEGMENT}\\.agent\\.md$`,
-)
-const LEGACY_CLAUDE_AGENT_ENTRY_PATTERN = new RegExp(
-  `^\\.claude/agents/${ID_SEGMENT}\\.md$`,
-)
-const QUALIFIED_CLAUDE_AGENT_ENTRY_PATTERN = new RegExp(
-  `^\\.claude/agents/${ID_SEGMENT}/${ID_SEGMENT}/${ID_SEGMENT}\\.md$`,
-)
-const LEGACY_SKILL_ENTRY_PATTERN = new RegExp(
-  `^(?:\\.cursor/skills|\\.agents/skills)/${ID_SEGMENT}/SKILL\\.md$`,
-)
-const QUALIFIED_SKILL_ENTRY_PATTERN = new RegExp(
-  `^(?:\\.cursor/skills|\\.agents/skills)/${ID_SEGMENT}/${ID_SEGMENT}/${ID_SEGMENT}/SKILL\\.md$`,
-)
+import {
+  DEPLOYMENT_ZIP_ENTRY_PATTERN,
+  LEGACY_CLAUDE_ENTRY_PATTERN,
+  LEGACY_SKILL_ENTRY_PATTERN,
+  QUALIFIED_CLAUDE_ENTRY_PATTERN,
+  QUALIFIED_SKILL_ENTRY_PATTERN,
+} from '../domain/installPathPatterns.js'
+
+const LEGACY_CLAUDE_AGENT_ENTRY_PATTERN = LEGACY_CLAUDE_ENTRY_PATTERN
+const QUALIFIED_CLAUDE_AGENT_ENTRY_PATTERN = QUALIFIED_CLAUDE_ENTRY_PATTERN
 
 const isSkillEntryPath = (name: string): boolean => {
   return LEGACY_SKILL_ENTRY_PATTERN.test(name) || QUALIFIED_SKILL_ENTRY_PATTERN.test(name)
