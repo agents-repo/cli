@@ -1,4 +1,4 @@
-export const ID_SEGMENT = String.raw`[a-z0-9]+(?:-[a-z0-9]+)*`
+export const ID_SEGMENT = '[a-z0-9]+(?:-[a-z0-9]+)*'
 
 export const LEGACY_SKILL_ENTRY_PATTERN = new RegExp(
   String.raw`^(?:\.cursor/skills|\.agents/skills)/${ID_SEGMENT}/SKILL\.md$`,

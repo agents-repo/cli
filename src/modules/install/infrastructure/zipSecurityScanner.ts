@@ -2,12 +2,6 @@ import AdmZip from 'adm-zip'
 import matter from 'gray-matter'
 
 import type { InstallTargetId } from '../../registry/domain/package.js'
-
-const ZIP_MAX_ENTRY_NAME_LENGTH = 4096
-const ZIP_UNIX_MODE_MASK = 0xffff
-const ZIP_UNIX_TYPE_MASK = 0xf000
-const ZIP_SYMLINK_TYPE = 0xa000
-
 import {
   DEPLOYMENT_ZIP_ENTRY_PATTERN,
   LEGACY_CLAUDE_ENTRY_PATTERN,
@@ -15,6 +9,11 @@ import {
   QUALIFIED_CLAUDE_ENTRY_PATTERN,
   QUALIFIED_SKILL_ENTRY_PATTERN,
 } from '../domain/installPathPatterns.js'
+
+const ZIP_MAX_ENTRY_NAME_LENGTH = 4096
+const ZIP_UNIX_MODE_MASK = 0xffff
+const ZIP_UNIX_TYPE_MASK = 0xf000
+const ZIP_SYMLINK_TYPE = 0xa000
 
 const LEGACY_CLAUDE_AGENT_ENTRY_PATTERN = LEGACY_CLAUDE_ENTRY_PATTERN
 const QUALIFIED_CLAUDE_AGENT_ENTRY_PATTERN = QUALIFIED_CLAUDE_ENTRY_PATTERN
