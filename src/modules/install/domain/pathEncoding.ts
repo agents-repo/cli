@@ -1,4 +1,5 @@
 import type { InstallTargetId } from '../../registry/domain/package.js'
+import { InstallRuntimeError } from './installErrors.js'
 import {
   LEGACY_CLAUDE_ENTRY_PATTERN,
   LEGACY_SKILL_ENTRY_PATTERN,
@@ -9,20 +10,28 @@ import {
 /** Registry manifest `artifacts[].pathEncoding` value for qualified install-leaf ZIPs. */
 export const PATH_ENCODING_VERSION = 1
 
+/** Middle segment of a qualified install leaf (`namespace-packageName-sourceId`). */
 export const computeInstallLeaf = (
   namespace: string,
-  packageId: string,
+  packageName: string,
   sourceId: string,
-): string => `${namespace}-${packageId}-${sourceId}`
+): string => `${namespace}-${packageName}-${sourceId}`
 
 export const resolvePathEncodingVersionFromManifest = (
   pathEncoding: number | undefined,
 ): number | undefined => {
+  if (pathEncoding === undefined) {
+    return undefined
+  }
+
   if (pathEncoding === PATH_ENCODING_VERSION) {
     return PATH_ENCODING_VERSION
   }
 
-  return undefined
+  throw new InstallRuntimeError(
+    'unsupported_path_encoding',
+    `Unsupported manifest pathEncoding value: ${pathEncoding}`,
+  )
 }
 
 export const inferPathEncodingVersionFromZipEntry = (

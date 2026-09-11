@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs'
+import path from 'node:path'
 
 import { ConfigResolver } from './configResolver.js'
 import { LockFileService } from './lockFileService.js'
@@ -17,8 +18,8 @@ import {
 import { validateLockVersionRanges } from '../../install/application/validateLockVersionRanges.js'
 import { resolveInstallScope } from '../../install/application/installScope.js'
 import { resolveInstallTargets } from '../../install/application/resolveInstallTargets.js'
-import { planArtifactExtractFromZip } from '../../install/infrastructure/artifactExtractPaths.js'
 import { InstallRuntimeError } from '../../install/domain/installErrors.js'
+import { resolveContainedExtractPath } from '../../install/infrastructure/targetExtractPaths.js'
 import {
   DoctorAgentPathCollisionError,
   DoctorLegacyPathEncodingError,
@@ -187,16 +188,11 @@ const verifyInstallPathsFromArtifacts = (
   extractRoot: string,
 ): void => {
   const missingPaths: string[] = []
+  const resolvedRoot = path.resolve(extractRoot)
 
   for (const artifact of artifacts) {
-    const extractPlan = planArtifactExtractFromZip(
-      artifact.zipBytes,
-      artifact.target,
-      artifact.version,
-      extractRoot,
-    )
-
-    for (const absolutePath of extractPlan.absolutePaths) {
+    for (const relativePath of artifact.mappedPaths) {
+      const absolutePath = resolveContainedExtractPath(resolvedRoot, relativePath)
       if (!existsSync(absolutePath)) {
         missingPaths.push(absolutePath)
       }
