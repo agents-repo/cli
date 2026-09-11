@@ -329,4 +329,11 @@ on-disk paths consistent. See [`command-contracts.md` — Dropped interfaces](co
   [manifest-schema.md](https://github.com/agents-repo/registry/blob/main/specs/manifest-schema.md),
   [metadata-schema.md](https://github.com/agents-repo/registry/blob/main/specs/metadata-schema.md),
   [package-format.md](https://github.com/agents-repo/registry/blob/main/specs/package-format.md)
+- **Webapp-only (not CLI install):** Generated
+  `packages/<namespace>/<package-id>/detail.json` per registry
+  [package-detail-schema.md](https://github.com/agents-repo/registry/blob/main/specs/package-detail-schema.md)
+  is for webapp package pages and other latest-snapshot consumers. The CLI install
+  pipeline MUST NOT fetch `detail.json`; it uses `packages/index.json`,
+  `versions/manifest.json`, version-scoped metadata, and target artifact ZIPs only
+  (see [Pipeline Overview](#pipeline-overview)).
 - CLI: `config-schema.md`, `lock-schema.md`, `command-contracts.md`
