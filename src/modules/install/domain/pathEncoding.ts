@@ -10,7 +10,7 @@ import {
 /** Registry manifest `artifacts[].pathEncoding` value for qualified install-leaf ZIPs. */
 export const PATH_ENCODING_VERSION = 1
 
-/** Middle segment of a qualified install leaf (`namespace-packageName-sourceId`). */
+/** Qualified install-leaf string (`namespace-packageName-sourceId`). */
 export const computeInstallLeaf = (
   namespace: string,
   packageName: string,
