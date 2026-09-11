@@ -285,10 +285,12 @@ checks SHOULD include structured `code` matching existing CLI error codes where 
 | --- | --- | --- |
 | `config_schema` | Resolve `agents.json` through the schema gate and conflict detection | — |
 | `targets_configured` | Non-empty `targets[]` | config failed |
-| `lock_present` | Valid lock v2 beside config | config failed |
+| `lock_present` | Valid lock v2 or v3 beside config | config failed |
 | `lock_config_sync` | Config/lock parity (as `ci`) | lock invalid or targets not configured |
 | `registry_reachable` | Catalog index fetch | config failed |
 | `install_paths` | On-disk paths from lock ZIPs | sync/registry failed |
+| `legacy_path_encoding` | Legacy flat paths without `pathEncodingVersion` | sync/registry failed |
+| `agent_path_collision` | Two packages share the same on-disk install path | sync/registry failed |
 
 Process exit code MUST be the highest severity among failed checks: config or validation failures
 (exit `3`, including lock validation), dual-definition conflicts when not waived (exit `4`), registry

@@ -4,6 +4,8 @@ export interface ManifestArtifact {
   target: InstallTargetId
   file: string
   sha256: string
+  /** Registry deployment path encoding; `1` = qualified install-leaf hierarchy. */
+  pathEncoding?: number
 }
 
 export interface ManifestVersionEntry {

@@ -4,9 +4,9 @@ export const SUPPORTED_CONFIG_SCHEMA_VERSIONS = [CONFIG_SCHEMA_VERSION] as const
 
 export type SupportedConfigSchemaVersion = (typeof SUPPORTED_CONFIG_SCHEMA_VERSIONS)[number]
 
-export const LOCKFILE_VERSION = 2
+export const LOCKFILE_VERSION = 3
 
-export const SUPPORTED_LOCKFILE_VERSIONS = [2] as const
+export const SUPPORTED_LOCKFILE_VERSIONS = [2, 3] as const
 
 export const AGENTS_REPO_NAMESPACE = '@agents-repo'
 

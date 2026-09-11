@@ -8,7 +8,7 @@ import {
   mergeTargetLockSlot,
   type NormalizedPackageLockEntry,
   parsePackageLockEntry,
-  serializePackageLockEntryV2,
+  serializePackageLockEntry,
 } from '../domain/packageLockEntry.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import {
@@ -58,8 +58,15 @@ export class LockFileService {
     version: string,
     integrity: string,
     artifact: string,
+    pathEncodingVersion?: number,
   ): NormalizedPackageLockEntry {
-    return mergeTargetLockSlot(existing, targetId, version, { integrity, artifact })
+    return mergeTargetLockSlot(
+      existing,
+      targetId,
+      version,
+      { integrity, artifact },
+      pathEncodingVersion,
+    )
   }
 
   private parseAndValidate(raw: Record<string, unknown>): AgentsLockDocument {
@@ -91,7 +98,7 @@ export class LockFileService {
     }
 
     return {
-      lockfileVersion: LOCKFILE_VERSION,
+      lockfileVersion,
       resolvedRef: raw.resolvedRef,
       packages,
     }
@@ -104,7 +111,7 @@ export class LockFileService {
 
     const packages: Record<string, unknown> = {}
     for (const [packageId, entry] of Object.entries(document.packages)) {
-      packages[packageId] = serializePackageLockEntryV2(entry)
+      packages[packageId] = serializePackageLockEntry(entry, document.lockfileVersion)
     }
 
     this.parseAndValidate({

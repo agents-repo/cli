@@ -22,6 +22,12 @@ import { resolveInstallTargets } from '../../install/application/resolveInstallT
 import { planArtifactExtractFromZip } from '../../install/infrastructure/artifactExtractPaths.js'
 import { downloadArtifact } from '../../install/infrastructure/artifactDownloader.js'
 import { InstallRuntimeError } from '../../install/domain/installErrors.js'
+import {
+  DoctorAgentPathCollisionError,
+  DoctorLegacyPathEncodingError,
+  verifyAgentPathCollisions,
+  verifyLegacyPathEncoding,
+} from './doctorPathChecks.js'
 
 class DoctorInstallPathsError extends Error {
   readonly code = 'install_paths_missing'
@@ -61,6 +67,14 @@ const getErrorCode = (error: unknown): string | undefined => {
     return error.code
   }
 
+  if (error instanceof DoctorLegacyPathEncodingError) {
+    return error.code
+  }
+
+  if (error instanceof DoctorAgentPathCollisionError) {
+    return error.code
+  }
+
   if (error instanceof ConfigError) {
     return error.code
   }
@@ -78,6 +92,14 @@ const getErrorCode = (error: unknown): string | undefined => {
 
 export const exitCodeForDoctorError = (error: unknown): number => {
   if (error instanceof DoctorInstallPathsError) {
+    return error.exitCode
+  }
+
+  if (error instanceof DoctorLegacyPathEncodingError) {
+    return error.exitCode
+  }
+
+  if (error instanceof DoctorAgentPathCollisionError) {
     return error.exitCode
   }
 
@@ -156,6 +178,8 @@ const skipChecksAfterConfigFailure = (checks: DoctorCheck[]): void => {
     skipCheck('lock_config_sync', 'Skipped because config resolution failed'),
     skipCheck('registry_reachable', 'Skipped because config resolution failed'),
     skipCheck('install_paths', 'Skipped because config resolution failed'),
+    skipCheck('legacy_path_encoding', 'Skipped because config resolution failed'),
+    skipCheck('agent_path_collision', 'Skipped because config resolution failed'),
   )
 }
 
@@ -366,6 +390,67 @@ const runDoctorLockConfigSyncCheck = (
   }
 }
 
+const runDoctorPathEncodingChecks = async (options: {
+  readonly resolved: ResolvedAgentsConfig
+  readonly lock: AgentsLockDocument | null
+  readonly catalogResult: RegistryCatalogLoadResult | undefined
+  readonly checks: DoctorCheck[]
+  readonly cwd: string
+  readonly env: NodeJS.ProcessEnv
+  readonly preferOnline: boolean
+  readonly lockFileService: LockFileService
+}): Promise<void> => {
+  const lockSyncPassed = options.checks.some(
+    (check) => check.id === 'lock_config_sync' && check.status === 'pass',
+  )
+
+  if (!lockSyncPassed || options.lock === null || options.catalogResult === undefined) {
+    options.checks.push(
+      skipCheck('legacy_path_encoding', 'Skipped because lock sync or registry checks did not pass'),
+      skipCheck('agent_path_collision', 'Skipped because lock sync or registry checks did not pass'),
+    )
+    return
+  }
+
+  const checkOptions = {
+    resolved: options.resolved,
+    lock: options.lock,
+    catalogResult: options.catalogResult,
+    cwd: options.cwd,
+    env: options.env,
+    preferOnline: options.preferOnline,
+    parseIntegrityHex: (integrity: string) => options.lockFileService.parseIntegrityHex(integrity),
+  }
+
+  try {
+    await verifyLegacyPathEncoding(checkOptions)
+    options.checks.push(
+      passCheck('legacy_path_encoding', 'Lock entries use qualified install path encoding'),
+    )
+  } catch (error) {
+    options.checks.push(
+      failCheck(
+        'legacy_path_encoding',
+        error instanceof Error ? error.message : 'Legacy path encoding check failed',
+        error,
+      ),
+    )
+  }
+
+  try {
+    await verifyAgentPathCollisions(checkOptions)
+    options.checks.push(passCheck('agent_path_collision', 'No cross-package install path collisions'))
+  } catch (error) {
+    options.checks.push(
+      failCheck(
+        'agent_path_collision',
+        error instanceof Error ? error.message : 'Install path collision check failed',
+        error,
+      ),
+    )
+  }
+}
+
 const runDoctorInstallPathsCheck = async (options: {
   readonly resolved: ResolvedAgentsConfig
   readonly lock: AgentsLockDocument | null
@@ -447,6 +532,17 @@ export class DoctorService {
             ref: lock.resolvedRef,
           },
     )
+
+    await runDoctorPathEncodingChecks({
+      resolved,
+      lock,
+      catalogResult,
+      checks,
+      cwd,
+      env,
+      preferOnline,
+      lockFileService: this.lockFileService,
+    })
 
     await runDoctorInstallPathsCheck({
       resolved,

@@ -8,9 +8,18 @@ import { BulkInstallService } from '../../../src/modules/install/application/bul
 import { ENV_AGENTS_REPO_NO_CACHE } from '../../../src/modules/config/domain/configConstants.js'
 import * as registrySourceConfig from '../../../src/modules/registry/infrastructure/registrySourceConfig.js'
 import {
+  buildCollisionCursorSkillZip,
   buildCursorSkillZip,
   buildGithubCopilotZip,
   buildOtherCursorSkillZip,
+  COLLISION_PKG_A_ID,
+  COLLISION_PKG_A_LEAF,
+  COLLISION_PKG_A_SKILL_ENTRY,
+  COLLISION_PKG_B_ID,
+  COLLISION_PKG_B_LEAF,
+  COLLISION_PKG_B_SKILL_ENTRY,
+  makeCollisionInstallCatalog,
+  makeCollisionManifest,
   makeDualPackageInstallCatalog,
   makeInstallTestCatalog,
   makeInstallTestManifest,
@@ -186,16 +195,20 @@ describe('BulkInstallService', () => {
     ])
     expect(results.every((result) => result.saved)).toBe(true)
 
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain('name: sample')
-    expect(readFileSync(path.join(cwd, '.cursor/skills/other/SKILL.md'), 'utf8')).toContain('name: other')
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain('name: agents-repo-sample-agent-sample')
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/other-agent/agents-repo-other-agent-other/SKILL.md'), 'utf8')).toContain('name: agents-repo-other-agent-other')
 
     const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
       resolvedRef: string
       lockfileVersion: number
-      packages: Record<string, { version: string; byTarget: Record<string, { integrity: string }> }>
+      packages: Record<
+        string,
+        { version: string; pathEncodingVersion?: number; byTarget: Record<string, { integrity: string }> }
+      >
     }
     expect(lock.resolvedRef).toBe('v2.0.0')
-    expect(lock.lockfileVersion).toBe(2)
+    expect(lock.lockfileVersion).toBe(3)
+    expect(lock.packages['agents-repo/sample-agent']?.pathEncodingVersion).toBe(1)
     expect(lock.packages['agents-repo/sample-agent'].version).toBe('1.0.0')
     expect(lock.packages['agents-repo/other-agent'].version).toBe('1.0.0')
     expect(lock.packages['agents-repo/sample-agent'].byTarget.cursor.integrity).toBe(
@@ -281,7 +294,7 @@ describe('BulkInstallService', () => {
     const service = new BulkInstallService()
     await service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'] })
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md')
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md')
     writeFileSync(skillPath, 'edited locally\n')
 
     await expect(service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'] })).rejects.toMatchObject({
@@ -289,7 +302,7 @@ describe('BulkInstallService', () => {
     })
 
     await service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'], force: true })
-    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample')
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: agents-repo-sample-agent-sample')
   })
 
   it('returns no results when packages map is empty', async () => {
@@ -601,8 +614,8 @@ describe('BulkInstallService', () => {
 
     await expect(service.runAll({ cwd })).rejects.toThrow()
 
-    expect(() => readFileSync(path.join(cwd, '.cursor/skills/other/SKILL.md'), 'utf8')).toThrow()
-    expect(() => readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toThrow()
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/other-agent/agents-repo-other-agent-other/SKILL.md'), 'utf8')).toThrow()
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toThrow()
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
   })
 
@@ -770,5 +783,123 @@ describe('BulkInstallService', () => {
     expect(entry.version).toBe('1.0.0')
     expect(entry.byTarget.cursor.artifact).toBe('1.0.0-cursor.zip')
     expect(entry.byTarget['github-copilot'].artifact).toBe('1.0.0-github-copilot.zip')
+  })
+
+  it('installs two packages that share a source agent id without on-disk collision', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-bulk-install-collision-'))
+    tempDirs.push(cwd)
+
+    writeFileSync(
+      path.join(cwd, 'agents.json'),
+      JSON.stringify({
+        schemaVersion: '1.0.0',
+        registry: {
+          url: 'https://registry-proxy.example.workers.dev',
+          ref: 'v2.0.0',
+        },
+        targets: ['cursor'],
+        packages: {
+          [COLLISION_PKG_A_ID]: '^1.0.0',
+          [COLLISION_PKG_B_ID]: '^1.0.0',
+        },
+      }),
+    )
+
+    const alphaZipBytes = buildCollisionCursorSkillZip({
+      zipEntry: COLLISION_PKG_A_SKILL_ENTRY,
+      installLeaf: COLLISION_PKG_A_LEAF,
+    })
+    const betaZipBytes = buildCollisionCursorSkillZip({
+      zipEntry: COLLISION_PKG_B_SKILL_ENTRY,
+      installLeaf: COLLISION_PKG_B_LEAF,
+    })
+    const alphaSha256 = createHash('sha256').update(alphaZipBytes).digest('hex')
+    const betaSha256 = createHash('sha256').update(betaZipBytes).digest('hex')
+    const alphaManifest = withInstallTestArtifactSha256(
+      makeCollisionManifest('alpha'),
+      alphaSha256,
+    )
+    const betaManifest = withInstallTestArtifactSha256(
+      makeCollisionManifest('beta'),
+      betaSha256,
+    )
+    const catalog = makeCollisionInstallCatalog()
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = toFetchUrl(input)
+
+      if (url.includes('packages/index.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(catalog), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/acme/alpha/versions/manifest.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(alphaManifest), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/acme/beta/versions/manifest.json')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(betaManifest), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        )
+      }
+
+      if (url.includes('/acme/alpha/') && url.includes('metadata.json')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ...makeInstallTestMetadata(),
+              name: 'alpha',
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        )
+      }
+
+      if (url.includes('/acme/beta/') && url.includes('metadata.json')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              ...makeInstallTestMetadata(),
+              name: 'beta',
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        )
+      }
+
+      if (url.includes('/acme/alpha/') && url.includes('1.0.0-cursor.zip')) {
+        return Promise.resolve(new Response(alphaZipBytes, { status: 200 }))
+      }
+
+      if (url.includes('/acme/beta/') && url.includes('1.0.0-cursor.zip')) {
+        return Promise.resolve(new Response(betaZipBytes, { status: 200 }))
+      }
+
+      return Promise.resolve(new Response('not found', { status: 404 }))
+    })
+    mockRegistrySource()
+
+    const service = new BulkInstallService()
+    const results = await service.runAll({ cwd })
+
+    expect(results).toHaveLength(2)
+    expect(
+      readFileSync(path.join(cwd, COLLISION_PKG_A_SKILL_ENTRY), 'utf8'),
+    ).toContain(`name: ${COLLISION_PKG_A_LEAF}`)
+    expect(
+      readFileSync(path.join(cwd, COLLISION_PKG_B_SKILL_ENTRY), 'utf8'),
+    ).toContain(`name: ${COLLISION_PKG_B_LEAF}`)
   })
 })

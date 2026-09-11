@@ -140,8 +140,8 @@ describe('InstallService', () => {
     const result = results[0]
 
     expect(result.saved).toBe(true)
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
-      'name: sample',
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain(
+      'name: agents-repo-sample-agent-sample',
     )
 
     const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
@@ -332,8 +332,8 @@ describe('InstallService', () => {
 
     expect(result.saved).toBe(false)
     expect(result.noSave).toBe(true)
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
-      'name: sample',
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain(
+      'name: agents-repo-sample-agent-sample',
     )
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
     expect(
@@ -390,7 +390,7 @@ describe('InstallService', () => {
       }),
     ).rejects.toBeInstanceOf(InstallRuntimeError)
 
-    expect(() => readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toThrow()
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toThrow()
   })
 
   it('forwards preferOnline to bulk install', async () => {
