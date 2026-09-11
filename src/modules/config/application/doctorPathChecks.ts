@@ -33,7 +33,6 @@ export interface LockSlotArtifact {
   readonly packageId: string
   readonly target: InstallTargetId
   readonly version: string
-  readonly zipBytes: Buffer
   readonly mappedPaths: readonly string[]
 }
 
@@ -90,7 +89,6 @@ export const loadLockSlotArtifacts = async (
         packageId,
         target,
         version: lockEntry.version,
-        zipBytes,
         mappedPaths,
       })
     }

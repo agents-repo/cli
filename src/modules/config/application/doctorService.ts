@@ -187,23 +187,26 @@ const verifyInstallPathsFromArtifacts = (
   artifacts: readonly LockSlotArtifact[],
   extractRoot: string,
 ): void => {
-  const missingPaths: string[] = []
+  const missingPaths = new Set<string>()
   const resolvedRoot = path.resolve(extractRoot)
 
   for (const artifact of artifacts) {
     for (const relativePath of artifact.mappedPaths) {
       const absolutePath = resolveContainedExtractPath(resolvedRoot, relativePath)
       if (!existsSync(absolutePath)) {
-        missingPaths.push(absolutePath)
+        missingPaths.add(absolutePath)
       }
     }
   }
 
-  if (missingPaths.length > 0) {
-    const preview = missingPaths.slice(0, 5).join(', ')
-    const suffix = missingPaths.length > 5 ? ` (+${missingPaths.length - 5} more)` : ''
+  const missingPathList = [...missingPaths]
+
+  if (missingPathList.length > 0) {
+    const preview = missingPathList.slice(0, 5).join(', ')
+    const suffix =
+      missingPathList.length > 5 ? ` (+${missingPathList.length - 5} more)` : ''
     throw new DoctorInstallPathsError(
-      `Missing ${missingPaths.length} expected install path(s): ${preview}${suffix}`,
+      `Missing ${missingPathList.length} expected install path(s): ${preview}${suffix}`,
     )
   }
 }
