@@ -1,5 +1,8 @@
 # Qualified install path migration
 
+Requires **agents-repo CLI >= 1.22.1** (`v1.22.1` includes install-leaf ZIP
+validation from [cli#132](https://github.com/agents-repo/cli/pull/132)).
+
 Registry deployment ZIPs may use **qualified install-leaf** paths
 (`pathEncoding: 1` in `manifest.json`) so two packages with the same source agent id do not collide
 on disk. The CLI records this per package in `agents-lock.json` as `pathEncodingVersion: 1`
