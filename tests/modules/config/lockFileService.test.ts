@@ -32,10 +32,23 @@ const normalizedHelloAgent = {
 } as const
 
 const normalizedLockDocument = {
-  lockfileVersion: 2,
+  lockfileVersion: 3,
   resolvedRef: 'v2.3.1',
   packages: {
     'agents-repo/hello-agent': normalizedHelloAgent,
+  },
+} as const
+
+const normalizedHelloAgentWithEncoding = {
+  ...normalizedHelloAgent,
+  pathEncodingVersion: 1,
+} as const
+
+const v3LockOnDisk = {
+  lockfileVersion: 3,
+  resolvedRef: 'v2.3.1',
+  packages: {
+    'agents-repo/hello-agent': normalizedHelloAgentWithEncoding,
   },
 } as const
 
@@ -70,7 +83,7 @@ describe('LockFileService', () => {
     await writeFile(lockPath, stringifyJsonDocument(v2LockOnDisk))
 
     const document = await service.read(lockPath)
-    expect(document).toEqual(normalizedLockDocument)
+    expect(document).toEqual(v2LockOnDisk)
   })
 
   it('throws on unsupported lockfileVersion', async () => {
@@ -188,6 +201,15 @@ describe('LockFileService', () => {
     await writeFile(lockPath, '{invalid', 'utf8')
 
     await expect(service.read(lockPath)).rejects.toBeInstanceOf(ConfigParseError)
+  })
+
+  it('reads and validates a valid v3 lock file with pathEncodingVersion', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'agents-lock-'))
+    const lockPath = path.join(cwd, 'agents-lock.json')
+    await writeFile(lockPath, stringifyJsonDocument(v3LockOnDisk))
+
+    const document = await service.read(lockPath)
+    expect(document).toEqual(v3LockOnDisk)
   })
 
   it('writes stable lock output without resolved timestamps', async () => {

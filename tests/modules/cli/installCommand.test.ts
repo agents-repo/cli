@@ -415,7 +415,7 @@ describe('install command subprocess with mock registry', () => {
     const installResult = await runCliSubprocess(['install'], { cwd });
     expect(installResult.status).toBe(0);
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
     writeFileSync(skillPath, 'edited locally\n');
 
     const withoutForce = await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
@@ -427,7 +427,7 @@ describe('install command subprocess with mock registry', () => {
       { cwd },
     );
     expect(withForce.status).toBe(0);
-    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample');
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: agents-repo-sample-agent-sample');
   });
 
   it('emits deduped bulk JSON when --json is set', async () => {
@@ -534,8 +534,8 @@ describe('install command subprocess with mock registry', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Installed agents-repo/sample-agent@1.0.0');
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
-      'name: sample',
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain(
+      'name: agents-repo-sample-agent-sample',
     );
 
     const config = JSON.parse(readFileSync(path.join(cwd, 'agents.json'), 'utf8')) as {
@@ -635,8 +635,8 @@ describe('install command subprocess with mock registry', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('(not saved)');
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain(
-      'name: sample',
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain(
+      'name: agents-repo-sample-agent-sample',
     );
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
     expect(
@@ -680,8 +680,8 @@ describe('install command subprocess with mock registry', () => {
       packages: {},
     });
     expect(
-      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
-    ).toContain('name: sample');
+      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8'),
+    ).toContain('name: agents-repo-sample-agent-sample');
   });
 
   it('list reflects project install from agents-lock.json', async () => {
@@ -767,11 +767,11 @@ describe('install command subprocess with mock registry', () => {
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow();
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual(configBefore);
     expect(
-      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/sample/SKILL.md'), 'utf8'),
-    ).toContain('name: sample');
+      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8'),
+    ).toContain('name: agents-repo-sample-agent-sample');
     expect(
-      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/other/SKILL.md'), 'utf8'),
-    ).toContain('name: other');
+      readFileSync(path.join(homeDir, '.agents-repo/.cursor/skills/agents-repo/other-agent/agents-repo-other-agent-other/SKILL.md'), 'utf8'),
+    ).toContain('name: agents-repo-other-agent-other');
   });
 });
 

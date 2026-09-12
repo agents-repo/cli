@@ -179,8 +179,8 @@ describe('remove command subprocess with mock registry', () => {
     const installResult = await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
     expect(installResult.status).toBe(0);
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
-    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample');
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: agents-repo-sample-agent-sample');
 
     const removeResult = await runCliSubprocess(['remove', 'agents-repo/sample-agent'], { cwd });
     expect(removeResult.status).toBe(0);
@@ -206,8 +206,8 @@ describe('remove command subprocess with mock registry', () => {
     const installResult = await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
     expect(installResult.status).toBe(0);
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
-    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample');
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: agents-repo-sample-agent-sample');
 
     const removeResult = await runCliSubprocess(['unlink', 'agents-repo/sample-agent'], { cwd });
     expect(removeResult.status).toBe(0);
@@ -233,7 +233,7 @@ describe('remove command subprocess with mock registry', () => {
 
     await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
     const lockBefore = readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8');
 
     const result = await runCliSubprocess(
@@ -243,7 +243,7 @@ describe('remove command subprocess with mock registry', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Would remove');
-    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample');
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: agents-repo-sample-agent-sample');
     expect(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toBe(lockBefore);
   });
 
@@ -254,7 +254,7 @@ describe('remove command subprocess with mock registry', () => {
 
     await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
     const configBefore = readFileSync(path.join(cwd, 'agents.json'), 'utf8');
     const lockBefore = readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8');
 
@@ -294,8 +294,8 @@ describe('remove command subprocess with mock registry', () => {
 
     await runCliSubprocess(['install', '-g', 'agents-repo/sample-agent'], { cwd, env });
 
-    const globalSkill = path.join(globalRoot, '.cursor/skills/sample/SKILL.md');
-    expect(readFileSync(globalSkill, 'utf8')).toContain('name: sample');
+    const globalSkill = path.join(globalRoot, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
+    expect(readFileSync(globalSkill, 'utf8')).toContain('name: agents-repo-sample-agent-sample');
 
     const removeResult = await runCliSubprocess(
       ['remove', '-g', 'agents-repo/sample-agent'],
@@ -356,7 +356,7 @@ describe('remove command subprocess with mock registry', () => {
 
     await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
     writeFileSync(skillPath, 'user edited this file', 'utf8');
 
     const result = await runCliSubprocess(['remove', 'agents-repo/sample-agent'], { cwd });
@@ -377,7 +377,7 @@ describe('remove command subprocess with mock registry', () => {
 
     await runCliSubprocess(['install', 'agents-repo/sample-agent'], { cwd });
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md');
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
     writeFileSync(skillPath, 'user edited this file', 'utf8');
 
     const result = await runCliSubprocess(

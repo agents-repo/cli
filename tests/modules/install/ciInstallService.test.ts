@@ -185,7 +185,7 @@ describe('CiInstallService', () => {
 
     expect(results).toHaveLength(2)
     expect(results.every((result) => result.saved === false && result.noSave === true)).toBe(true)
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain('name: sample')
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain('name: agents-repo-sample-agent-sample')
     expect(readFileSync(path.join(cwd, 'agents.json'), 'utf8')).toBe(configBefore)
     expect(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toBe(lockBefore)
   })
@@ -211,13 +211,13 @@ describe('CiInstallService', () => {
     const bulk = new BulkInstallService()
     await bulk.runAll({ cwd })
 
-    const skillPath = path.join(cwd, '.cursor/skills/sample/SKILL.md')
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md')
     writeFileSync(skillPath, 'local edit before ci\n')
 
     const ci = new CiInstallService()
     await ci.run({ cwd })
 
-    expect(readFileSync(skillPath, 'utf8')).toContain('name: sample')
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: agents-repo-sample-agent-sample')
   })
 
   it('throws when agents-lock.json is missing', async () => {
@@ -507,8 +507,13 @@ describe('CiInstallService', () => {
       'cursor',
       'github-copilot',
     ])
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain('name: sample')
-    expect(readFileSync(path.join(cwd, '.github/agents/sample.agent.md'), 'utf8')).toContain('name: sample')
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain('name: agents-repo-sample-agent-sample')
+    expect(
+      readFileSync(
+        path.join(cwd, '.github/agents/agents-repo-sample-agent-sample.agent.md'),
+        'utf8',
+      ),
+    ).toContain('name: agents-repo-sample-agent-sample')
   })
 
   it('does not install lock byTarget slots for targets omitted from agents.json', async () => {
@@ -634,8 +639,13 @@ describe('CiInstallService', () => {
 
     expect(results).toHaveLength(1)
     expect(results[0]?.target).toBe('cursor')
-    expect(readFileSync(path.join(cwd, '.cursor/skills/sample/SKILL.md'), 'utf8')).toContain('name: sample')
-    expect(() => readFileSync(path.join(cwd, '.github/agents/sample.agent.md'), 'utf8')).toThrow()
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain('name: agents-repo-sample-agent-sample')
+    expect(() =>
+      readFileSync(
+        path.join(cwd, '.github/agents/agents-repo-sample-agent-sample.agent.md'),
+        'utf8',
+      ),
+    ).toThrow()
 
     const copilotFetchCallsAfter = fetchSpy.mock.calls.filter((call) =>
       toFetchUrl(call[0]).includes('1.0.0-github-copilot.zip'),

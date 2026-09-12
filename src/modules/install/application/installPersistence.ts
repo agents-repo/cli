@@ -6,6 +6,10 @@ import { LockFileService } from '../../config/application/lockFileService.js'
 import { AgentsJsonRepository } from '../../config/infrastructure/agentsJsonRepository.js'
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import type { ManifestArtifact } from '../../registry/domain/manifest.js'
+import {
+  inferPathEncodingVersionFromZipEntries,
+  resolvePathEncodingVersionFromManifest,
+} from '../domain/pathEncoding.js'
 import { assertResolvableLockRef } from './resolveLockRef.js'
 
 export interface InstallPersistenceInput {
@@ -23,6 +27,7 @@ export interface BulkInstallPersistenceEntry {
   readonly version: string
   readonly target: InstallTargetId
   readonly artifact: ManifestArtifact
+  readonly zipEntryNames?: readonly string[]
 }
 
 export interface BulkInstallPersistenceInput {
@@ -113,12 +118,14 @@ export class InstallPersistence {
 
     for (const entry of input.entries) {
       const prior = packages[entry.packageId]
+      const pathEncodingVersion = resolveLockPathEncodingVersion(entry)
       packages[entry.packageId] = this.lockFileService.mergePackageEntry(
         prior,
         entry.target,
         entry.version,
         this.lockFileService.formatIntegrity(entry.artifact.sha256),
         entry.artifact.file,
+        pathEncodingVersion,
       )
     }
 
@@ -130,6 +137,21 @@ export class InstallPersistence {
 
     await this.lockFileService.write(input.resolved.lockPath, lockDocument)
   }
+}
+
+const resolveLockPathEncodingVersion = (
+  entry: BulkInstallPersistenceEntry,
+): number | undefined => {
+  const fromManifest = resolvePathEncodingVersionFromManifest(entry.artifact.pathEncoding)
+  if (fromManifest !== undefined) {
+    return fromManifest
+  }
+
+  if (entry.zipEntryNames === undefined) {
+    return undefined
+  }
+
+  return inferPathEncodingVersionFromZipEntries(entry.target, entry.zipEntryNames)
 }
 
 const buildConfigPatch = (

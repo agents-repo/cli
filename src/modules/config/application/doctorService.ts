@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs'
+import path from 'node:path'
 
 import { ConfigResolver } from './configResolver.js'
 import { LockFileService } from './lockFileService.js'
@@ -10,8 +11,6 @@ import {
   loadRegistryCatalog,
   type RegistryCatalogLoadResult,
 } from '../../registry/infrastructure/registryRepository.js'
-import { resolvePackageInCatalog } from '../../registry/application/resolvePackageInCatalog.js'
-import { planFrozenInstallSlot } from '../../install/application/planFrozenInstallSlot.js'
 import {
   validateCiConfigLockPackageSets,
   validateCiRequiredByTargetSlots,
@@ -19,9 +18,16 @@ import {
 import { validateLockVersionRanges } from '../../install/application/validateLockVersionRanges.js'
 import { resolveInstallScope } from '../../install/application/installScope.js'
 import { resolveInstallTargets } from '../../install/application/resolveInstallTargets.js'
-import { planArtifactExtractFromZip } from '../../install/infrastructure/artifactExtractPaths.js'
-import { downloadArtifact } from '../../install/infrastructure/artifactDownloader.js'
 import { InstallRuntimeError } from '../../install/domain/installErrors.js'
+import { resolveContainedExtractPath } from '../../install/infrastructure/targetExtractPaths.js'
+import {
+  DoctorAgentPathCollisionError,
+  DoctorLegacyPathEncodingError,
+  loadLockSlotArtifacts,
+  type LockSlotArtifact,
+  verifyAgentPathCollisions,
+  verifyLegacyPathEncoding,
+} from './doctorPathChecks.js'
 
 class DoctorInstallPathsError extends Error {
   readonly code = 'install_paths_missing'
@@ -61,6 +67,14 @@ const getErrorCode = (error: unknown): string | undefined => {
     return error.code
   }
 
+  if (error instanceof DoctorLegacyPathEncodingError) {
+    return error.code
+  }
+
+  if (error instanceof DoctorAgentPathCollisionError) {
+    return error.code
+  }
+
   if (error instanceof ConfigError) {
     return error.code
   }
@@ -78,6 +92,14 @@ const getErrorCode = (error: unknown): string | undefined => {
 
 export const exitCodeForDoctorError = (error: unknown): number => {
   if (error instanceof DoctorInstallPathsError) {
+    return error.exitCode
+  }
+
+  if (error instanceof DoctorLegacyPathEncodingError) {
+    return error.exitCode
+  }
+
+  if (error instanceof DoctorAgentPathCollisionError) {
     return error.exitCode
   }
 
@@ -156,100 +178,35 @@ const skipChecksAfterConfigFailure = (checks: DoctorCheck[]): void => {
     skipCheck('lock_config_sync', 'Skipped because config resolution failed'),
     skipCheck('registry_reachable', 'Skipped because config resolution failed'),
     skipCheck('install_paths', 'Skipped because config resolution failed'),
+    skipCheck('legacy_path_encoding', 'Skipped because config resolution failed'),
+    skipCheck('agent_path_collision', 'Skipped because config resolution failed'),
   )
 }
 
-const verifyLockSlotInstallPaths = async (options: {
-  readonly packageId: string
-  readonly target: ReturnType<typeof resolveInstallTargets>[number]
-  readonly lockEntry: AgentsLockDocument['packages'][string]
-  readonly catalogResult: RegistryCatalogLoadResult
-  readonly scope: ReturnType<typeof resolveInstallScope>
-  readonly preferOnline: boolean
-  readonly env: NodeJS.ProcessEnv
-  readonly parseIntegrityHex: (integrity: string) => string
-  readonly missingPaths: string[]
-}): Promise<void> => {
-  const slot = options.lockEntry.byTarget[options.target]
-  if (slot === undefined) {
-    return
-  }
+const verifyInstallPathsFromArtifacts = (
+  artifacts: readonly LockSlotArtifact[],
+  extractRoot: string,
+): void => {
+  const missingPaths = new Set<string>()
+  const resolvedRoot = path.resolve(extractRoot)
 
-  const pkg = resolvePackageInCatalog(options.catalogResult.catalog, options.packageId)
-  const plan = planFrozenInstallSlot({
-    catalogResult: options.catalogResult,
-    pkg,
-    version: options.lockEntry.version,
-    target: options.target,
-    slot,
-  })
-
-  const zipBytes = await downloadArtifact(plan.artifactUrl, {
-    expectedSha256Hex: options.parseIntegrityHex(plan.slot.integrity),
-    preferOnline: options.preferOnline,
-    env: options.env,
-  })
-  const extractPlan = planArtifactExtractFromZip(
-    zipBytes,
-    plan.target,
-    plan.version,
-    options.scope.extractRoot,
-  )
-
-  for (const absolutePath of extractPlan.absolutePaths) {
-    if (!existsSync(absolutePath)) {
-      options.missingPaths.push(absolutePath)
-    }
-  }
-}
-
-const verifyInstallPathsFromLock = async (options: {
-  readonly resolved: ResolvedAgentsConfig
-  readonly lock: AgentsLockDocument
-  readonly catalogResult: RegistryCatalogLoadResult
-  readonly cwd: string
-  readonly env: NodeJS.ProcessEnv
-  readonly preferOnline: boolean
-  readonly parseIntegrityHex: (integrity: string) => string
-}): Promise<void> => {
-  const scope = resolveInstallScope({
-    cwd: options.cwd,
-    env: options.env,
-    globalFlag: false,
-  })
-  const targets = resolveInstallTargets(options.resolved)
-  const packageIds = Object.keys(options.resolved.packages).sort((left, right) =>
-    left.localeCompare(right),
-  )
-
-  const missingPaths: string[] = []
-
-  for (const target of targets) {
-    for (const packageId of packageIds) {
-      if (!Object.hasOwn(options.lock.packages, packageId)) {
-        continue
+  for (const artifact of artifacts) {
+    for (const relativePath of artifact.mappedPaths) {
+      const absolutePath = resolveContainedExtractPath(resolvedRoot, relativePath)
+      if (!existsSync(absolutePath)) {
+        missingPaths.add(absolutePath)
       }
-      const lockEntry = options.lock.packages[packageId]
-      await verifyLockSlotInstallPaths({
-        packageId,
-        target,
-        lockEntry,
-        catalogResult: options.catalogResult,
-        scope,
-        preferOnline: options.preferOnline,
-        env: options.env,
-        parseIntegrityHex: options.parseIntegrityHex,
-        missingPaths,
-      })
     }
   }
 
-  if (missingPaths.length > 0) {
-    const preview = missingPaths.slice(0, 5).join(', ')
+  const missingPathList = [...missingPaths]
+
+  if (missingPathList.length > 0) {
+    const preview = missingPathList.slice(0, 5).join(', ')
     const suffix =
-      missingPaths.length > 5 ? ` (+${missingPaths.length - 5} more)` : ''
+      missingPathList.length > 5 ? ` (+${missingPathList.length - 5} more)` : ''
     throw new DoctorInstallPathsError(
-      `Missing ${missingPaths.length} expected install path(s): ${preview}${suffix}`,
+      `Missing ${missingPathList.length} expected install path(s): ${preview}${suffix}`,
     )
   }
 }
@@ -366,7 +323,7 @@ const runDoctorLockConfigSyncCheck = (
   }
 }
 
-const runDoctorInstallPathsCheck = async (options: {
+const runDoctorArtifactChecks = async (options: {
   readonly resolved: ResolvedAgentsConfig
   readonly lock: AgentsLockDocument | null
   readonly catalogResult: RegistryCatalogLoadResult | undefined
@@ -382,24 +339,71 @@ const runDoctorInstallPathsCheck = async (options: {
 
   if (!lockSyncPassed || options.lock === null || options.catalogResult === undefined) {
     options.checks.push(
-      skipCheck(
-        'install_paths',
-        'Skipped because lock sync or registry checks did not pass',
-      ),
+      skipCheck('legacy_path_encoding', 'Skipped because lock sync or registry checks did not pass'),
+      skipCheck('agent_path_collision', 'Skipped because lock sync or registry checks did not pass'),
+      skipCheck('install_paths', 'Skipped because lock sync or registry checks did not pass'),
+    )
+    return
+  }
+
+  const checkOptions = {
+    resolved: options.resolved,
+    lock: options.lock,
+    catalogResult: options.catalogResult,
+    cwd: options.cwd,
+    env: options.env,
+    preferOnline: options.preferOnline,
+    parseIntegrityHex: (integrity: string) => options.lockFileService.parseIntegrityHex(integrity),
+  }
+
+  let artifacts: LockSlotArtifact[]
+  try {
+    artifacts = await loadLockSlotArtifacts(checkOptions)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Artifact download failed'
+    options.checks.push(
+      failCheck('legacy_path_encoding', message, error),
+      failCheck('agent_path_collision', message, error),
+      failCheck('install_paths', message, error),
     )
     return
   }
 
   try {
-    await verifyInstallPathsFromLock({
-      resolved: options.resolved,
-      lock: options.lock,
-      catalogResult: options.catalogResult,
+    verifyLegacyPathEncoding(options.lock, artifacts)
+    options.checks.push(
+      passCheck('legacy_path_encoding', 'Lock entries use qualified install path encoding'),
+    )
+  } catch (error) {
+    options.checks.push(
+      failCheck(
+        'legacy_path_encoding',
+        error instanceof Error ? error.message : 'Legacy path encoding check failed',
+        error,
+      ),
+    )
+  }
+
+  try {
+    verifyAgentPathCollisions(artifacts)
+    options.checks.push(passCheck('agent_path_collision', 'No cross-package install path collisions'))
+  } catch (error) {
+    options.checks.push(
+      failCheck(
+        'agent_path_collision',
+        error instanceof Error ? error.message : 'Install path collision check failed',
+        error,
+      ),
+    )
+  }
+
+  try {
+    const scope = resolveInstallScope({
       cwd: options.cwd,
       env: options.env,
-      preferOnline: options.preferOnline,
-      parseIntegrityHex: (integrity) => options.lockFileService.parseIntegrityHex(integrity),
+      globalFlag: false,
     })
+    verifyInstallPathsFromArtifacts(artifacts, scope.extractRoot)
     options.checks.push(passCheck('install_paths', 'Expected install paths exist on disk'))
   } catch (error) {
     options.checks.push(
@@ -448,7 +452,7 @@ export class DoctorService {
           },
     )
 
-    await runDoctorInstallPathsCheck({
+    await runDoctorArtifactChecks({
       resolved,
       lock,
       catalogResult,

@@ -33,6 +33,8 @@ Project scope only in the initial release; global `doctor -g` is reserved for a 
 | `lock_config_sync` | Config/lock parity and ranges (as `ci`, no `--force`) |
 | `registry_reachable` | Registry catalog index fetch succeeds |
 | `install_paths` | Locked artifacts enumerate to paths that exist on disk (no extract) |
+| `legacy_path_encoding` | Lock lacks `pathEncodingVersion` while artifacts use legacy flat paths |
+| `agent_path_collision` | Two locked packages map to the same on-disk install path |
 
 Skipped checks appear when prerequisites fail (for example `lock_config_sync` when the lock is
 missing). `doctor` runs independent checks where possible instead of failing on the first error.

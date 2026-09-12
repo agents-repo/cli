@@ -2,16 +2,32 @@ import AdmZip from 'adm-zip'
 import matter from 'gray-matter'
 
 import type { InstallTargetId } from '../../registry/domain/package.js'
+import {
+  DEPLOYMENT_ZIP_ENTRY_PATTERN,
+  LEGACY_CLAUDE_ENTRY_PATTERN,
+  LEGACY_SKILL_ENTRY_PATTERN,
+  QUALIFIED_CLAUDE_ENTRY_PATTERN,
+  QUALIFIED_SKILL_ENTRY_PATTERN,
+} from '../domain/installPathPatterns.js'
 
 const ZIP_MAX_ENTRY_NAME_LENGTH = 4096
 const ZIP_UNIX_MODE_MASK = 0xffff
 const ZIP_UNIX_TYPE_MASK = 0xf000
 const ZIP_SYMLINK_TYPE = 0xa000
 
-const DEPLOYMENT_ZIP_ENTRY_PATTERN = /^agents\/[a-z0-9]+(?:-[a-z0-9]+)*\.agent\.md$/
-const CLAUDE_AGENT_ENTRY_PATTERN = /^\.claude\/agents\/[a-z0-9]+(?:-[a-z0-9]+)*\.md$/
-const SKILL_ENTRY_PATTERN =
-  /^(?:\.cursor\/skills|\.agents\/skills)\/[a-z0-9]+(?:-[a-z0-9]+)*\/SKILL\.md$/
+const LEGACY_CLAUDE_AGENT_ENTRY_PATTERN = LEGACY_CLAUDE_ENTRY_PATTERN
+const QUALIFIED_CLAUDE_AGENT_ENTRY_PATTERN = QUALIFIED_CLAUDE_ENTRY_PATTERN
+
+const isSkillEntryPath = (name: string): boolean => {
+  return LEGACY_SKILL_ENTRY_PATTERN.test(name) || QUALIFIED_SKILL_ENTRY_PATTERN.test(name)
+}
+
+const isClaudeEntryPath = (name: string): boolean => {
+  return (
+    LEGACY_CLAUDE_AGENT_ENTRY_PATTERN.test(name) ||
+    QUALIFIED_CLAUDE_AGENT_ENTRY_PATTERN.test(name)
+  )
+}
 const DEPLOYMENT_ALLOWED_EXTENSION = '.agent.md'
 
 export interface ZipValidationIssue {
@@ -249,7 +265,7 @@ const validateSkillEntry = (
   name: string,
   issues: ZipValidationIssue[],
 ): void => {
-  if (!SKILL_ENTRY_PATTERN.test(name)) {
+  if (!isSkillEntryPath(name)) {
     issues.push(
       err('ERR_ZIP_UNEXPECTED_ENTRY', `Unexpected entry in skill target ZIP: "${name}"`),
     )
@@ -283,7 +299,7 @@ const validateClaudeEntry = (
   expectedVersion: string,
   issues: ZipValidationIssue[],
 ): void => {
-  if (!CLAUDE_AGENT_ENTRY_PATTERN.test(name)) {
+  if (!isClaudeEntryPath(name)) {
     issues.push(
       err('ERR_ZIP_UNEXPECTED_ENTRY', `Unexpected entry in Claude target ZIP: "${name}"`),
     )

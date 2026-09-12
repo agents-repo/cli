@@ -13,10 +13,11 @@ RFC 2119.
 
 | Version | Applies To | Status | Notes |
 | --- | --- | --- | --- |
-| `2` | lockfileVersion | current | `byTarget` map per package |
+| `2` | lockfileVersion | supported | `byTarget` map per package; legacy flat deployment paths |
+| `3` | lockfileVersion | current | Adds optional per-package `pathEncodingVersion` |
 
-Tooling MUST support `lockfileVersion` `2` only. New lock files MUST use `lockfileVersion` `2`.
-Tooling MUST reject lock files whose `lockfileVersion` is not `2` (exit `3`).
+Tooling MUST read `lockfileVersion` `2` and `3`. New lock files MUST use `lockfileVersion` `3`.
+Tooling MUST reject lock files whose `lockfileVersion` is not `2` or `3` (exit `3`).
 
 ## Purpose
 
@@ -34,13 +35,13 @@ pairs with `agents.json` and SHOULD be committed to VCS.
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `lockfileVersion` | integer | yes | MUST be `2` for new lock files |
+| `lockfileVersion` | integer | yes | MUST be `3` for new lock files |
 | `resolvedRef` | string | yes | Concrete registry git ref after alias resolution |
 | `packages` | object | yes | Map qualified id → lock entry; see below |
 
 `resolvedRef` MUST be the concrete ref (e.g. `v2.3.1`), not a major-line alias (e.g. `v2.x`).
 
-## Package Lock Entry (lockfileVersion 2)
+## Package Lock Entry (lockfileVersion 2 and 3)
 
 Each entry in `packages` MUST be an object with:
 
@@ -48,6 +49,10 @@ Each entry in `packages` MUST be an object with:
 | --- | --- | --- | --- |
 | `version` | string | yes | Exact resolved semver (`MAJOR.MINOR.PATCH`) shared by all slots |
 | `byTarget` | object | yes | Map install target id → slot; see [Target slot](#target-slot) |
+| `pathEncodingVersion` | integer | no | MUST be `1` when present; qualified install-leaf paths |
+
+`pathEncodingVersion` MUST NOT appear in `lockfileVersion` `2` documents. When absent, tooling MUST
+treat the package as using legacy flat deployment paths from its artifact era.
 
 ### Target slot
 
@@ -194,11 +199,12 @@ earlier installs; `list` MAY still show them.
 
 ```json
 {
-  "lockfileVersion": 2,
+  "lockfileVersion": 3,
   "resolvedRef": "v2.3.1",
   "packages": {
     "agents-repo/hello-agent": {
       "version": "1.0.0",
+      "pathEncodingVersion": 1,
       "byTarget": {
         "cursor": {
           "integrity": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

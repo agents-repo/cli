@@ -1,5 +1,6 @@
 import type { InstallTargetId } from '../../registry/domain/package.js'
 import { INSTALL_TARGET_IDS } from '../../registry/domain/package.js'
+import { PATH_ENCODING_VERSION } from '../../install/domain/pathEncoding.js'
 import { LockValidationError } from './configErrors.js'
 import {
   isExactSemver,
@@ -16,6 +17,7 @@ export interface TargetLockSlot {
 
 export interface NormalizedPackageLockEntry {
   readonly version: string
+  readonly pathEncodingVersion?: number
   readonly byTarget: Readonly<Partial<Record<InstallTargetId, TargetLockSlot>>>
 }
 
@@ -32,6 +34,7 @@ export const mergeTargetLockSlot = (
   targetId: InstallTargetId,
   version: string,
   slot: TargetLockSlot,
+  pathEncodingVersion?: number,
 ): NormalizedPackageLockEntry => {
   const versionChanged =
     existing !== undefined && existing.version !== version
@@ -45,8 +48,14 @@ export const mergeTargetLockSlot = (
     byTarget = { ...existing.byTarget, [targetId]: slot }
   }
 
+  const resolvedPathEncoding =
+    pathEncodingVersion ?? (versionChanged ? undefined : existing?.pathEncodingVersion)
+
   return {
     version,
+    ...(resolvedPathEncoding === PATH_ENCODING_VERSION
+      ? { pathEncodingVersion: PATH_ENCODING_VERSION }
+      : {}),
     byTarget,
   }
 }
@@ -70,8 +79,9 @@ const assertLockArtifactMatchesVersion = (
   }
 }
 
-export const serializePackageLockEntryV2 = (
+export const serializePackageLockEntry = (
   entry: NormalizedPackageLockEntry,
+  lockfileVersion: number,
 ): Record<string, unknown> => {
   const byTarget: Record<string, TargetLockSlot> = {}
   for (const id of INSTALL_TARGET_IDS) {
@@ -81,11 +91,25 @@ export const serializePackageLockEntryV2 = (
     }
   }
 
-  return {
+  const serialized: Record<string, unknown> = {
     version: entry.version,
     byTarget,
   }
+
+  if (
+    lockfileVersion >= 3 &&
+    entry.pathEncodingVersion === PATH_ENCODING_VERSION
+  ) {
+    serialized.pathEncodingVersion = PATH_ENCODING_VERSION
+  }
+
+  return serialized
 }
+
+/** @deprecated Use serializePackageLockEntry */
+export const serializePackageLockEntryV2 = (
+  entry: NormalizedPackageLockEntry,
+): Record<string, unknown> => serializePackageLockEntry(entry, 2)
 
 export const parsePackageLockEntry = (
   packageId: string,
@@ -104,16 +128,41 @@ export const parsePackageLockEntry = (
     throw new LockValidationError(`Lock entry for ${packageId} has invalid version`)
   }
 
-  if (lockfileVersion !== 2) {
+  if (lockfileVersion !== 2 && lockfileVersion !== 3) {
     throw new LockValidationError(`Unsupported lock entry format for ${packageId}`)
   }
 
-  return parseV2ByTargetPackageEntry(packageId, entry)
+  return parseByTargetPackageEntry(packageId, entry, lockfileVersion)
 }
 
-const parseV2ByTargetPackageEntry = (
+const parsePathEncodingVersion = (
   packageId: string,
   entry: Record<string, unknown>,
+  lockfileVersion: number,
+): number | undefined => {
+  if (!Object.hasOwn(entry, 'pathEncodingVersion')) {
+    return undefined
+  }
+
+  if (lockfileVersion < 3) {
+    throw new LockValidationError(
+      `Lock entry for ${packageId} must not include pathEncodingVersion in lockfileVersion ${lockfileVersion}`,
+    )
+  }
+
+  if (entry.pathEncodingVersion !== PATH_ENCODING_VERSION) {
+    throw new LockValidationError(
+      `Lock entry for ${packageId} has unsupported pathEncodingVersion`,
+    )
+  }
+
+  return PATH_ENCODING_VERSION
+}
+
+const parseByTargetPackageEntry = (
+  packageId: string,
+  entry: Record<string, unknown>,
+  lockfileVersion: number,
 ): NormalizedPackageLockEntry => {
   if (!isPlainObject(entry.byTarget)) {
     throw new LockValidationError(`Lock entry for ${packageId} must include byTarget`)
@@ -135,8 +184,13 @@ const parseV2ByTargetPackageEntry = (
     throw new LockValidationError(`Lock entry for ${packageId} byTarget must not be empty`)
   }
 
+  const pathEncodingVersion = parsePathEncodingVersion(packageId, entry, lockfileVersion)
+
   return {
     version: packageVersion,
+    ...(pathEncodingVersion === PATH_ENCODING_VERSION
+      ? { pathEncodingVersion }
+      : {}),
     byTarget,
   }
 }

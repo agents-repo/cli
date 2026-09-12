@@ -13,6 +13,7 @@ import { buildInstallContext } from './resolveInstallContext.js'
 import { isGreenfieldInstallBootstrap } from './resolveInstallTargets.js'
 import { resolveLockRef } from './resolveLockRef.js'
 import { downloadArtifact } from '../infrastructure/artifactDownloader.js'
+import { listMappedZipFileEntries } from '../infrastructure/artifactExtractPaths.js'
 import {
   extractPackageArtifact,
   rollbackExtractEntries,
@@ -306,6 +307,7 @@ const installBulkPackageForTarget = async (options: {
       version: plan.version,
       target,
       artifact: plan.artifact,
+      zipEntryNames: listMappedZipFileEntries(zipBytes, target, plan.version),
     },
     rollbackEntries: [...extractResult.rollbackEntries],
   }
