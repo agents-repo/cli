@@ -33,7 +33,7 @@ describe('packageRemover', () => {
     tempDirs.push(root);
     const zipBytes = buildCursorSkillZip();
     const plan = planArtifactExtractFromZip(zipBytes, 'cursor', '1.0.0', root);
-    const targetPath = path.join(root, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
+    const targetPath = path.join(root, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md');
     expect(plan.absolutePaths).toContain(targetPath);
 
     mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -64,7 +64,7 @@ describe('packageRemover', () => {
     tempDirs.push(root);
     const zipBytes = buildCursorSkillZip();
     const plan = planArtifactExtractFromZip(zipBytes, 'cursor', '1.0.0', root);
-    const targetPath = path.join(root, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md');
+    const targetPath = path.join(root, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md');
     expect(plan.absolutePaths).toContain(targetPath);
 
     mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -88,7 +88,7 @@ describe('packageRemover', () => {
       deletedPaths,
     });
 
-    expect(readFileSync(targetPath, 'utf8')).toContain('name: agents-repo-sample-agent-sample');
+    expect(readFileSync(targetPath, 'utf8')).toContain('name: agents-repo--sample-agent--sample');
   });
 
   it('refuses to delete paths outside extractRoot', async () => {

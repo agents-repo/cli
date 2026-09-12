@@ -5,6 +5,8 @@ import type { InstallTargetId } from '../../registry/domain/package.js'
 import {
   DEPLOYMENT_ZIP_ENTRY_PATTERN,
   LEGACY_CLAUDE_ENTRY_PATTERN,
+  LEGACY_QUALIFIED_CLAUDE_ENTRY_PATTERN,
+  LEGACY_QUALIFIED_SKILL_ENTRY_PATTERN,
   LEGACY_SKILL_ENTRY_PATTERN,
   QUALIFIED_CLAUDE_ENTRY_PATTERN,
   QUALIFIED_SKILL_ENTRY_PATTERN,
@@ -19,12 +21,17 @@ const LEGACY_CLAUDE_AGENT_ENTRY_PATTERN = LEGACY_CLAUDE_ENTRY_PATTERN
 const QUALIFIED_CLAUDE_AGENT_ENTRY_PATTERN = QUALIFIED_CLAUDE_ENTRY_PATTERN
 
 const isSkillEntryPath = (name: string): boolean => {
-  return LEGACY_SKILL_ENTRY_PATTERN.test(name) || QUALIFIED_SKILL_ENTRY_PATTERN.test(name)
+  return (
+    LEGACY_SKILL_ENTRY_PATTERN.test(name) ||
+    LEGACY_QUALIFIED_SKILL_ENTRY_PATTERN.test(name) ||
+    QUALIFIED_SKILL_ENTRY_PATTERN.test(name)
+  )
 }
 
 const isClaudeEntryPath = (name: string): boolean => {
   return (
     LEGACY_CLAUDE_AGENT_ENTRY_PATTERN.test(name) ||
+    LEGACY_QUALIFIED_CLAUDE_ENTRY_PATTERN.test(name) ||
     QUALIFIED_CLAUDE_AGENT_ENTRY_PATTERN.test(name)
   )
 }
@@ -251,7 +258,7 @@ const validateDeploymentEntry = (
     issues.push(
       err(
         'ERR_ZIP_UNEXPECTED_ENTRY',
-        `Unexpected entry in deployment ZIP: "${name}" — only agents/<id>.agent.md is allowed`,
+        `Unexpected entry in deployment ZIP: "${name}" — only agents/<id>.agent.md or agents/<install-leaf>.agent.md is allowed`,
       ),
     )
     return

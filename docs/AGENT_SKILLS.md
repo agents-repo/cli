@@ -10,33 +10,59 @@ for package management.
 
 ## Skill routing
 
-| Skill | Purpose | Trigger |
-| --- | --- | --- |
-| `github-issue-intake` | Fetch issue context via `gh`; emit brief | Issue-driven task start |
-| `issue-implementation-planner` | Draft ask-first implementation plan | After issue intake |
-| `issue-implementation-planning` | Orchestrate intake, planning, refinement | Issue number or URL |
-| `implementation-plan-refiner` | Refine plan against issue brief | After first plan draft |
-| `plan-refinement` | Route plan to interactive or automatic refiner | Plan quality pass |
-| `interactive-plan-refiner` | Ask-first plan refinement with repo check | User wants Q&A loop |
-| `automatic-plan-refiner` | Assumption-first one-shot plan refinement | User wants no Q&A loop |
-| `ai-readiness-analyst` | Report AI-first readiness of host project | Readiness audit |
-| `improvement-planner` | Draft phased or full-shot improvement plan | After readiness + consent |
-| `ai-first-project-planning` | Readiness then improvement planning | End-to-end planning flow |
-| `ai-first-chat` | Readiness from URLs/uploads (no host tree) | External project analysis |
-| `token-footprint-analyst` | Inventory context-token waste in host tree | Token audit |
-| `token-reduction-advisor` | Plan-only token reduction from footprint | After footprint report |
-| `reduce-context-tokens` | Orchestrate footprint + reduction planning | Token reduction planning |
-| `context-token-chat` | Token footprint from URLs/uploads | External token analysis |
-| `code-reviewer` | General-quality diff review | Pre-merge self-review |
-| `bug-reviewer` | Bug-focused diff review | Logic or regression risk |
-| `security-reviewer` | Security-focused diff review | Auth, secrets, untrusted input |
-| `review-fix-ship` | Run reviews, fix, commit, push | Post-implementation ship |
-| `findings-fixer` | Triage and fix merged review findings | After review comments |
-| `github-pr-review-triage` | Triage PR review threads via `gh` | PR feedback loop |
+All packages below use namespace `maiconfz`. Skill IDs are fully qualified:
+`maiconfz--{package-id}--{source-id}` (for example
+`maiconfz--review-fix-ship--code-reviewer`).
 
-Install paths vary by target: `.agents/skills/<skill-name>/SKILL.md` and
-`.cursor/skills/<skill-name>/SKILL.md` (Codex and Cursor); Copilot uses
-`.github/agents/<id>.agent.md`; Claude uses `.claude/agents/<id>.md`.
+### `maiconfz/github-interactive-issue-implementation-planner`
+
+- `github-issue-intake` — fetch issue context via `gh`; emit brief
+- `issue-implementation-planner` — draft ask-first implementation plan
+- `issue-implementation-planning` — orchestrate intake, planning, refinement
+- `implementation-plan-refiner` — refine plan against issue brief
+
+### `maiconfz/plan-refiner`
+
+- `plan-refinement` — route plan to interactive or automatic refiner
+- `interactive-plan-refiner` — ask-first plan refinement with repo check
+- `automatic-plan-refiner` — assumption-first one-shot plan refinement
+
+### `maiconfz/ai-first-project-readiness`
+
+- `ai-readiness-analyst` — report AI-first readiness of host project
+- `improvement-planner` — draft phased or full-shot improvement plan
+- `ai-first-project-planning` — readiness then improvement planning
+- `ai-first-chat` — readiness from URLs/uploads (no host tree)
+
+### `maiconfz/context-token-reduction`
+
+- `token-footprint-analyst` — inventory context-token waste in host tree
+- `token-reduction-advisor` — plan-only token reduction from footprint
+- `reduce-context-tokens` — orchestrate footprint + reduction planning
+- `context-token-chat` — token footprint from URLs/uploads
+
+### `maiconfz/review-fix-ship`
+
+- `code-reviewer` — general-quality diff review
+- `bug-reviewer` — bug-focused diff review
+- `security-reviewer` — security-focused diff review
+- `review-fix-ship` — run reviews, fix, commit, push
+- `findings-fixer` — triage and fix merged review findings
+
+### `maiconfz/github-pr-review-triage`
+
+- `github-pr-review-triage` — triage PR review threads via `gh`
+
+Qualified install paths use `<namespace>/<package>/<install-leaf>` for Cursor,
+Codex, and Claude targets:
+
+- Cursor: `.cursor/skills/<namespace>/<package>/<install-leaf>/SKILL.md`
+- Codex: `.agents/skills/<namespace>/<package>/<install-leaf>/SKILL.md`
+- Copilot: `.github/agents/<install-leaf>.agent.md`
+- Claude: `.claude/agents/<namespace>/<package>/<install-leaf>.md`
+
+Legacy flat paths (for example `.cursor/skills/<skill-name>/SKILL.md`) remain
+supported for older installs.
 
 ## Suggested flow
 
