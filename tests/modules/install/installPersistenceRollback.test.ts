@@ -111,7 +111,7 @@ describe('InstallService persistence rollback', () => {
       }),
     ).rejects.toThrow('disk full')
 
-    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toThrow()
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md'), 'utf8')).toThrow()
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
   })
 })

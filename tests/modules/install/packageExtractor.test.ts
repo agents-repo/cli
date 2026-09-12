@@ -24,14 +24,14 @@ describe('targetExtractPaths', () => {
     expect(
       mapZipEntryToExtractPath(
         'github-copilot',
-        'agents/agents-repo-sample-agent-sample.agent.md',
+        'agents/agents-repo--sample-agent--sample.agent.md',
       ),
-    ).toBe('.github/agents/agents-repo-sample-agent-sample.agent.md')
+    ).toBe('.github/agents/agents-repo--sample-agent--sample.agent.md')
   })
 
   it('keeps cursor paths unchanged', () => {
-    expect(mapZipEntryToExtractPath('cursor', '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md')).toBe(
-      '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md',
+    expect(mapZipEntryToExtractPath('cursor', '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md')).toBe(
+      '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md',
     )
   })
 
@@ -55,8 +55,8 @@ describe('packageExtractor', () => {
 
     try {
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
-      const content = readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')
-      expect(content).toContain('name: agents-repo-sample-agent-sample')
+      const content = readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md'), 'utf8')
+      expect(content).toContain('name: agents-repo--sample-agent--sample')
     } finally {
       rmSync(cwd, { recursive: true, force: true })
     }
@@ -68,10 +68,10 @@ describe('packageExtractor', () => {
     try {
       await extractPackageArtifact(buildGithubCopilotZip(), 'github-copilot', '1.0.0', cwd)
       const content = readFileSync(
-        path.join(cwd, '.github/agents/agents-repo-sample-agent-sample.agent.md'),
+        path.join(cwd, '.github/agents/agents-repo--sample-agent--sample.agent.md'),
         'utf8',
       )
-      expect(content).toContain('name: agents-repo-sample-agent-sample')
+      expect(content).toContain('name: agents-repo--sample-agent--sample')
     } finally {
       rmSync(cwd, { recursive: true, force: true })
     }
@@ -115,8 +115,8 @@ describe('packageExtractor', () => {
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
       const written = await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
       expect(written.writtenPaths).toEqual([])
-      const content = readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')
-      expect(content).toContain('name: agents-repo-sample-agent-sample')
+      const content = readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md'), 'utf8')
+      expect(content).toContain('name: agents-repo--sample-agent--sample')
     } finally {
       rmSync(cwd, { recursive: true, force: true })
     }
@@ -127,7 +127,7 @@ describe('packageExtractor', () => {
 
     try {
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
-      const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md')
+      const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md')
       writeFileSync(skillPath, 'user-edited content\n')
 
       await expect(
@@ -143,14 +143,14 @@ describe('packageExtractor', () => {
 
     try {
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
-      const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md')
+      const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md')
       writeFileSync(skillPath, 'user-edited content\n')
 
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd, {
         forceSameVersion: true,
       })
       const content = readFileSync(skillPath, 'utf8')
-      expect(content).toContain('name: agents-repo-sample-agent-sample')
+      expect(content).toContain('name: agents-repo--sample-agent--sample')
     } finally {
       rmSync(cwd, { recursive: true, force: true })
     }
@@ -161,14 +161,14 @@ describe('packageExtractor', () => {
 
     try {
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)
-      const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md')
+      const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md')
       writeFileSync(skillPath, 'stale version bytes\n')
 
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd, {
         overwriteOnMismatch: true,
       })
       const content = readFileSync(skillPath, 'utf8')
-      expect(content).toContain('name: agents-repo-sample-agent-sample')
+      expect(content).toContain('name: agents-repo--sample-agent--sample')
     } finally {
       rmSync(cwd, { recursive: true, force: true })
     }
@@ -176,7 +176,7 @@ describe('packageExtractor', () => {
 
   it('rollbackExtractEntries restores overwritten files and removes newly created paths', async () => {
     const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-install-extract-rollback-'))
-    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md')
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md')
 
     try {
       await extractPackageArtifact(buildCursorSkillZip(), 'cursor', '1.0.0', cwd)

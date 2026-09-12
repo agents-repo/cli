@@ -195,8 +195,8 @@ describe('BulkInstallService', () => {
     ])
     expect(results.every((result) => result.saved)).toBe(true)
 
-    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toContain('name: agents-repo-sample-agent-sample')
-    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/other-agent/agents-repo-other-agent-other/SKILL.md'), 'utf8')).toContain('name: agents-repo-other-agent-other')
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md'), 'utf8')).toContain('name: agents-repo--sample-agent--sample')
+    expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/other-agent/agents-repo--other-agent--other/SKILL.md'), 'utf8')).toContain('name: agents-repo--other-agent--other')
 
     const lock = JSON.parse(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')) as {
       resolvedRef: string
@@ -294,7 +294,7 @@ describe('BulkInstallService', () => {
     const service = new BulkInstallService()
     await service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'] })
 
-    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md')
+    const skillPath = path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md')
     writeFileSync(skillPath, 'edited locally\n')
 
     await expect(service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'] })).rejects.toMatchObject({
@@ -302,7 +302,7 @@ describe('BulkInstallService', () => {
     })
 
     await service.runAll({ cwd, packageIds: ['agents-repo/sample-agent'], force: true })
-    expect(readFileSync(skillPath, 'utf8')).toContain('name: agents-repo-sample-agent-sample')
+    expect(readFileSync(skillPath, 'utf8')).toContain('name: agents-repo--sample-agent--sample')
   })
 
   it('returns no results when packages map is empty', async () => {
@@ -614,8 +614,8 @@ describe('BulkInstallService', () => {
 
     await expect(service.runAll({ cwd })).rejects.toThrow()
 
-    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/other-agent/agents-repo-other-agent-other/SKILL.md'), 'utf8')).toThrow()
-    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo-sample-agent-sample/SKILL.md'), 'utf8')).toThrow()
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/other-agent/agents-repo--other-agent--other/SKILL.md'), 'utf8')).toThrow()
+    expect(() => readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md'), 'utf8')).toThrow()
     expect(() => readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toThrow()
   })
 

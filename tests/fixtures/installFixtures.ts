@@ -9,19 +9,19 @@ export const INSTALL_TEST_SHA256 =
   'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
 
 export const SAMPLE_SOURCE_AGENT_ID = 'sample'
-export const SAMPLE_INSTALL_LEAF = 'agents-repo-sample-agent-sample'
+export const SAMPLE_INSTALL_LEAF = 'agents-repo--sample-agent--sample'
 export const SAMPLE_SKILL_ZIP_ENTRY = `.cursor/skills/agents-repo/sample-agent/${SAMPLE_INSTALL_LEAF}/SKILL.md`
 export const SAMPLE_SKILL_REL_PATH = SAMPLE_SKILL_ZIP_ENTRY
 
-export const OTHER_INSTALL_LEAF = 'agents-repo-other-agent-other'
+export const OTHER_INSTALL_LEAF = 'agents-repo--other-agent--other'
 export const OTHER_SKILL_ZIP_ENTRY = `.cursor/skills/agents-repo/other-agent/${OTHER_INSTALL_LEAF}/SKILL.md`
 export const OTHER_SKILL_REL_PATH = OTHER_SKILL_ZIP_ENTRY
 
 export const COLLISION_SOURCE_AGENT_ID = 'planner'
 export const COLLISION_PKG_A_ID = 'acme/alpha'
 export const COLLISION_PKG_B_ID = 'acme/beta'
-export const COLLISION_PKG_A_LEAF = 'acme-alpha-planner'
-export const COLLISION_PKG_B_LEAF = 'acme-beta-planner'
+export const COLLISION_PKG_A_LEAF = 'acme--alpha--planner'
+export const COLLISION_PKG_B_LEAF = 'acme--beta--planner'
 export const COLLISION_PKG_A_SKILL_ENTRY = `.cursor/skills/acme/alpha/${COLLISION_PKG_A_LEAF}/SKILL.md`
 export const COLLISION_PKG_B_SKILL_ENTRY = `.cursor/skills/acme/beta/${COLLISION_PKG_B_LEAF}/SKILL.md`
 
