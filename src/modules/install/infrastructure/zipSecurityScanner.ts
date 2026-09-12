@@ -251,7 +251,7 @@ const validateDeploymentEntry = (
     issues.push(
       err(
         'ERR_ZIP_UNEXPECTED_ENTRY',
-        `Unexpected entry in deployment ZIP: "${name}" — only agents/<id>.agent.md is allowed`,
+        `Unexpected entry in deployment ZIP: "${name}" — only agents/<install-leaf>.agent.md is allowed`,
       ),
     )
     return
