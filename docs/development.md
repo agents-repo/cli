@@ -76,7 +76,25 @@ npm run check:secrets
 ```
 
 `lint:all` includes `lint:workflows` ([actionlint](https://github.com/rhysd/actionlint)
-on `.github/workflows/`). Run `npm run lint:workflows` before pushing workflow
+on `.github/workflows/`) and `check:docs-sync`. The docs-sync check compares
+`docs/commands/` filenames, `docs/npm-cli-parity.md` aliases, Commander
+`src/modules/cli/presentation/*Command.ts` registrations (and
+`createCliProgram.ts` `register*Command` count), and webapp
+`src/content/docs/**/cli-commands.md` command/alias tables (English plus
+`es`, `pt-br`, `pt-pt`).
+
+Webapp root resolution (first match): `--webapp-root`,
+`AGENTS_REPO_WEBAPP_ROOT`, then `../webapp` relative to this repository.
+Clone [agents-repo/webapp](https://github.com/agents-repo/webapp) as a sibling,
+or set the env var. PR baseline checks out webapp `main` into `.ci-webapp/`
+and sets `AGENTS_REPO_WEBAPP_ROOT`. Run `npm run check:docs-sync` on its own
+when iterating on command docs.
+
+When adding or removing a command or alias, update Commander registration,
+`docs/commands/<name>.md`, `docs/npm-cli-parity.md`, and every webapp
+`cli-commands.md` locale in the same change or an immediate follow-up.
+
+Run `npm run lint:workflows` before pushing workflow
 changes. See the organization
 [GitHub Actions workflow linting](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#github-actions-workflow-linting)
 norm. When bumping `ACTIONLINT_VERSION` in `scripts/lint-workflows.mjs`, replace

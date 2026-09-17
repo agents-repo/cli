@@ -37,6 +37,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Checkout webapp for docs sync
+        uses: actions/checkout@v6
+        with:
+          repository: agents-repo/webapp
+          path: .ci-webapp
+          ref: main
+
       - name: Setup Node and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
 
@@ -44,6 +51,8 @@ jobs:
         run: npm run env:check
 
       - name: Run lints
+        env:
+          AGENTS_REPO_WEBAPP_ROOT: ${{ github.workspace }}/.ci-webapp
         run: npm run lint:all
 
       - name: Check IDE instruction mirrors
@@ -106,6 +115,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Checkout webapp for docs sync
+        uses: actions/checkout@v6
+        with:
+          repository: agents-repo/webapp
+          path: .ci-webapp
+          ref: main
+
       - name: Setup Node 22 and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
         with:
@@ -115,6 +131,8 @@ jobs:
         run: npm run env:check
 
       - name: Run lints
+        env:
+          AGENTS_REPO_WEBAPP_ROOT: ${{ github.workspace }}/.ci-webapp
         run: npm run lint:all
 
       - name: Typecheck
