@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'node_modules', 'coverage']),
+  globalIgnores(['dist', 'node_modules', 'coverage', '.ci-webapp']),
   {
     files: ['**/*.{js,mjs,cjs}'],
     extends: [js.configs.recommended, sonarjs.configs.recommended],

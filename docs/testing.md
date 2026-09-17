@@ -13,12 +13,13 @@ and the full validation list in [development.md](development.md#local-validation
 | `npm run test` | Full suite — **local handoff and PR baseline always-on tests** |
 | `npm run test:watch` | Local TDD while writing tests |
 | `npm run test:sync` | Tooling script tests only (`node --test`) |
+| `npm run check:docs-sync` | CLI vs webapp command/alias inventory (also part of `lint:all`) |
 
 ## Test types and naming
 
 | Pattern | Runner | Purpose |
 | --- | --- | --- |
-| `test/*.test.mjs` | `node --test` | Tooling script tests (for example sync-ide-instructions) |
+| `test/*.test.mjs` | `node --test` | Tooling scripts (sync-ide-instructions, docs-sync) |
 | `tests/**/*.test.ts` | Vitest | Application and unit tests |
 
 Use `describe` / `it` with explicit imports from `vitest` (no globals).
@@ -26,6 +27,8 @@ Use `describe` / `it` with explicit imports from `vitest` (no globals).
 ## Where to put tests
 
 - **Tooling scripts** (`scripts/`) — tests under `test/` using `node:test`.
+  Docs-sync parser fixtures live in `test/check-docs-sync.test.mjs` (inline
+  markdown samples plus temp directories).
 - **Application code** (`src/`) — tests under `tests/` using Vitest with
   `environment: 'node'`.
 
