@@ -6,6 +6,14 @@ const EMPTY_ALIAS_MARKERS = new Set(['', '—', '–', '-', '---']);
 const KEBAB_CHARS = /^[a-z0-9-]+$/;
 const COMMAND_TS_SUFFIX = 'Command.ts';
 
+export function compareStrings(left, right) {
+  return left.localeCompare(right);
+}
+
+function sortStrings(values) {
+  return [...values].sort(compareStrings);
+}
+
 export function parseCliArgs(argv) {
   const result = { help: false, webappRoot: undefined };
   for (let index = 0; index < argv.length; index += 1) {
@@ -78,11 +86,11 @@ export function parseAliasCell(cell) {
   if (EMPTY_ALIAS_MARKERS.has(trimmed)) {
     return [];
   }
-  return trimmed
+  const parts = trimmed
     .split(',')
     .map((part) => part.trim().replace(/^`/, '').replace(/`$/, ''))
-    .filter((part) => part !== '' && !EMPTY_ALIAS_MARKERS.has(part))
-    .sort();
+    .filter((part) => part !== '' && !EMPTY_ALIAS_MARKERS.has(part));
+  return sortStrings(parts);
 }
 
 export function parseMarkdownTables(markdown) {
@@ -169,12 +177,12 @@ export function parseCommanderAliases(source) {
     const open = source.indexOf('[', listMarker);
     const close = source.indexOf(']', open);
     if (open !== -1 && close !== -1) {
-      return source
+      const parts = source
         .slice(open + 1, close)
         .split(',')
         .map((part) => part.trim().replace(/^['"]/, '').replace(/['"]$/, ''))
-        .filter((part) => part !== '')
-        .sort();
+        .filter((part) => part !== '');
+      return sortStrings(parts);
     }
   }
   const aliasMarker = source.indexOf('.alias(');
@@ -230,11 +238,11 @@ export function listCommanderCommandFiles(presentationDir) {
   if (!fs.existsSync(presentationDir)) {
     return [];
   }
-  return fs
+  const files = fs
     .readdirSync(presentationDir)
     .filter((name) => name.endsWith(COMMAND_TS_SUFFIX))
-    .map((name) => path.join(presentationDir, name))
-    .sort();
+    .map((name) => path.join(presentationDir, name));
+  return sortStrings(files);
 }
 
 export function loadCommanderInventory(presentationDir) {
@@ -271,7 +279,7 @@ export function listWebappCliCommandsFiles(docsRoot) {
     }
     files.push(path.join(parentDir, entry.name));
   }
-  return files.sort();
+  return sortStrings(files);
 }
 
 export function loadWebappCliCommands(docsRoot) {
@@ -285,7 +293,7 @@ export function loadWebappCliCommands(docsRoot) {
 }
 
 export function sortedNames(names) {
-  return [...names].sort();
+  return sortStrings(names);
 }
 
 export function aliasesEqual(left, right) {
@@ -419,10 +427,12 @@ export function collectDocsSyncErrors({
   if (webappByLocale.size === 0) {
     errors.push('No webapp src/content/docs/**/cli-commands.md files found');
   }
-  errors.push(...collectCommandSetErrors(docsStems, commanderMap, webappByLocale));
-  errors.push(...collectPerCommandDocsErrors(webappByLocale));
-  errors.push(...collectLocaleParityErrors(webappByLocale));
-  errors.push(...collectAliasErrors(parityAliases, commanderMap, webappByLocale));
+  errors.push(
+    ...collectCommandSetErrors(docsStems, commanderMap, webappByLocale),
+    ...collectPerCommandDocsErrors(webappByLocale),
+    ...collectLocaleParityErrors(webappByLocale),
+    ...collectAliasErrors(parityAliases, commanderMap, webappByLocale),
+  );
   return errors;
 }
 

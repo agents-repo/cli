@@ -35,6 +35,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Checkout webapp for docs sync
+        uses: actions/checkout@v6
+        with:
+          repository: agents-repo/webapp
+          path: .ci-webapp
+          ref: main
+
       - name: Setup Node and pinned npm
         uses: ./.github/actions/setup-node-pinned-npm
         with:
@@ -44,6 +51,8 @@ jobs:
         run: npm run env:check
 
       - name: Run baseline checks
+        env:
+          AGENTS_REPO_WEBAPP_ROOT: ${{ github.workspace }}/.ci-webapp
         run: npm run lint:all
 
       - name: Typecheck
