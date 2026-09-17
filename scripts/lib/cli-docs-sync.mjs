@@ -151,24 +151,52 @@ export function parseWebappCliCommandsMarkdown(markdown) {
   return { matrix, perCommandDocs: twoColumnNames };
 }
 
+function skipWhitespace(source, index) {
+  let cursor = index;
+  while (cursor < source.length && /\s/.test(source[cursor])) {
+    cursor += 1;
+  }
+  return cursor;
+}
+
+function readQuotedLiteral(source, index) {
+  const quote = source[index];
+  if (quote !== "'" && quote !== '"') {
+    return null;
+  }
+  let cursor = index + 1;
+  while (cursor < source.length) {
+    const ch = source[cursor];
+    if (ch === '\\') {
+      cursor += 2;
+      continue;
+    }
+    if (ch === quote) {
+      return { value: source.slice(index + 1, cursor), endIndex: cursor + 1 };
+    }
+    cursor += 1;
+  }
+  return null;
+}
+
+function commandNameFromDefinition(definition) {
+  const space = definition.indexOf(' ');
+  const end = space === -1 ? definition.length : space;
+  const name = definition.slice(0, end);
+  return name === '' ? null : name;
+}
+
 export function parseCommanderCommandName(source) {
   const marker = source.indexOf('.command(');
   if (marker === -1) {
     return null;
   }
-  const quote = source.indexOf("'", marker);
-  if (quote === -1) {
+  const start = skipWhitespace(source, marker + '.command('.length);
+  const literal = readQuotedLiteral(source, start);
+  if (literal === null) {
     return null;
   }
-  const rest = source.slice(quote + 1);
-  const space = rest.indexOf(' ');
-  const endQuote = rest.indexOf("'");
-  if (endQuote === -1) {
-    return null;
-  }
-  const end = space === -1 || endQuote < space ? endQuote : space;
-  const name = rest.slice(0, end);
-  return name === '' ? null : name;
+  return commandNameFromDefinition(literal.value);
 }
 
 export function parseCommanderAliases(source) {
@@ -185,16 +213,21 @@ export function parseCommanderAliases(source) {
       return sortStrings(parts);
     }
   }
-  const aliasMarker = source.indexOf('.alias(');
-  if (aliasMarker === -1) {
-    return [];
+  const aliases = [];
+  let searchFrom = 0;
+  while (searchFrom < source.length) {
+    const aliasMarker = source.indexOf('.alias(', searchFrom);
+    if (aliasMarker === -1) {
+      break;
+    }
+    const start = skipWhitespace(source, aliasMarker + '.alias('.length);
+    const literal = readQuotedLiteral(source, start);
+    if (literal !== null && literal.value !== '') {
+      aliases.push(literal.value);
+    }
+    searchFrom = aliasMarker + '.alias('.length;
   }
-  const quote = source.indexOf("'", aliasMarker);
-  const endQuote = source.indexOf("'", quote + 1);
-  if (quote === -1 || endQuote === -1) {
-    return [];
-  }
-  return [source.slice(quote + 1, endQuote)];
+  return sortStrings(aliases);
 }
 
 export function parseCommanderSource(source) {
@@ -205,15 +238,34 @@ export function parseCommanderSource(source) {
   return { name, aliases: parseCommanderAliases(source) };
 }
 
+function isRegisterCommandCallLine(trimmed) {
+  if (trimmed === 'registerCommand(program);') {
+    return false;
+  }
+  let body = trimmed;
+  const commentIndex = body.indexOf('//');
+  if (commentIndex !== -1) {
+    body = body.slice(0, commentIndex).trimEnd();
+  }
+  if (body.endsWith(';')) {
+    body = body.slice(0, -1).trimEnd();
+  }
+  const programSuffix = '(program)';
+  if (!body.startsWith('register') || !body.endsWith(programSuffix)) {
+    return false;
+  }
+  const middle = body.slice('register'.length, body.length - programSuffix.length);
+  if (!middle.endsWith('Command') || middle.length <= 'Command'.length) {
+    return false;
+  }
+  const stem = middle.slice(0, -'Command'.length);
+  return stem.length > 0 && /^[A-Za-z]+$/.test(stem);
+}
+
 export function countRegisterCalls(source) {
   let count = 0;
   for (const line of source.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (
-      trimmed.startsWith('register') &&
-      trimmed.endsWith('Command(program);') &&
-      trimmed !== 'registerCommand(program);'
-    ) {
+    if (isRegisterCommandCallLine(line.trim())) {
       count += 1;
     }
   }

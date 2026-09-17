@@ -135,12 +135,27 @@ test('parseCommanderSource strips args and reads alias lists', () => {
   `);
   assert.deepEqual(install, { name: 'install', aliases: ['add', 'i', 'inst'] });
 
+  const installDoubleQuotes = parseCommanderSource(`
+    program
+      .command("install [package-id...]")
+      .aliases(["i", "add", "inst"])
+  `);
+  assert.deepEqual(installDoubleQuotes, { name: 'install', aliases: ['add', 'i', 'inst'] });
+
   const list = parseCommanderSource(`
     program
       .command('list')
       .alias('ls')
   `);
   assert.deepEqual(list, { name: 'list', aliases: ['ls'] });
+
+  const listDoubleAlias = parseCommanderSource(`
+    program
+      .command("list")
+      .alias("ls")
+      .alias('l')
+  `);
+  assert.deepEqual(listDoubleAlias, { name: 'list', aliases: ['l', 'ls'] });
 
   const init = parseCommanderSource(`
     program
@@ -150,15 +165,16 @@ test('parseCommanderSource strips args and reads alias lists', () => {
   assert.deepEqual(init, { name: 'init', aliases: [] });
 });
 
-test('countRegisterCalls ignores imports', () => {
+test('countRegisterCalls ignores imports and tolerates formatting', () => {
   const source = `
 import { registerInitCommand } from './initCommand.js';
 export const createCliProgram = () => {
   registerInitCommand(program);
-  registerInstallCommand(program);
+  registerInstallCommand(program); // registers install
+  registerListCommand(program)
 };
 `;
-  assert.equal(countRegisterCalls(source), 2);
+  assert.equal(countRegisterCalls(source), 3);
 });
 
 test('localeKeyFromCliCommandsPath maps english and nested locales', () => {
