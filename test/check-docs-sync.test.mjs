@@ -1,8 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
+
+const execFileAsync = promisify(execFile);
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const CHECK_DOCS_SYNC_SCRIPT = path.join(REPO_ROOT, 'scripts', 'check-docs-sync.mjs');
 
 import {
   aliasesEqual,
@@ -49,6 +56,34 @@ test('parseCliArgs reads help and webapp-root', () => {
   assert.equal(parseCliArgs(['--help']).help, true);
   assert.equal(parseCliArgs(['--webapp-root', '/custom/webapp']).webappRoot, '/custom/webapp');
   assert.equal(parseCliArgs(['--webapp-root=/opt/webapp']).webappRoot, '/opt/webapp');
+});
+
+test('check-docs-sync.mjs --help prints usage and exits 0', async () => {
+  const { stdout } = await execFileAsync('node', [CHECK_DOCS_SYNC_SCRIPT, '--help'], {
+    cwd: REPO_ROOT,
+  });
+  assert.match(stdout, /Usage:/);
+  assert.match(stdout, /--webapp-root/);
+  assert.match(stdout, /check:docs-sync/);
+});
+
+test('check-docs-sync.mjs exits 1 when webapp docs are missing under --webapp-root', async () => {
+  const emptyWebappRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-sync-no-webapp-'));
+  try {
+    await assert.rejects(
+      () =>
+        execFileAsync('node', [CHECK_DOCS_SYNC_SCRIPT, '--webapp-root', emptyWebappRoot], {
+          cwd: REPO_ROOT,
+        }),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(String(error.stderr), /webapp docs not found/);
+        return true;
+      },
+    );
+  } finally {
+    fs.rmSync(emptyWebappRoot, { recursive: true, force: true });
+  }
 });
 
 test('resolveWebappRoot prefers flag then env then sibling', () => {
