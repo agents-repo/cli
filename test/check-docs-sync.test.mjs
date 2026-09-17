@@ -9,6 +9,8 @@ import {
   collectDocsSyncErrors,
   commandFromCell,
   countRegisterCalls,
+  listWebappCliCommandsFiles,
+  loadWebappCliCommands,
   localeKeyFromCliCommandsPath,
   parseAliasCell,
   parseCliArgs,
@@ -130,6 +132,29 @@ test('localeKeyFromCliCommandsPath maps english and nested locales', () => {
   assert.equal(localeKeyFromCliCommandsPath(`${docsRoot}/es/cli-commands.md`, docsRoot), 'es');
 });
 
+test('listWebappCliCommandsFiles and loadWebappCliCommands discover nested locales', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-sync-webapp-'));
+  try {
+    const docsRoot = path.join(root, 'src', 'content', 'docs');
+    fs.mkdirSync(path.join(docsRoot, 'es'), { recursive: true });
+    fs.writeFileSync(path.join(docsRoot, 'cli-commands.md'), WEBAPP_SAMPLE, 'utf8');
+    fs.writeFileSync(path.join(docsRoot, 'es', 'cli-commands.md'), WEBAPP_SAMPLE, 'utf8');
+
+    const files = listWebappCliCommandsFiles(docsRoot);
+    assert.deepEqual(
+      files.map((filePath) => path.relative(docsRoot, filePath).split(path.sep).join('/')).sort(),
+      ['cli-commands.md', 'es/cli-commands.md'],
+    );
+
+    const byLocale = loadWebappCliCommands(docsRoot);
+    assert.deepEqual([...byLocale.keys()].sort(), ['en', 'es']);
+    assert.deepEqual(byLocale.get('en').matrix.get('install'), ['add', 'i', 'inst']);
+    assert.deepEqual([...byLocale.get('es').perCommandDocs].sort(), ['init', 'install']);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('collectDocsSyncErrors is empty when inventories match', () => {
   const docsStems = new Set(['init', 'install']);
   const parityAliases = new Map([
@@ -209,10 +234,13 @@ test('aliasesEqual compares sorted lists', () => {
 
 test('fixture tree round-trip through temp directories', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-sync-'));
-  const commandsDir = path.join(root, 'docs', 'commands');
-  fs.mkdirSync(commandsDir, { recursive: true });
-  fs.writeFileSync(path.join(commandsDir, 'init.md'), '# init\n');
-  const stems = fs.readdirSync(commandsDir).map((name) => path.basename(name, '.md'));
-  assert.deepEqual(stems, ['init']);
-  fs.rmSync(root, { recursive: true, force: true });
+  try {
+    const commandsDir = path.join(root, 'docs', 'commands');
+    fs.mkdirSync(commandsDir, { recursive: true });
+    fs.writeFileSync(path.join(commandsDir, 'init.md'), '# init\n');
+    const stems = fs.readdirSync(commandsDir).map((name) => path.basename(name, '.md'));
+    assert.deepEqual(stems, ['init']);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
