@@ -7,6 +7,7 @@ import { setCliGlobals } from '../application/cliGlobals.js';
 import { registerAddTargetCommand } from './addTargetCommand.js';
 import { registerCiCommand } from './ciCommand.js';
 import { registerDoctorCommand } from './doctorCommand.js';
+import { registerVerifyCommand } from './verifyCommand.js';
 import { registerInitCommand } from './initCommand.js';
 import { registerInstallCommand } from './installCommand.js';
 import { registerListCommand } from './listCommand.js';
@@ -75,6 +76,7 @@ export const createCliProgram = (): Command => {
   registerAddTargetCommand(program);
   registerInstallCommand(program);
   registerCiCommand(program);
+  registerVerifyCommand(program);
   registerDoctorCommand(program);
   registerUpdateCommand(program);
   registerSearchCommand(program);

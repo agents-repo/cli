@@ -19,6 +19,7 @@ other commands (before the subcommand).
 | Flag | Scope | Description |
 | --- | --- | --- |
 | `--yes` / `-y` | global | Waive dual-definition config conflicts with warnings |
+| `--skip-artifact-download` | doctor | Use [`verify`](verify.md)-style install surface checks instead of downloading ZIPs |
 | `--json` | global | Machine-readable output |
 
 Project scope only in the initial release; global `doctor -g` is reserved for a follow-up issue.
@@ -32,7 +33,8 @@ Project scope only in the initial release; global `doctor -g` is reserved for a 
 | `lock_present` | Valid `agents-lock.json` beside config |
 | `lock_config_sync` | Config/lock parity and ranges (as `ci`, no `--force`) |
 | `registry_reachable` | Registry catalog index fetch succeeds |
-| `install_paths` | Locked artifacts enumerate to paths that exist on disk (no extract) |
+| `install_paths` | Locked artifacts enumerate to paths that exist on disk (downloads ZIPs) |
+| `install_surface` | With `--skip-artifact-download`: install surfaces exist without ZIP download |
 | `legacy_path_encoding` | Lock lacks `pathEncodingVersion` while artifacts use legacy flat paths |
 | `agent_path_collision` | Two locked packages map to the same on-disk install path |
 

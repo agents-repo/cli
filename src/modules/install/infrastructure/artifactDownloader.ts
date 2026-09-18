@@ -9,6 +9,7 @@ import {
   shouldWriteArtifactCache,
 } from './artifactCachePolicy.js'
 import { deleteBlob, readBlobIfExists, writeBlobAtomic } from './artifactCacheStore.js'
+import { downloadMetricsSkipRequestHeaders } from '../domain/artifactDownloadMetrics.js'
 import { verifySha256 } from './sha256Verifier.js'
 
 const ARTIFACT_FETCH_MAX_ATTEMPTS = 3
@@ -21,6 +22,8 @@ export interface DownloadArtifactOptions {
   readonly preferOnline?: boolean
   readonly env?: NodeJS.ProcessEnv
   readonly sleep?: (ms: number, signal?: AbortSignal) => Promise<void>
+  /** When true, ask registry-proxy not to increment ZIP download metrics. */
+  readonly skipDownloadMetrics?: boolean
 }
 
 const isAbortError = (error: unknown): error is Error =>
@@ -94,6 +97,7 @@ const toFetchOrAbortError = (error: unknown): Error => {
 const fetchArtifactBytesOnce = async (
   artifactUrl: string,
   signal: AbortSignal | undefined,
+  skipDownloadMetrics: boolean,
 ): Promise<Buffer> => {
   let response: Response
 
@@ -101,6 +105,7 @@ const fetchArtifactBytesOnce = async (
     response = await fetch(artifactUrl, {
       signal,
       cache: 'no-store',
+      headers: skipDownloadMetrics ? downloadMetricsSkipRequestHeaders() : undefined,
     })
   } catch (error) {
     throw toFetchOrAbortError(error)
@@ -134,6 +139,7 @@ const fetchArtifactBytes = async (
   artifactUrl: string,
   signal: AbortSignal | undefined,
   sleep: (ms: number, signal?: AbortSignal) => Promise<void>,
+  skipDownloadMetrics: boolean,
 ): Promise<Buffer> => {
   let lastError: Error | undefined
 
@@ -141,7 +147,7 @@ const fetchArtifactBytes = async (
     throwIfAborted(signal)
 
     try {
-      return await fetchArtifactBytesOnce(artifactUrl, signal)
+      return await fetchArtifactBytesOnce(artifactUrl, signal, skipDownloadMetrics)
     } catch (error) {
       if (isAbortError(error)) {
         throw error
@@ -209,10 +215,12 @@ export const downloadArtifact = async (
     }
   }
 
+  const skipDownloadMetrics = options.skipDownloadMetrics === true
   const networkBytes = await fetchArtifactBytes(
     artifactUrl,
     options.signal,
     options.sleep ?? defaultSleep,
+    skipDownloadMetrics,
   )
   const verifiedBytes = verifyOnce(networkBytes)
 

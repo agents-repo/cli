@@ -130,6 +130,7 @@ export class CiInstallService {
             expectedSha256Hex: expectedHex,
             preferOnline,
             env,
+            skipDownloadMetrics: true,
           })
           const extractResult = await extractPackageArtifact(
             zipBytes,
