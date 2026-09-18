@@ -237,6 +237,25 @@ results. No install target is required.
 Root `--json` emits `indexUrl`, `updatedAt`, `warnings`, and `suggestions` (each
 entry includes `score` and `matchedSignals`). Empty suggestions exit `0`.
 
+### `verify`
+
+Grammar: `verify` with no package arguments. Project scope only.
+
+`verify` validates resolved `agents.json` against `agents-lock.json` using the same prerequisite
+rules as `ci` (package sets, required `byTarget` slots, version ranges without `--force`). Tooling
+MUST NOT download registry artifact ZIPs. Tooling MUST assert that each required `(packageId,
+targetId)` install surface exists on disk under the project tree.
+
+| Flag | Description |
+| --- | --- |
+| `--online` | Also fetch the registry catalog index using lock `resolvedRef` |
+| `--yes` / `-y` | Waive dual-definition config conflicts with warnings |
+
+Missing lock, config/lock drift, missing slots, range mismatch, or missing install surfaces MUST
+exit `3`. Root `--json` on success MUST emit `{ "command": "verify", "warnings": [] }`.
+
+`verify` does not prove artifact `integrity`; use `ci` for full ZIP verification.
+
 ### `ci`
 
 Grammar: `ci` with no package arguments. Project scope only in the initial spec; global `ci -g` is
@@ -246,7 +265,9 @@ reserved for a follow-up issue.
 re-resolution). Tooling MUST resolve `agents.json`, validate config/lock package-set equality,
 require a `byTarget` slot for every `(packageId, targetId)` pair drawn from resolved `packages` and
 `targets`, then download, verify, and extract each required slot using lock `resolvedRef` and slot
-`artifact` / `integrity`. On success, tooling MUST NOT write `agents.json` or `agents-lock.json`.
+`artifact` / `integrity`. Artifact ZIP HTTP requests MUST send
+`Agents-Repo-Download-Metrics: skip` so registry-proxy does not increment download metrics. On
+success, tooling MUST NOT write `agents.json` or `agents-lock.json`.
 
 | Flag | Description |
 | --- | --- |

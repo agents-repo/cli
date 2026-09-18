@@ -18,6 +18,7 @@ import {
 import { validateLockVersionRanges } from '../../install/application/validateLockVersionRanges.js'
 import { resolveInstallScope } from '../../install/application/installScope.js'
 import { resolveInstallTargets } from '../../install/application/resolveInstallTargets.js'
+import { assertInstallSurfacesExist } from '../../install/application/verifyInstallSurface.js'
 import { InstallRuntimeError } from '../../install/domain/installErrors.js'
 import { resolveContainedExtractPath } from '../../install/infrastructure/targetExtractPaths.js'
 import {
@@ -60,6 +61,7 @@ export interface DoctorServiceOptions {
   readonly env?: NodeJS.ProcessEnv
   readonly yes?: boolean
   readonly preferOnline?: boolean
+  readonly skipArtifactDownload?: boolean
 }
 
 const getErrorCode = (error: unknown): string | undefined => {
@@ -178,6 +180,7 @@ const skipChecksAfterConfigFailure = (checks: DoctorCheck[]): void => {
     skipCheck('lock_config_sync', 'Skipped because config resolution failed'),
     skipCheck('registry_reachable', 'Skipped because config resolution failed'),
     skipCheck('install_paths', 'Skipped because config resolution failed'),
+    skipCheck('install_surface', 'Skipped because config resolution failed'),
     skipCheck('legacy_path_encoding', 'Skipped because config resolution failed'),
     skipCheck('agent_path_collision', 'Skipped because config resolution failed'),
   )
@@ -323,6 +326,47 @@ const runDoctorLockConfigSyncCheck = (
   }
 }
 
+const runDoctorInstallSurfaceChecks = (options: {
+  readonly resolved: ResolvedAgentsConfig
+  readonly lock: AgentsLockDocument
+  readonly checks: DoctorCheck[]
+  readonly cwd: string
+  readonly env: NodeJS.ProcessEnv
+}): void => {
+  try {
+    const targets = resolveInstallTargets(options.resolved)
+    const packageIds = Object.keys(options.resolved.packages).sort((left, right) =>
+      left.localeCompare(right),
+    )
+    const scope = resolveInstallScope({
+      cwd: options.cwd,
+      env: options.env,
+      globalFlag: false,
+    })
+    assertInstallSurfacesExist({
+      extractRoot: scope.extractRoot,
+      packageIds,
+      targets,
+      lock: options.lock,
+    })
+    options.checks.push(passCheck('install_surface', 'Expected install surfaces exist on disk'))
+  } catch (error) {
+    options.checks.push(
+      failCheck(
+        'install_surface',
+        error instanceof Error ? error.message : 'Install surface verification failed',
+        error,
+      ),
+    )
+  }
+
+  options.checks.push(
+    skipCheck('legacy_path_encoding', 'Skipped with --skip-artifact-download (uses verify surface only)'),
+    skipCheck('agent_path_collision', 'Skipped with --skip-artifact-download (uses verify surface only)'),
+    skipCheck('install_paths', 'Skipped with --skip-artifact-download (uses verify surface only)'),
+  )
+}
+
 const runDoctorArtifactChecks = async (options: {
   readonly resolved: ResolvedAgentsConfig
   readonly lock: AgentsLockDocument | null
@@ -452,16 +496,33 @@ export class DoctorService {
           },
     )
 
-    await runDoctorArtifactChecks({
-      resolved,
-      lock,
-      catalogResult,
-      checks,
-      cwd,
-      env,
-      preferOnline,
-      lockFileService: this.lockFileService,
-    })
+    const lockSyncPassed = checks.some(
+      (check) => check.id === 'lock_config_sync' && check.status === 'pass',
+    )
+
+    if (options.skipArtifactDownload === true) {
+      if (lockSyncPassed && lock !== null) {
+        runDoctorInstallSurfaceChecks({ resolved, lock, checks, cwd, env })
+      } else {
+        checks.push(
+          skipCheck('install_surface', 'Skipped because lock sync checks did not pass'),
+          skipCheck('legacy_path_encoding', 'Skipped with --skip-artifact-download'),
+          skipCheck('agent_path_collision', 'Skipped with --skip-artifact-download'),
+          skipCheck('install_paths', 'Skipped with --skip-artifact-download'),
+        )
+      }
+    } else {
+      await runDoctorArtifactChecks({
+        resolved,
+        lock,
+        catalogResult,
+        checks,
+        cwd,
+        env,
+        preferOnline,
+        lockFileService: this.lockFileService,
+      })
+    }
 
     return {
       checks,

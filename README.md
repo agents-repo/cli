@@ -36,7 +36,7 @@ node dist/bin/agents-repo.js <command>
 ```
 
 Commands (`init`, `add-target`, `install`, `update`, `remove`, `search`, `suggest-agents`, `list`, `ci`,
-`doctor`, and `targets`) are available today. npm alias parity is summarized in
+`verify`, `doctor`, and `targets`) are available today. npm alias parity is summarized in
 [docs/npm-cli-parity.md](docs/npm-cli-parity.md). See
 [docs/commands/init.md](docs/commands/init.md),
 [docs/commands/add-target.md](docs/commands/add-target.md),
@@ -47,6 +47,7 @@ Commands (`init`, `add-target`, `install`, `update`, `remove`, `search`, `sugges
 [docs/commands/suggest-agents.md](docs/commands/suggest-agents.md),
 [docs/commands/list.md](docs/commands/list.md),
 [docs/commands/ci.md](docs/commands/ci.md),
+[docs/commands/verify.md](docs/commands/verify.md),
 [docs/commands/doctor.md](docs/commands/doctor.md), and
 [docs/commands/targets.md](docs/commands/targets.md).
 

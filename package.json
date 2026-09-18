@@ -1,6 +1,6 @@
 {
   "name": "agents-repo",
-  "version": "1.22.1",
+  "version": "1.23.0",
   "description": "Official CLI for installing and managing agents-repo packages.",
   "license": "MIT",
   "author": "Agents Repo (https://github.com/agents-repo)",
@@ -55,6 +55,7 @@
     "agents:install": "node scripts/run-published-agents-repo.mjs install",
     "agents:update": "node scripts/run-published-agents-repo.mjs update",
     "agents:ci": "node scripts/run-published-agents-repo.mjs ci",
+    "agents:verify": "node dist/bin/agents-repo.js verify",
     "test:sync": "node --test test/sync-ide-instructions.test.mjs test/validate-env.test.mjs test/commit-analyzer-rules.test.mjs test/ci-pr-path-filters.test.mjs test/check-docs-sync.test.mjs",
     "check:secrets": "bash scripts/check-secrets.sh",
     "pretest": "tsc -p tsconfig.build.json",
