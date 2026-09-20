@@ -90,9 +90,8 @@ const hasSkillTreeInstallSurface = (
 
   return files.some(
     (file) =>
-      file.includes(`/${packageName}/`)
-      || file.includes(`/${packageName}-`)
-      || file.endsWith('/SKILL.md'),
+      file.endsWith('SKILL.md')
+      && (file.includes(`/${packageName}/`) || file.includes(`/${packageName}-`)),
   )
 }
 

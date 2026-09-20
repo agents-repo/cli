@@ -5,6 +5,10 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { ENV_AGENTS_REPO_NO_CACHE } from '../../../src/modules/config/domain/configConstants.js'
+import {
+  DOWNLOAD_METRICS_HEADER_NAME,
+  DOWNLOAD_METRICS_SKIP_VALUE,
+} from '../../../src/modules/install/domain/artifactDownloadMetrics.js'
 import { resolveContentBlobPath } from '../../../src/modules/install/infrastructure/artifactCachePaths.js'
 import * as artifactCacheStore from '../../../src/modules/install/infrastructure/artifactCacheStore.js'
 import { downloadArtifact } from '../../../src/modules/install/infrastructure/artifactDownloader.js'
@@ -39,6 +43,22 @@ describe('downloadArtifact cache', () => {
   const env = (): NodeJS.ProcessEnv => ({
     ...process.env,
     AGENTS_REPO_HOME: tempHome,
+  })
+
+  it('sends download-metrics skip header when skipDownloadMetrics is true', async () => {
+    await downloadArtifact('https://example.test/artifact.zip', {
+      expectedSha256Hex: sampleSha256,
+      writeCache: false,
+      skipDownloadMetrics: true,
+      env: env(),
+    })
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://example.test/artifact.zip',
+      expect.objectContaining({
+        headers: { [DOWNLOAD_METRICS_HEADER_NAME]: DOWNLOAD_METRICS_SKIP_VALUE },
+      }),
+    )
   })
 
   it('writes npm-style content blob on cache miss', async () => {
