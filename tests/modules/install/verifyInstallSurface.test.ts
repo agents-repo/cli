@@ -43,11 +43,7 @@ const writeGithubCopilotSurface = (
   writeFileSync(agentPath, '# agent\n')
 }
 
-const writeLegacyGithubCopilotSurface = (
-  extractRoot: string,
-  namespace: string,
-  relativePath: string,
-): void => {
+const writeLegacyGithubCopilotSurface = (extractRoot: string, relativePath: string): void => {
   const agentPath = path.join(extractRoot, '.github/agents', relativePath)
   mkdirSync(path.dirname(agentPath), { recursive: true })
   writeFileSync(agentPath, '# agent\n')
@@ -68,11 +64,7 @@ const writeClaudeAgentSurface = (
   writeFileSync(agentPath, '# agent\n')
 }
 
-const writeLegacyClaudeAgentSurface = (
-  extractRoot: string,
-  namespace: string,
-  relativePath: string,
-): void => {
+const writeLegacyClaudeAgentSurface = (extractRoot: string, relativePath: string): void => {
   const agentPath = path.join(extractRoot, '.claude/agents', relativePath)
   mkdirSync(path.dirname(agentPath), { recursive: true })
   writeFileSync(agentPath, '# agent\n')
@@ -81,7 +73,6 @@ const writeLegacyClaudeAgentSurface = (
 const writeLegacyCursorSkillSurface = (
   extractRoot: string,
   namespace: string,
-  packageName: string,
   skillRelativePath: string,
 ): void => {
   const skillPath = path.join(extractRoot, '.cursor/skills', namespace, skillRelativePath)
@@ -181,7 +172,6 @@ describe('hasPackageInstallSurface', () => {
       writeLegacyCursorSkillSurface(
         legacyRoot,
         'maiconfz',
-        'plan-refiner',
         'plan-refiner/legacy-skill/SKILL.md',
       )
 
@@ -200,7 +190,7 @@ describe('hasPackageInstallSurface', () => {
   it('detects legacy github-copilot layouts without pathEncodingVersion', () => {
     const legacyRoot = mkdtempSync(path.join(os.tmpdir(), 'verify-install-surface-legacy-copilot-'))
     try {
-      writeLegacyGithubCopilotSurface(legacyRoot, 'maiconfz', 'maiconfz/plan-refiner/sample.agent.md')
+      writeLegacyGithubCopilotSurface(legacyRoot, 'maiconfz/plan-refiner/sample.agent.md')
 
       expect(
         hasPackageInstallSurface({
@@ -218,7 +208,7 @@ describe('hasPackageInstallSurface', () => {
     const legacyRoot = mkdtempSync(path.join(os.tmpdir(), 'verify-install-surface-legacy-claude-'))
     try {
       mkdirSync(path.join(legacyRoot, '.claude/agents', 'maiconfz'), { recursive: true })
-      writeLegacyClaudeAgentSurface(legacyRoot, 'maiconfz', 'maiconfz/plan-refiner/sample.md')
+      writeLegacyClaudeAgentSurface(legacyRoot, 'maiconfz/plan-refiner/sample.md')
 
       expect(
         hasPackageInstallSurface({
