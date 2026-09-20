@@ -13,7 +13,7 @@ and the full validation list in [development.md](development.md#local-validation
 | `npm run test` | Full suite — **local handoff and PR baseline always-on tests** |
 | `npm run test:watch` | Local TDD while writing tests |
 | `npm run test:sync` | Tooling script tests only (`node --test`) |
-| `npm run check:docs-sync` | CLI vs webapp command/alias inventory (also part of `lint:all`) |
+| `npm run check:docs-sync` | CLI command inventory (hard fail) + webapp drift (warnings; part of `lint:all`) |
 
 ## Test types and naming
 

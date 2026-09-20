@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
-  collectDocsSyncErrors,
+  collectDocsSyncFindings,
   loadCliDocsSyncInputs,
   parseCliArgs,
   resolveWebappRoot,
@@ -22,6 +22,9 @@ function printHelp() {
 
 Compare CLI docs/commands stems, docs/npm-cli-parity.md aliases, Commander
 *Command.ts registrations, and webapp src/content/docs/**/cli-commands.md.
+
+CLI inventory mismatches fail the check. Webapp matrix/alias drift prints
+warnings only (webapp main may lag the CLI repo).
 
 Webapp root (first match): --webapp-root, AGENTS_REPO_WEBAPP_ROOT, ../webapp
 `);
@@ -53,7 +56,15 @@ function main(argv = process.argv.slice(2)) {
   }
 
   const inputs = loadCliDocsSyncInputs(CLI_ROOT, webappRoot);
-  const errors = collectDocsSyncErrors(inputs);
+  const { errors, warnings } = collectDocsSyncFindings(inputs);
+
+  if (warnings.length > 0) {
+    process.stderr.write(`check:docs-sync warning (${warnings.length}):\n`);
+    for (const warning of warnings) {
+      process.stderr.write(`- ${warning}\n`);
+    }
+  }
+
   if (errors.length === 0) {
     process.stdout.write(
       `check:docs-sync: ${inputs.docsStems.size} commands in sync ` +

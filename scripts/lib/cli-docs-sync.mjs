@@ -372,31 +372,32 @@ function namesFromAliasMap(map) {
   return new Set(map.keys());
 }
 
-function collectCommandSetErrors(docsStems, commanderMap, webappByLocale) {
+function collectCommandSetFindings(docsStems, commanderMap, webappByLocale) {
   const errors = [];
+  const warnings = [];
   const commanderNames = namesFromAliasMap(commanderMap);
   errors.push(...formatNameDiff('Commander vs docs/commands', docsStems, commanderNames));
   for (const [locale, file] of webappByLocale) {
     const matrixNames = namesFromAliasMap(file.matrix);
-    errors.push(
+    warnings.push(
       ...formatNameDiff(`webapp (${locale}) matrix vs docs/commands`, docsStems, matrixNames),
     );
   }
-  return errors;
+  return { errors, warnings };
 }
 
-function collectPerCommandDocsErrors(webappByLocale) {
-  const errors = [];
+function collectPerCommandDocsWarnings(webappByLocale) {
+  const warnings = [];
   for (const [locale, file] of webappByLocale) {
     if (file.perCommandDocs.size === 0) {
       continue;
     }
     const matrixNames = namesFromAliasMap(file.matrix);
-    errors.push(
+    warnings.push(
       ...formatNameDiff(`webapp (${locale}) per-command docs vs matrix`, matrixNames, file.perCommandDocs),
     );
   }
-  return errors;
+  return warnings;
 }
 
 function formatAliasMismatch(command, source, aliases) {
@@ -404,39 +405,50 @@ function formatAliasMismatch(command, source, aliases) {
   return `${source}: ${rendered}`;
 }
 
-function collectAliasErrorsForCommand(command, parityAliases, commanderMap, webappByLocale) {
+function collectAliasFindingsForCommand(command, parityAliases, commanderMap, webappByLocale) {
   const expected = parityAliases.get(command) ?? [];
-  const lines = [];
+  const errors = [];
+  const warnings = [];
   const commanderAliases = commanderMap.get(command) ?? [];
+  const expectedLabel = expected.length === 0 ? '(none)' : expected.join(', ');
+
   if (!aliasesEqual(expected, commanderAliases)) {
-    lines.push(formatAliasMismatch(command, 'commander', commanderAliases));
+    errors.push(
+      `Alias mismatch (${command}): parity ${expectedLabel}; ${formatAliasMismatch(command, 'commander', commanderAliases)}`,
+    );
   }
+
   for (const [locale, file] of webappByLocale) {
     const webappAliases = file.matrix.get(command) ?? [];
     if (!aliasesEqual(expected, webappAliases)) {
-      lines.push(formatAliasMismatch(command, `webapp (${locale})`, webappAliases));
+      warnings.push(
+        `Alias mismatch (${command}): parity ${expectedLabel}; ${formatAliasMismatch(command, `webapp (${locale})`, webappAliases)}`,
+      );
     }
   }
-  if (lines.length === 0) {
-    return [];
-  }
-  const expectedLabel = expected.length === 0 ? '(none)' : expected.join(', ');
-  return [`Alias mismatch (${command}): parity ${expectedLabel}; ${lines.join('; ')}`];
+
+  return { errors, warnings };
 }
 
-function collectAliasErrors(parityAliases, commanderMap, webappByLocale) {
+function collectAliasFindings(parityAliases, commanderMap, webappByLocale) {
   const commands = new Set([
     ...parityAliases.keys(),
     ...commanderMap.keys(),
     ...[...webappByLocale.values()].flatMap((file) => [...file.matrix.keys()]),
   ]);
   const errors = [];
+  const warnings = [];
   for (const command of sortedNames(commands)) {
-    errors.push(
-      ...collectAliasErrorsForCommand(command, parityAliases, commanderMap, webappByLocale),
+    const findings = collectAliasFindingsForCommand(
+      command,
+      parityAliases,
+      commanderMap,
+      webappByLocale,
     );
+    errors.push(...findings.errors);
+    warnings.push(...findings.warnings);
   }
-  return errors;
+  return { errors, warnings };
 }
 
 function serializeAliasMap(map) {
@@ -445,25 +457,25 @@ function serializeAliasMap(map) {
     .join('|');
 }
 
-function collectLocaleParityErrors(webappByLocale) {
+function collectLocaleParityWarnings(webappByLocale) {
   if (webappByLocale.size < 2) {
     return [];
   }
   const [referenceLocale, referenceFile] = webappByLocale.entries().next().value;
   const reference = serializeAliasMap(referenceFile.matrix);
-  const errors = [];
+  const warnings = [];
   for (const [locale, file] of webappByLocale) {
     if (locale === referenceLocale) {
       continue;
     }
     if (serializeAliasMap(file.matrix) !== reference) {
-      errors.push(`webapp locale drift: ${locale} command/alias map differs from ${referenceLocale}`);
+      warnings.push(`webapp locale drift: ${locale} command/alias map differs from ${referenceLocale}`);
     }
   }
-  return errors;
+  return warnings;
 }
 
-export function collectDocsSyncErrors({
+export function collectDocsSyncFindings({
   docsStems,
   parityAliases,
   commanderMap,
@@ -471,21 +483,29 @@ export function collectDocsSyncErrors({
   webappByLocale,
 }) {
   const errors = [];
+  const warnings = [];
   if (registerCount !== docsStems.size) {
     errors.push(
       `createCliProgram register*Command count is ${registerCount}, docs/commands has ${docsStems.size} files`,
     );
   }
   if (webappByLocale.size === 0) {
-    errors.push('No webapp src/content/docs/**/cli-commands.md files found');
+    warnings.push('No webapp src/content/docs/**/cli-commands.md files found');
   }
-  errors.push(
-    ...collectCommandSetErrors(docsStems, commanderMap, webappByLocale),
-    ...collectPerCommandDocsErrors(webappByLocale),
-    ...collectLocaleParityErrors(webappByLocale),
-    ...collectAliasErrors(parityAliases, commanderMap, webappByLocale),
-  );
-  return errors;
+  const commandSetFindings = collectCommandSetFindings(docsStems, commanderMap, webappByLocale);
+  errors.push(...commandSetFindings.errors);
+  warnings.push(...commandSetFindings.warnings);
+  warnings.push(...collectPerCommandDocsWarnings(webappByLocale));
+  warnings.push(...collectLocaleParityWarnings(webappByLocale));
+  const aliasFindings = collectAliasFindings(parityAliases, commanderMap, webappByLocale);
+  errors.push(...aliasFindings.errors);
+  warnings.push(...aliasFindings.warnings);
+  return { errors, warnings };
+}
+
+/** @deprecated Use collectDocsSyncFindings; returns hard failures only (excludes webapp drift). */
+export function collectDocsSyncErrors(inputs) {
+  return collectDocsSyncFindings(inputs).errors;
 }
 
 export function loadCliDocsSyncInputs(cliRoot, webappRoot) {
