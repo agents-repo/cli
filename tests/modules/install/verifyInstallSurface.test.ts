@@ -80,6 +80,15 @@ const writeLegacyCursorSkillSurface = (
   writeFileSync(skillPath, '# skill\n')
 }
 
+const writeFlatLegacyCursorSkillSurface = (
+  extractRoot: string,
+  skillLeafDir: string,
+): void => {
+  const skillPath = path.join(extractRoot, '.cursor/skills', skillLeafDir, 'SKILL.md')
+  mkdirSync(path.dirname(skillPath), { recursive: true })
+  writeFileSync(skillPath, '# skill\n')
+}
+
 describe('hasPackageInstallSurface', () => {
   let extractRoot: string
 
@@ -173,6 +182,26 @@ describe('hasPackageInstallSurface', () => {
         legacyRoot,
         'maiconfz',
         'plan-refiner/legacy-skill/SKILL.md',
+      )
+
+      expect(
+        hasPackageInstallSurface({
+          extractRoot: legacyRoot,
+          packageId: 'maiconfz/plan-refiner',
+          target: 'cursor',
+        }),
+      ).toBe(true)
+    } finally {
+      rmSync(legacyRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('detects flat legacy cursor skill layouts without a namespace directory', () => {
+    const legacyRoot = mkdtempSync(path.join(os.tmpdir(), 'verify-install-surface-legacy-cursor-flat-'))
+    try {
+      writeFlatLegacyCursorSkillSurface(
+        legacyRoot,
+        'maiconfz-plan-refiner-maiconfz--plan-refiner--plan-refinement',
       )
 
       expect(

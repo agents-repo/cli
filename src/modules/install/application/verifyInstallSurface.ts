@@ -85,21 +85,41 @@ const hasSkillTreeInstallSurface = (
     return false
   }
 
+  const qualifiedNeedle = `${namespace}--${packageName}--`
   const namespaceDir = path.join(root, namespace)
+
+  if (pathEncodingVersion === 1) {
+    if (!existsSync(namespaceDir)) {
+      return false
+    }
+
+    const files = listRelativeFilesSafe(namespaceDir, namespace, 5)
+    return files.some((file) => file.includes(qualifiedNeedle) && file.endsWith('SKILL.md'))
+  }
+
+  const legacyFlatPrefix = `${namespace}-${packageName}-`
+  const flatFiles = listRelativeFilesSafe(root, '', 2)
+  if (
+    flatFiles.some(
+      (file) =>
+        file.endsWith('SKILL.md')
+        && (file.includes(qualifiedNeedle) || file.startsWith(legacyFlatPrefix)),
+    )
+  ) {
+    return true
+  }
+
   if (!existsSync(namespaceDir)) {
     return false
   }
 
   const files = listRelativeFilesSafe(namespaceDir, namespace, 5)
-  const qualifiedNeedle = `${namespace}--${packageName}--`
-  if (pathEncodingVersion === 1) {
-    return files.some((file) => file.includes(qualifiedNeedle) && file.endsWith('SKILL.md'))
-  }
-
   return files.some(
     (file) =>
       file.endsWith('SKILL.md')
-      && (file.includes(`/${packageName}/`) || file.includes(`/${packageName}-`)),
+      && (file.includes(qualifiedNeedle)
+        || file.includes(`/${packageName}/`)
+        || file.includes(`/${packageName}-`)),
   )
 }
 
