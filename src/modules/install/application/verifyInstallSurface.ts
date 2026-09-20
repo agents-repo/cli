@@ -117,9 +117,7 @@ const hasSkillTreeInstallSurface = (
   return files.some(
     (file) =>
       file.endsWith('SKILL.md')
-      && (file.includes(qualifiedNeedle)
-        || file.includes(`/${packageName}/`)
-        || file.includes(`/${packageName}-`)),
+      && (file.includes(qualifiedNeedle) || file.includes(`/${packageName}/`)),
   )
 }
 

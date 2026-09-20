@@ -164,6 +164,29 @@ describe('hasPackageInstallSurface', () => {
     ).toBe(true)
   })
 
+  it('does not match a package whose name is a prefix of another (legacy cursor)', () => {
+    const legacyRoot = mkdtempSync(
+      path.join(os.tmpdir(), 'verify-install-surface-legacy-cursor-prefix-'),
+    )
+    try {
+      writeLegacyCursorSkillSurface(
+        legacyRoot,
+        'maiconfz',
+        'foo-bar/other-skill/SKILL.md',
+      )
+
+      expect(
+        hasPackageInstallSurface({
+          extractRoot: legacyRoot,
+          packageId: 'maiconfz/foo',
+          target: 'cursor',
+        }),
+      ).toBe(false)
+    } finally {
+      rmSync(legacyRoot, { recursive: true, force: true })
+    }
+  })
+
   it('does not match a sibling package in the same namespace (pathEncodingVersion 1)', () => {
     expect(
       hasPackageInstallSurface({
