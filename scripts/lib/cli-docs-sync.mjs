@@ -421,8 +421,9 @@ function collectAliasFindingsForCommand(command, parityAliases, commanderMap, we
   for (const [locale, file] of webappByLocale) {
     const webappAliases = file.matrix.get(command) ?? [];
     if (!aliasesEqual(expected, webappAliases)) {
+      const webappSource = `webapp (${locale})`;
       warnings.push(
-        `Alias mismatch (${command}): parity ${expectedLabel}; ${formatAliasMismatch(command, `webapp (${locale})`, webappAliases)}`,
+        `Alias mismatch (${command}): parity ${expectedLabel}; ${formatAliasMismatch(command, webappSource, webappAliases)}`,
       );
     }
   }
@@ -495,8 +496,10 @@ export function collectDocsSyncFindings({
   const commandSetFindings = collectCommandSetFindings(docsStems, commanderMap, webappByLocale);
   errors.push(...commandSetFindings.errors);
   warnings.push(...commandSetFindings.warnings);
-  warnings.push(...collectPerCommandDocsWarnings(webappByLocale));
-  warnings.push(...collectLocaleParityWarnings(webappByLocale));
+  warnings.push(
+    ...collectPerCommandDocsWarnings(webappByLocale),
+    ...collectLocaleParityWarnings(webappByLocale),
+  );
   const aliasFindings = collectAliasFindings(parityAliases, commanderMap, webappByLocale);
   errors.push(...aliasFindings.errors);
   warnings.push(...aliasFindings.warnings);
