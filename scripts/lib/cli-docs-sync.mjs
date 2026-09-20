@@ -490,19 +490,18 @@ export function collectDocsSyncFindings({
       `createCliProgram register*Command count is ${registerCount}, docs/commands has ${docsStems.size} files`,
     );
   }
-  if (webappByLocale.size === 0) {
-    warnings.push('No webapp src/content/docs/**/cli-commands.md files found');
-  }
   const commandSetFindings = collectCommandSetFindings(docsStems, commanderMap, webappByLocale);
-  errors.push(...commandSetFindings.errors);
-  warnings.push(...commandSetFindings.warnings);
+  const aliasFindings = collectAliasFindings(parityAliases, commanderMap, webappByLocale);
   warnings.push(
+    ...(webappByLocale.size === 0
+      ? ['No webapp src/content/docs/**/cli-commands.md files found']
+      : []),
+    ...commandSetFindings.warnings,
     ...collectPerCommandDocsWarnings(webappByLocale),
     ...collectLocaleParityWarnings(webappByLocale),
+    ...aliasFindings.warnings,
   );
-  const aliasFindings = collectAliasFindings(parityAliases, commanderMap, webappByLocale);
-  errors.push(...aliasFindings.errors);
-  warnings.push(...aliasFindings.warnings);
+  errors.push(...commandSetFindings.errors, ...aliasFindings.errors);
   return { errors, warnings };
 }
 
