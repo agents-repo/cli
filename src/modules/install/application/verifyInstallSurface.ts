@@ -58,11 +58,19 @@ const hasCopilotInstallSurface = (
     )
   }
 
-  return files.some(
-    (file) =>
-      file.endsWith('.agent.md')
-      && (file.includes(`${namespace}/`) || file.includes(`${namespace}-`) || file.includes(namespace)),
-  )
+  const nestedPrefix = `${namespace}/${packageName}/`
+  return files.some((file) => {
+    if (!file.endsWith('.agent.md')) {
+      return false
+    }
+
+    if (file.includes(qualifiedNeedle) || file.startsWith(nestedPrefix)) {
+      return true
+    }
+
+    const leafName = path.basename(file)
+    return leafName.startsWith(`${namespace}-${packageName}-`)
+  })
 }
 
 const hasSkillTreeInstallSurface = (
@@ -112,8 +120,12 @@ const hasClaudeInstallSurface = (
     return files.some((file) => file.endsWith('.md') && file.includes(qualifiedNeedle))
   }
 
-  const namespaceDir = path.join(root, namespace)
-  return existsSync(namespaceDir) && files.some((file) => file.startsWith(`${namespace}/`) && file.endsWith('.md'))
+  const nestedPrefix = `${namespace}/${packageName}/`
+  return files.some(
+    (file) =>
+      file.endsWith('.md')
+      && (file.includes(qualifiedNeedle) || file.startsWith(nestedPrefix)),
+  )
 }
 
 export const hasPackageInstallSurface = (options: {

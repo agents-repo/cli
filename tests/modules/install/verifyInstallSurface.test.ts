@@ -204,6 +204,41 @@ describe('hasPackageInstallSurface', () => {
     }
   })
 
+  it('does not match a sibling package for legacy github-copilot layouts', () => {
+    const legacyRoot = mkdtempSync(path.join(os.tmpdir(), 'verify-install-surface-legacy-copilot-sibling-'))
+    try {
+      writeLegacyGithubCopilotSurface(legacyRoot, 'maiconfz/plan-refiner/sample.agent.md')
+
+      expect(
+        hasPackageInstallSurface({
+          extractRoot: legacyRoot,
+          packageId: 'maiconfz/other-package',
+          target: 'github-copilot',
+        }),
+      ).toBe(false)
+    } finally {
+      rmSync(legacyRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('does not match a sibling package for legacy claude-code layouts', () => {
+    const legacyRoot = mkdtempSync(path.join(os.tmpdir(), 'verify-install-surface-legacy-claude-sibling-'))
+    try {
+      mkdirSync(path.join(legacyRoot, '.claude/agents', 'maiconfz'), { recursive: true })
+      writeLegacyClaudeAgentSurface(legacyRoot, 'maiconfz/plan-refiner/sample.md')
+
+      expect(
+        hasPackageInstallSurface({
+          extractRoot: legacyRoot,
+          packageId: 'maiconfz/other-package',
+          target: 'claude-code',
+        }),
+      ).toBe(false)
+    } finally {
+      rmSync(legacyRoot, { recursive: true, force: true })
+    }
+  })
+
   it('detects legacy claude-code layouts without pathEncodingVersion', () => {
     const legacyRoot = mkdtempSync(path.join(os.tmpdir(), 'verify-install-surface-legacy-claude-'))
     try {
