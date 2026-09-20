@@ -18,7 +18,10 @@ import {
 import { validateLockVersionRanges } from '../../install/application/validateLockVersionRanges.js'
 import { resolveInstallScope } from '../../install/application/installScope.js'
 import { resolveInstallTargets } from '../../install/application/resolveInstallTargets.js'
-import { assertInstallSurfacesExist } from '../../install/application/verifyInstallSurface.js'
+import {
+  assertInstallSurfacesExist,
+  VerifyInstallSurfaceError,
+} from '../../install/application/verifyInstallSurface.js'
 import { InstallRuntimeError } from '../../install/domain/installErrors.js'
 import { resolveContainedExtractPath } from '../../install/infrastructure/targetExtractPaths.js'
 import {
@@ -77,6 +80,10 @@ const getErrorCode = (error: unknown): string | undefined => {
     return error.code
   }
 
+  if (error instanceof VerifyInstallSurfaceError) {
+    return error.code
+  }
+
   if (error instanceof ConfigError) {
     return error.code
   }
@@ -102,6 +109,10 @@ export const exitCodeForDoctorError = (error: unknown): number => {
   }
 
   if (error instanceof DoctorAgentPathCollisionError) {
+    return error.exitCode
+  }
+
+  if (error instanceof VerifyInstallSurfaceError) {
     return error.exitCode
   }
 

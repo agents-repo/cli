@@ -1,14 +1,7 @@
 import { ConfigResolver } from '../../config/application/configResolver.js'
 import { LockFileService } from '../../config/application/lockFileService.js'
-import { LockValidationError } from '../../config/domain/configErrors.js'
 import { loadRegistryCatalog } from '../../registry/infrastructure/registryRepository.js'
-import { resolveInstallScope } from './installScope.js'
-import { resolveInstallTargets } from './resolveInstallTargets.js'
-import {
-  validateCiConfigLockPackageSets,
-  validateCiRequiredByTargetSlots,
-} from './validateCiPrerequisites.js'
-import { validateLockVersionRanges } from './validateLockVersionRanges.js'
+import { loadProjectInstallPrerequisites } from './projectInstallPrerequisites.js'
 import { assertInstallSurfacesExist } from './verifyInstallSurface.js'
 
 export interface VerifyInstallServiceOptions {
@@ -27,31 +20,19 @@ export class VerifyInstallService {
   private readonly lockFileService = new LockFileService()
 
   async run(options: VerifyInstallServiceOptions = {}): Promise<VerifyInstallServiceResult> {
-    const cwd = options.cwd ?? process.cwd()
-    const env = options.env ?? process.env
-
-    const resolved = await this.configResolver.resolve({
-      cwd,
-      env,
-      globalScope: false,
-      waiveConflicts: options.yes ?? false,
-    })
-
-    const warnings = resolved.warnings.map((warning) => warning.message)
-    const scope = resolveInstallScope({ cwd, env, globalFlag: false })
-
-    const lock = await this.lockFileService.read(resolved.lockPath)
-    if (lock === null) {
-      throw new LockValidationError('agents-lock.json is missing')
-    }
-
-    validateCiConfigLockPackageSets(resolved, lock)
-
-    const targets = resolveInstallTargets(resolved)
-    const packageIds = Object.keys(resolved.packages).sort((left, right) => left.localeCompare(right))
-
-    validateCiRequiredByTargetSlots(lock, packageIds, targets)
-    validateLockVersionRanges(resolved, lock, { force: false })
+    const { resolved, warnings, scope, lock, targets, packageIds } =
+      await loadProjectInstallPrerequisites(
+        {
+          configResolver: this.configResolver,
+          lockFileService: this.lockFileService,
+        },
+        {
+          cwd: options.cwd,
+          env: options.env,
+          yes: options.yes,
+          force: false,
+        },
+      )
 
     if (options.online === true) {
       const catalogResult = await loadRegistryCatalog({
