@@ -6,6 +6,7 @@ import {
 } from '../../config/domain/configErrors.js';
 import { RegistryError, RegistryFetchError } from '../../registry/domain/errors.js';
 import { TargetDetectionError } from '../../target/domain/targetDetectionErrors.js';
+import { VerifyInstallSurfaceError } from '../../install/application/verifyInstallSurface.js';
 import { InstallRuntimeError, InstallZipSecurityError } from '../../install/domain/installErrors.js';
 import { getCliGlobals } from '../application/cliGlobals.js';
 
@@ -41,6 +42,10 @@ const getErrorCode = (error: unknown): string | undefined => {
   }
 
   if (error instanceof InstallZipSecurityError || error instanceof InstallRuntimeError) {
+    return error.code;
+  }
+
+  if (error instanceof VerifyInstallSurfaceError) {
     return error.code;
   }
 
@@ -94,6 +99,10 @@ export const getCliExitCode = (error: unknown): number => {
   }
 
   if (error instanceof InstallZipSecurityError || error instanceof InstallRuntimeError) {
+    return error.exitCode;
+  }
+
+  if (error instanceof VerifyInstallSurfaceError) {
     return error.exitCode;
   }
 

@@ -83,7 +83,9 @@ They may remain in the lock from earlier partial installs; `list` may still disp
 
 - Versions and artifacts come from the lock only (`resolvedRef` + per-slot `artifact` / `integrity`).
 - Each required slot is downloaded, checksum-verified, ZIP-scanned, and extracted like
-  [`install`](install.md), without updating `agents.json` or the lock.
+  [`install`](install.md), without updating `agents.json` or the lock. Artifact downloads send
+  `Agents-Repo-Download-Metrics: skip` to registry-proxy so CI/local frozen installs do not inflate
+  package download counts.
 - Artifact ZIP download retries transient `[registry_fetch_error]` (including HTTP 522) up to 3
   attempts with 2s then 4s backoff. Abort is not retried. Lock drift, checksum mismatch, ZIP
   security, and schema errors still fail immediately.

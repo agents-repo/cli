@@ -14,6 +14,7 @@ const CHECK_DOCS_SYNC_SCRIPT = path.join(REPO_ROOT, 'scripts', 'check-docs-sync.
 import {
   aliasesEqual,
   collectDocsSyncErrors,
+  collectDocsSyncFindings,
   commandFromCell,
   countRegisterCalls,
   listWebappCliCommandsFiles,
@@ -228,7 +229,7 @@ test('collectDocsSyncErrors is empty when inventories match', () => {
   assert.deepEqual(errors, []);
 });
 
-test('collectDocsSyncErrors reports missing commands, aliases, and register count', () => {
+test('collectDocsSyncFindings splits CLI errors from webapp warnings', () => {
   const docsStems = new Set(['init', 'install']);
   const parityAliases = new Map([
     ['init', []],
@@ -247,7 +248,7 @@ test('collectDocsSyncErrors reports missing commands, aliases, and register coun
       },
     ],
   ]);
-  const errors = collectDocsSyncErrors({
+  const { errors, warnings } = collectDocsSyncFindings({
     docsStems,
     parityAliases,
     commanderMap,
@@ -257,10 +258,13 @@ test('collectDocsSyncErrors reports missing commands, aliases, and register coun
   assert.ok(errors.some((line) => line.includes('register*Command count')));
   assert.ok(errors.some((line) => line.includes('Commander vs docs/commands: missing install')));
   assert.ok(errors.some((line) => line.includes('Alias mismatch (install)')));
-  assert.ok(errors.some((line) => line.includes('per-command docs vs matrix')));
+  assert.ok(warnings.some((line) => line.includes('per-command docs vs matrix')));
+  assert.ok(
+    warnings.some((line) => line.includes('Alias mismatch (install)') && line.includes('webapp (en)')),
+  );
 });
 
-test('collectDocsSyncErrors reports locale drift', () => {
+test('collectDocsSyncFindings reports locale drift as warnings', () => {
   const docsStems = new Set(['init']);
   const parityAliases = new Map([['init', []]]);
   const commanderMap = new Map([['init', []]]);
@@ -268,14 +272,43 @@ test('collectDocsSyncErrors reports locale drift', () => {
     ['en', { matrix: new Map([['init', []]]), perCommandDocs: new Set() }],
     ['es', { matrix: new Map([['init', ['i']]]), perCommandDocs: new Set() }],
   ]);
-  const errors = collectDocsSyncErrors({
+  const { errors, warnings } = collectDocsSyncFindings({
     docsStems,
     parityAliases,
     commanderMap,
     registerCount: 1,
     webappByLocale,
   });
-  assert.ok(errors.some((line) => line.includes('locale drift')));
+  assert.equal(errors.length, 0);
+  assert.ok(warnings.some((line) => line.includes('locale drift')));
+});
+
+test('check-docs-sync.mjs exits 0 when only webapp matrix lags docs/commands', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-sync-webapp-warn-'));
+  try {
+    const webappDocs = path.join(root, 'src', 'content', 'docs');
+    fs.mkdirSync(webappDocs, { recursive: true });
+    fs.writeFileSync(
+      path.join(webappDocs, 'cli-commands.md'),
+      `
+## Command matrix
+
+| Command | npm analogue | Aliases | Notes |
+| --- | --- | --- | --- |
+| \`init\` | \`npm init\` | — | setup |
+`,
+    );
+    const { stdout, stderr } = await execFileAsync(
+      'node',
+      [CHECK_DOCS_SYNC_SCRIPT, '--webapp-root', root],
+      { cwd: REPO_ROOT },
+    );
+    assert.match(stdout, /commands in sync/);
+    assert.match(stderr, /check:docs-sync warning/);
+    assert.match(stderr, /webapp \(en\) matrix vs docs\/commands: missing/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('aliasesEqual compares sorted lists', () => {

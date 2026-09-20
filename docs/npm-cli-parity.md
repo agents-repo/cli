@@ -15,6 +15,7 @@ Tracking issue: [agents-repo/cli#38](https://github.com/agents-repo/cli/issues/3
 | `add-target` | — | — | — | agents-repo config helper |
 | `install` | `npm install` | `i`, `add`, `inst` | `add`, `inst`, … | Variadic; bulk syncs `packages` ([#9](https://github.com/agents-repo/cli/issues/9)) |
 | `ci` | `npm ci` | — | — | Project only; `-g` reserved ([#16](https://github.com/agents-repo/cli/issues/16)) |
+| `verify` | — | — | — | Lock/config + on-disk surfaces; no artifact download |
 | `doctor` | `npm doctor` (loose) | — | — | Read-only ([#17](https://github.com/agents-repo/cli/issues/17)); `-g` reserved |
 | `update` | `npm update` | `up`, `upgrade` | `up`, `upgrade`, … | ([#13](https://github.com/agents-repo/cli/issues/13)) |
 | `search` | `npm search` | `find`, `s`, `se` | `s`, `se`, … | `--interactive` is agents-repo only |
@@ -41,7 +42,7 @@ Tracking issue: [agents-repo/cli#38](https://github.com/agents-repo/cli/issues/3
 | Command | `-g` supported |
 | --- | --- |
 | `init`, `install`, `update`, `remove`, `list`, `targets` | yes |
-| `ci`, `doctor` | reserved (follow-up) |
+| `ci`, `doctor`, `verify` | reserved (follow-up) |
 | `search`, `suggest-agents`, `add-target` | no |
 
 ## agents-repo–only surface

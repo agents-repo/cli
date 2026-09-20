@@ -1,6 +1,5 @@
 import { ConfigResolver } from '../../config/application/configResolver.js'
 import { LockFileService } from '../../config/application/lockFileService.js'
-import { LockValidationError } from '../../config/domain/configErrors.js'
 import { evaluatePackageStatusPolicy } from '../../registry/application/packageStatusPolicy.js'
 import { resolvePackageInCatalog } from '../../registry/application/resolvePackageInCatalog.js'
 import type { RegistryPackage } from '../../registry/domain/package.js'
@@ -13,13 +12,7 @@ import {
 } from '../infrastructure/packageExtractor.js'
 import type { InstallResult } from '../domain/installResult.js'
 import { planFrozenInstallSlot } from './planFrozenInstallSlot.js'
-import { resolveInstallScope } from './installScope.js'
-import { resolveInstallTargets } from './resolveInstallTargets.js'
-import {
-  validateCiConfigLockPackageSets,
-  validateCiRequiredByTargetSlots,
-} from './validateCiPrerequisites.js'
-import { validateLockVersionRanges } from './validateLockVersionRanges.js'
+import { loadProjectInstallPrerequisites } from './projectInstallPrerequisites.js'
 
 export interface CiInstallServiceOptions {
   readonly cwd?: string
@@ -35,34 +28,23 @@ export class CiInstallService {
   private readonly lockFileService = new LockFileService()
 
   async run(options: CiInstallServiceOptions = {}): Promise<InstallResult[]> {
-    const cwd = options.cwd ?? process.cwd()
     const env = options.env ?? process.env
     const dryRun = options.dryRun === true
-    const force = options.force === true
     const preferOnline = options.preferOnline === true
 
-    const resolved = await this.configResolver.resolve({
-      cwd,
-      env,
-      globalScope: false,
-      waiveConflicts: options.yes ?? false,
-    })
-
-    const warnings = resolved.warnings.map((warning) => warning.message)
-    const scope = resolveInstallScope({ cwd, env, globalFlag: false })
-
-    const lock = await this.lockFileService.read(resolved.lockPath)
-    if (lock === null) {
-      throw new LockValidationError('agents-lock.json is missing')
-    }
-
-    validateCiConfigLockPackageSets(resolved, lock)
-
-    const targets = resolveInstallTargets(resolved)
-    const packageIds = Object.keys(resolved.packages).sort((left, right) => left.localeCompare(right))
-
-    validateCiRequiredByTargetSlots(lock, packageIds, targets)
-    validateLockVersionRanges(resolved, lock, { force })
+    const { resolved, warnings, scope, lock, targets, packageIds } =
+      await loadProjectInstallPrerequisites(
+        {
+          configResolver: this.configResolver,
+          lockFileService: this.lockFileService,
+        },
+        {
+          cwd: options.cwd,
+          env: options.env,
+          yes: options.yes,
+          force: options.force,
+        },
+      )
 
     if (packageIds.length === 0) {
       return []
@@ -130,6 +112,7 @@ export class CiInstallService {
             expectedSha256Hex: expectedHex,
             preferOnline,
             env,
+            skipDownloadMetrics: true,
           })
           const extractResult = await extractPackageArtifact(
             zipBytes,

@@ -81,7 +81,9 @@ on `.github/workflows/`) and `check:docs-sync`. The docs-sync check compares
 `src/modules/cli/presentation/*Command.ts` registrations (and
 `createCliProgram.ts` `register*Command` count), and webapp
 `src/content/docs/**/cli-commands.md` command/alias tables (English plus
-`es`, `pt-br`, `pt-pt`).
+`es`, `pt-br`, `pt-pt`). **Failures** apply to in-repo CLI inventory only;
+webapp matrix/alias drift is reported as **warnings** so PR baseline is not
+blocked when webapp `main` lags a new CLI command.
 
 Webapp root resolution (first match): `--webapp-root`,
 `AGENTS_REPO_WEBAPP_ROOT`, then `../webapp` relative to this repository.

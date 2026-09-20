@@ -9,6 +9,7 @@ import { getCliGlobals } from '../application/cliGlobals.js';
 
 export interface DoctorCommandOptions {
   readonly yes?: boolean;
+  readonly skipArtifactDownload?: boolean;
 }
 
 const writeDoctorWarnings = (warnings: readonly string[], json: boolean): void => {
@@ -65,6 +66,10 @@ export const registerDoctorCommand = (program: Command): void => {
     .command('doctor')
     .description('Validate project agents setup (read-only diagnostics)')
     .option('-y, --yes', 'Waive dual-definition mismatches with warnings')
+    .option(
+      '--skip-artifact-download',
+      'Use verify-style install surface checks instead of downloading ZIP artifacts',
+    )
     .action(async function doctorAction(this: Command, options: DoctorCommandOptions) {
       const globals = getCliGlobals();
       const rootOpts = this.optsWithGlobals<{ yes?: boolean }>();
@@ -73,6 +78,7 @@ export const registerDoctorCommand = (program: Command): void => {
       const result = await service.run({
         yes: options.yes ?? rootOpts.yes ?? globals.yes ?? false,
         preferOnline: globals.preferOnline,
+        skipArtifactDownload: options.skipArtifactDownload === true,
       });
 
       writeDoctorWarnings(result.warnings, globals.json);
