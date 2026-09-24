@@ -3,7 +3,9 @@
 Registry workflow packages install skills under `.agents/skills/` (Codex),
 `.cursor/skills/` (Cursor), `.github/agents/` (Copilot), and `.claude/agents/`
 (Claude). Do **not** hand-edit extracted files; update `agents.json` and run
-`npm run agents:install` or `npm run agents:update`, then `npm run agents:ci`.
+`npm run agents:install` or `npm run agents:update`, then `npm run agents:verify` (PR baseline
+parity when agents paths change). Run `npm run agents:ci` locally before changing locks or
+extracts.
 
 See [CONTRIBUTING.md — Registry workflow packages](../.github/CONTRIBUTING.md#registry-workflow-packages-cli)
 for package management.
