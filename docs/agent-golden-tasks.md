@@ -40,7 +40,8 @@ npm run sync:ide-instructions -- --check
 **Validation:**
 
 ```bash
-npm run agents:ci
+npm run agents:verify    # PR baseline parity when agents paths change
+npm run agents:ci        # before changing locks or extracts
 npm run sync:ide-instructions -- --check
 ```
 
