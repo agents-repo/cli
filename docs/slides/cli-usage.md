@@ -86,8 +86,8 @@ Override the catalog with `AGENTS_REPO_REGISTRY_URL` or the URL in
 
 Lockfile for reproducible installs (resolved versions and checksums).
 
-Commit it. CI can run `npx agents-repo ci` to verify the lock matches
-extracted files.
+Commit it. Organization PR baseline uses `npx agents-repo verify` (no ZIP
+download). Use `npx agents-repo ci` when you need full lock artifact verification.
 
 ---
 

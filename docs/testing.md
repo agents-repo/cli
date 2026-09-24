@@ -38,5 +38,7 @@ Co-located `src/**/*.test.ts` files are also supported by `vitest.config.ts`.
 
 CI always runs `npm run test` on Node 24 (`.nvmrc`), which triggers `pretest`
 (`npm run build`) then `test:sync` and `vitest run`. Bin subprocess tests
-require the compiled `dist/` output. Chrome/`slides:check` and `agents:ci` are
-path-filtered extras. Optional `compat-node22` is not a required check.
+require the compiled `dist/` output. Chrome/`slides:check` and `agents:verify`
+are path-filtered extras (`npm run build` runs before `agents:verify`). npm
+lockfiles do **not** trigger `agents:verify`. Optional `compat-node22` is not a
+required check.

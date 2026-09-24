@@ -47,7 +47,8 @@ changing package versions:
 
 ```bash
 npm run agents:install   # or agents:update
-npm run agents:ci
+npm run agents:verify    # PR baseline parity when agents paths change
+npm run agents:ci        # full ZIP reinstall before changing locks or extracts
 npm run sync:ide-instructions
 ```
 
@@ -83,8 +84,10 @@ See `docs/testing.md` for test conventions.
 If a command cannot be run, explicitly say why in the handoff.
 
 Local handoff keeps this full set. PR baseline CI path-filters Chrome/`slides:check`
-and `agents:ci`. npm lockfiles do **not** trigger `agents:ci`. Optional
-`compat-node22` is not a required check. See the organization
+and `agents:verify` (this repo runs `npm run build` before `agents:verify`). npm
+lockfiles do **not** trigger `agents:verify`. Run full `npm run agents:ci` locally
+before changing locks or extracts (`ci` sends the download-metrics skip header).
+Optional `compat-node22` is not a required check. See the organization
 [PR baseline extras (path filters)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pr-baseline-extras-path-filters).
 
 ## Pre-ready handoff

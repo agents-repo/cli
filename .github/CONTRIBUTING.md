@@ -144,12 +144,13 @@ npm run check:secrets
 Unit test conventions are in [docs/testing.md](../docs/testing.md).
 
 PR baseline CI always runs this local set. Chrome/`slides:check` and
-`agents:ci` are path-filtered extras. An optional non-required
-`compat-node22` job runs when engine, lockfile, or Node setup paths change.
-Follow the organization
+`agents:verify` are path-filtered extras (this repo runs `npm run build` before
+`agents:verify`). An optional non-required `compat-node22` job runs when engine,
+lockfile, or Node setup paths change. Follow the organization
 [PR baseline extras (path filters)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pr-baseline-extras-path-filters)
 policy, including the checksum exception: npm lockfiles do **not** trigger
-`agents:ci`. After merge, a human should require the `baseline` check only
+`agents:verify`. Run `npm run agents:ci` locally before changing locks or
+extracts. After merge, a human should require the `baseline` check only
 (not `baseline (22)` or `compat-node22`).
 
 This repository uses a Husky pre-commit hook that runs `npm run lint:all`,
@@ -207,7 +208,8 @@ unpublished catalog schema support. When `dist/` is missing, it installs
 ```bash
 npm run agents:install   # bulk sync from agents.json
 npm run agents:update    # refresh within semver ranges
-npm run agents:ci        # lock-pinned registry install (CI extra when agents paths change)
+npm run agents:verify    # lock + on-disk surfaces; PR baseline extra when agents paths change
+npm run agents:ci        # lock-pinned full ZIP reinstall before changing locks or extracts
 ```
 
 Commit `agents.json`, `agents-lock.json`, and extracted paths (`.github/agents/`,
