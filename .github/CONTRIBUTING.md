@@ -143,14 +143,13 @@ npm run check:secrets
 
 Unit test conventions are in [docs/testing.md](../docs/testing.md).
 
-PR baseline CI always runs this local set. Chrome/`slides:check` and
-`agents:verify` are path-filtered extras (this repo runs `npm run build` before
-`agents:verify`). An optional non-required `compat-node22` job runs when engine,
-lockfile, or Node setup paths change. Follow the organization
+PR baseline CI always runs this local set. Chrome/`slides:check` is a
+path-filtered extra (no `agents:verify` in this repository). An optional
+non-required `compat-node22` job runs when engine, lockfile, or Node setup paths
+change. Follow the organization
 [PR baseline extras (path filters)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pr-baseline-extras-path-filters)
-policy, including the checksum exception: npm lockfiles do **not** trigger
-`agents:verify`. Run `npm run agents:ci` locally before changing locks or
-extracts. After merge, a human should require the `baseline` check only
+and [docs/ci.md](https://github.com/agents-repo/.github/blob/main/docs/ci.md).
+After merge, a human should require the `baseline` check only
 (not `baseline (22)` or `compat-node22`).
 
 This repository uses a Husky pre-commit hook that runs `npm run lint:all`,
@@ -184,37 +183,18 @@ npm run sync:ide-instructions
 
 Do not edit `.cursor/rules/`, `CLAUDE.md`, or `AGENTS.md` directly.
 
-### Registry workflow packages (CLI)
+### Registry workflow packages (org hub)
 
-Install and refresh catalog packages with the [agents-repo CLI](https://github.com/agents-repo/cli).
-`agents.json` points at `https://registry.agents-repo.org` (organization
-catalog proxy).
+Shared planning/review catalog packages live in
+[agents-repo/.github](https://github.com/agents-repo/.github) — not in this
+repository. See
+[org-workspace-and-agents.md](https://github.com/agents-repo/.github/blob/main/docs/org-workspace-and-agents.md)
+and [CONTRIBUTING — Registry workflow packages (org hub)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#registry-workflow-packages-org-hub).
 
-Bootstrap only when `agents.json` is missing:
-
-```bash
-node scripts/run-published-agents-repo.mjs init \
-  --targets github-copilot claude-code cursor openai-codex
-```
-
-In this repository, do not use bare `npx agents-repo@…` from the repo root:
-npm resolves it to the local `package.json` name and fails before `dist/` exists.
-
-Use the pinned npm scripts. After `npm run build` (or `npm test`, which compiles
-`dist/`), the helper runs the local binary so this repository can dogfood
-unpublished catalog schema support. When `dist/` is missing, it installs
-`agents-repo@<version>` from this repo's root `package.json`:
-
-```bash
-npm run agents:install   # bulk sync from agents.json
-npm run agents:update    # refresh within semver ranges
-npm run agents:verify    # lock + on-disk surfaces; PR baseline extra when agents paths change
-npm run agents:ci        # lock-pinned full ZIP reinstall before changing locks or extracts
-```
-
-Commit `agents.json`, `agents-lock.json`, and extracted paths (`.github/agents/`,
-`.cursor/skills/`, `.claude/agents/`, `.agents/skills/`). Do not hand-edit extracted
-package files.
+This repository dogfoods the **CLI implementation** via `npm run build` and
+`npm run agents:verify` / `agents:verify:org` (sibling `.github` config). Do not
+use bare `npx agents-repo@…` from the repo root; use
+`scripts/run-published-agents-repo.mjs` or the npm `agents:*` scripts.
 
 ## AI Collaboration
 

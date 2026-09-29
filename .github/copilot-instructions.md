@@ -38,22 +38,27 @@ docs/specs in the same change.
 If code and docs/specs disagree, resolve the mismatch in the same change by
 updating docs/specs or aligning implementation.
 
-## Registry workflow packages
+## Organization workspace and registry skills
 
-This repository dogfoods registry workflow packages via `agents.json`. After
-changing package versions:
+Shared planning/review registry packages install in
+**[agents-repo/.github](https://github.com/agents-repo/.github)** only. Open
+[agents-repo.code-workspace](https://github.com/agents-repo/.github/blob/main/agents-repo.code-workspace)
+from the `.github` sibling clone. See
+[org-workspace-and-agents.md](https://github.com/agents-repo/.github/blob/main/docs/org-workspace-and-agents.md).
+
+**Issues** for CLI work: open on **this** repository (`agents-repo/cli`), not on
+`.github`.
+
+This repository **dogfoods the CLI tool** (not a repo-root catalog):
 
 ```bash
-npm run agents:install   # or agents:update
-npm run agents:verify    # PR baseline parity when agents paths change
-npm run agents:ci        # full ZIP reinstall before changing locks or extracts
-npm run sync:ide-instructions
+npm run build
+npm run agents:verify          # verify command via dist/
+npm run agents:verify:org      # sibling ../.github/agents.json
+npm run agents:install         # any config path via run-published helper
 ```
 
-Do **not** hand-edit extracted files under `.agents/skills/`, `.cursor/skills/`,
-`.github/agents/`, or `.claude/agents/`. See
-[CONTRIBUTING.md — Registry workflow packages](CONTRIBUTING.md#registry-workflow-packages-cli)
-and [docs/AGENT_SKILLS.md](../docs/AGENT_SKILLS.md).
+See [docs/AGENT_SKILLS.md](../docs/AGENT_SKILLS.md) for install target paths.
 
 ## Architectural Decisions
 
@@ -82,11 +87,10 @@ See `docs/testing.md` for test conventions.
 If a command cannot be run, explicitly say why in the handoff.
 
 Local handoff keeps this full set. PR baseline CI path-filters Chrome/`slides:check`
-and `agents:verify` (this repo runs `npm run build` before `agents:verify`). npm
-lockfiles do **not** trigger `agents:verify`. Run full `npm run agents:ci` locally
-before changing locks or extracts (`ci` sends the download-metrics skip header).
-Optional `compat-node22` is not a required check. See the organization
-[PR baseline extras (path filters)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pr-baseline-extras-path-filters).
+only (no `agents:verify` in this repo). Optional `compat-node22` is not a required
+check. See the organization
+[PR baseline extras (path filters)](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pr-baseline-extras-path-filters)
+and [docs/ci.md](https://github.com/agents-repo/.github/blob/main/docs/ci.md).
 
 ## Pre-ready handoff
 
