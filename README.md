@@ -127,11 +127,12 @@ Do not edit `.cursor/rules/agents-cli.mdc`, `CLAUDE.md`, or `AGENTS.md` directly
 
 ## Platform repository dogfooding
 
-Organization platform repositories (registry, webapp, cli, registry-proxy, and
-`.github`) commit `agents.json`, `agents-lock.json`, and CLI-extracted package
-paths alongside generated project-guideline mirrors. See
-[organization CONTRIBUTING — Registry workflow packages](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#registry-workflow-packages-cli)
-for the shared install and mirror workflow.
+The **org hub** ([agents-repo/.github](https://github.com/agents-repo/.github))
+commits the shared planning/review `agents.json` catalog. **registry** keeps a
+minimal catalog for package authoring. This **cli** repository dogfoods the
+**CLI tool** (`npm run build`, `agents:verify`, `agents:verify:org` against the
+hub). See
+[org-workspace-and-agents.md](https://github.com/agents-repo/.github/blob/main/docs/org-workspace-and-agents.md).
 
 ## Contributing
 

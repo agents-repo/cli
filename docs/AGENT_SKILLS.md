@@ -1,14 +1,16 @@
 # Agent skills inventory
 
-Registry workflow packages install skills under `.agents/skills/` (Codex),
-`.cursor/skills/` (Cursor), `.github/agents/` (Copilot), and `.claude/agents/`
-(Claude). Do **not** hand-edit extracted files; update `agents.json` and run
-`npm run agents:install` or `npm run agents:update`, then `npm run agents:verify` (PR baseline
-parity when agents paths change). Run `npm run agents:ci` locally before changing locks or
-extracts.
+The CLI installs registry workflow packages into per-target paths (for example
+`.agents/skills/` for Codex, `.cursor/skills/` for Cursor, `.github/agents/` for
+Copilot, `.claude/agents/` for Claude). Do **not** hand-edit extracted files;
+update a project’s `agents.json` and run `agents-repo install` / `update` /
+`verify`.
 
-See [CONTRIBUTING.md — Registry workflow packages](../.github/CONTRIBUTING.md#registry-workflow-packages-cli)
-for package management.
+**agents-repo organization contributors:** shared `maiconfz/*` packages install
+in [agents-repo/.github](https://github.com/agents-repo/.github) only. See
+[org-workspace-and-agents.md](https://github.com/agents-repo/.github/blob/main/docs/org-workspace-and-agents.md).
+
+The inventory below describes packages commonly installed in the org hub.
 
 ## Skill routing
 

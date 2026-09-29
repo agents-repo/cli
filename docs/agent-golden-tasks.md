@@ -30,19 +30,24 @@ npm run env:check && npm run lint:all && npm run typecheck && npm run test && np
 npm run sync:ide-instructions -- --check
 ```
 
-## 3. Update registry workflow package lock
+## 3. Update org hub registry workflow package lock
 
-**Goal:** Bump a package in `agents.json`, run install, verify extracted skills.
+**Goal:** Bump a package in the **`.github`** clone’s `agents.json`, run install,
+verify extracted skills.
 
-**Expected touches:** `agents.json`, `agents-lock.json`, extracted paths under
-`.agents/skills/` (via install, not hand edit).
+**Expected touches:** `agents-repo/.github` — `agents.json`, `agents-lock.json`,
+extracted paths (via `agents-repo` install, not hand edit).
 
-**Validation:**
+**Validation** (from `.github` clone):
 
 ```bash
-npm run agents:verify    # PR baseline parity when agents paths change
-npm run agents:ci        # before changing locks or extracts
-npm run sync:ide-instructions -- --check
+cd ../.github && npm ci && npm run agents:verify && npm run agents:ci
+```
+
+From **cli** clone after `npm run build`:
+
+```bash
+npm run agents:verify:org
 ```
 
 ## 4. Spec change with dependency surfacing

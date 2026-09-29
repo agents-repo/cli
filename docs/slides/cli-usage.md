@@ -86,9 +86,9 @@ Override the catalog with `AGENTS_REPO_REGISTRY_URL` or the URL in
 
 Lockfile for reproducible installs (resolved versions and checksums).
 
-Commit it. Organization PR baseline uses `agents:verify` / `agents-repo verify`
-(typically `npm run agents:verify`; no ZIP download). Run local `agents:ci`
-when you need full lock artifact verification.
+Commit it. Repositories that commit a catalog (org hub **`.github`** and
+**registry** package authoring) run `agents:verify` in PR baseline when agent
+paths change. Run local `agents:ci` when you need full lock artifact verification.
 
 ---
 
