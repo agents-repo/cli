@@ -1,9 +1,9 @@
 ---
-applyTo: "docs/commands/**"
-description: "Use for user-facing CLI command documentation."
+description: Use for user-facing CLI command documentation.
+alwaysApply: false
+globs: docs/commands/**
+copilotInstructionsFile: commands-doc.instructions.md
 ---
-
-<!-- Generated: .cursor/rules/path-commands-doc.mdc. Run npm run sync:ide-instructions -->
 
 # CLI Commands Documentation Instructions
 

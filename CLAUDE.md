@@ -1,4 +1,4 @@
-<!-- Generated: .github/copilot-instructions.md. Run npm run sync:ide-instructions -->
+<!-- Generated: .cursor/rules/agents-cli.mdc. Run npm run sync:ide-instructions -->
 
 # CLI Project Guidelines
 
@@ -100,7 +100,7 @@ Before handoff on a task branch, agents MUST complete the organization
 [Pre-ready agent handoff](https://github.com/agents-repo/.github/blob/main/CONTRIBUTING.md#pre-ready-agent-handoff)
 norm, run the **Validation** commands above, perform a self-review, and update
 the **draft** PR with evidence. Agents MUST NOT mark pull requests ready for
-review. After editing `.github/copilot-instructions.md`, run
+review. After editing `.cursor/rules/agents-cli.mdc`, run
 `npm run sync:ide-instructions`.
 
 ## Documentation Standard
@@ -121,10 +121,12 @@ Follow `.github/CONTRIBUTING.md` **Required Workflow** (issue form →
 NOT push to `main`, merge PRs into `main`, or mark pull requests ready for
 review.
 
-## Path-scoped Copilot instructions
+## Path-scoped instructions
 
-GitHub Copilot loads norms from `.github/instructions/*.instructions.md` when
-`applyTo` matches edited paths. Do not duplicate those bodies here.
+Edit additional `.cursor/rules/*.mdc` files with `copilotInstructionsFile` and
+`globs`; run `npm run sync:ide-instructions` to generate
+`.github/instructions/*.instructions.md` for GitHub Copilot. Do not duplicate
+those bodies here.
 
 ## Default Branch Integration (Agents)
 
@@ -140,4 +142,5 @@ See [agents-repo/.github docs/cursor-cloud.md](https://github.com/agents-repo/.g
 Cloud Agent builds run `.cursor/install.sh` then `HUSKY=0 npm ci`. Do not start
 long-running servers from `install`.
 
-After editing `.github/copilot-instructions.md`, run `npm run sync:ide-instructions`.
+After editing `.cursor/rules/agents-cli.mdc` or path-scoped rules, run
+`npm run sync:ide-instructions`.

@@ -1,9 +1,9 @@
 ---
-applyTo: "src/**"
-description: "Use for CLI TypeScript implementation under src/."
+description: Use for CLI TypeScript implementation under src/.
+alwaysApply: false
+globs: src/**
+copilotInstructionsFile: src.instructions.md
 ---
-
-<!-- Generated: .cursor/rules/path-src.mdc. Run npm run sync:ide-instructions -->
 
 # CLI Source Instructions
 

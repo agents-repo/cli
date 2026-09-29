@@ -112,18 +112,18 @@ npm run env:check && npm run lint:all && npm run typecheck && npm test && npm ru
 
 | Tool | Path |
 | --- | --- |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Cursor | `.cursor/rules/agents-cli.mdc` |
-| Claude Code | `CLAUDE.md` |
-| OpenAI Codex | `AGENTS.md` |
+| Cursor | `.cursor/rules/agents-cli.mdc` (canonical) |
+| GitHub Copilot | `.github/copilot-instructions.md` (generated) |
+| Claude Code | `CLAUDE.md` (generated) |
+| OpenAI Codex | `AGENTS.md` (generated) |
 
-Regenerate after editing `copilot-instructions.md`:
+Regenerate after editing `.cursor/rules/`:
 
 ```bash
 npm run sync:ide-instructions
 ```
 
-Do not edit `.cursor/rules/agents-cli.mdc`, `CLAUDE.md`, or `AGENTS.md` directly.
+Do not edit generated `.github/copilot-instructions.md`, `CLAUDE.md`, or `AGENTS.md` directly.
 
 ## Platform repository dogfooding
 

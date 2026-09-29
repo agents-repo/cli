@@ -1,9 +1,9 @@
 ---
-applyTo: "specs/**"
-description: "Use for normative CLI specs and protocol definitions."
+description: Use for normative CLI specs and protocol definitions.
+alwaysApply: false
+globs: specs/**
+copilotInstructionsFile: specs.instructions.md
 ---
-
-<!-- Generated: .cursor/rules/path-specs.mdc. Run npm run sync:ide-instructions -->
 
 # CLI Specs Instructions
 
