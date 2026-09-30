@@ -68,7 +68,8 @@
     "publish:local": "HUSKY=0 npm publish --access public",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dup:check": "jscpd --config .jscpd.json ."
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",
@@ -78,9 +79,9 @@
     "semver": "^7.8.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@marp-team/marp-cli": "4.5.0",
     "@marp-team/marp-core": "4.4.0",
-    "@eslint/js": "^10.0.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.9",
@@ -96,6 +97,7 @@
     "globals": "^17.7.0",
     "husky": "^9.1.7",
     "js-yaml": "^4.3.1",
+    "jscpd": "^4.3.0",
     "markdownlint-cli2": "^0.23.2",
     "semantic-release": "^25.0.6",
     "typescript": "~6.0.3",
