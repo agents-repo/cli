@@ -54,6 +54,9 @@ jobs:
           AGENTS_REPO_WEBAPP_ROOT: ${{ github.workspace }}/.ci-webapp
         run: npm run lint:all
 
+      - name: Duplication check (jscpd)
+        run: npm run dup:check
+
       - name: Check IDE instruction mirrors
         run: npm run sync:ide-instructions -- --check
 
