@@ -77,6 +77,13 @@ Do NOT change module boundaries or project structure without updating
 - Favor deterministic CLI behavior over clever abstractions.
 - Avoid adding dependencies unless they clearly reduce maintenance cost.
 
+## Shared scripts and static analysis
+
+Before editing `scripts/sync-ide-instructions.mjs` or other copies shared across
+platform repos, read the
+[org AI static-analysis guide](https://github.com/agents-repo/.github/blob/main/docs/ai-static-analysis-patterns.md)
+and run `npm run dup:check` locally when duplication risk is high (not CI yet).
+
 ## Validation
 
 Before handing off work, run the relevant subset of:
