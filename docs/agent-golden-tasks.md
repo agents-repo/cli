@@ -77,4 +77,4 @@ those are not part of the Copilot environment workflow.
 npm run env:check && npm run lint:all && npm run typecheck && npm run test
 ```
 
-CI: `.github/workflows/copilot-environment.yml` runs this subset only.
+CI: `.github/workflows/agent-environment.yml` runs this subset only.

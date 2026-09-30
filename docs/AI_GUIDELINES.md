@@ -6,7 +6,7 @@ Keep AI-assisted implementation predictable, safe, and easy to review.
 
 ## Before You Implement
 
-1. Read [.github/copilot-instructions.md](../.github/copilot-instructions.md).
+1. Read [.cursor/rules/agents-cli.mdc](../.cursor/rules/agents-cli.mdc).
 2. Read [.cursor/rules/agents-cli.mdc](../.cursor/rules/agents-cli.mdc).
 3. Read [.github/CONTRIBUTING.md](../.github/CONTRIBUTING.md).
 4. Read [docs/CLI_WORKFLOW.md](CLI_WORKFLOW.md) for the required issue → branch →
@@ -23,7 +23,7 @@ Keep AI-assisted implementation predictable, safe, and easy to review.
 - Update docs when behavior changes.
 - Do not merge to or push directly to `main`.
 
-After editing `.github/copilot-instructions.md`, regenerate IDE instruction mirrors:
+After editing `.cursor/rules/agents-cli.mdc` (and path-scoped rules), regenerate IDE instruction mirrors:
 
 ```bash
 npm run sync:ide-instructions
