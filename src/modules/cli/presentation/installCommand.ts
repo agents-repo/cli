@@ -4,12 +4,23 @@ import { getCliGlobals } from '../application/cliGlobals.js';
 import { BulkInstallService } from '../../install/application/bulkInstallService.js';
 import { InstallService } from '../../install/application/installService.js';
 import { handleCliError } from './cliErrorHandling.js';
+import type { InstallResult } from '../../install/domain/installResult.js';
 import {
   INSTALL_RESULT_ACTION_LABELS,
   collectInstallResultWarnings,
   writeBulkInstallResultSuccess,
   writeInstallResultWarnings,
 } from './installResultOutput.js';
+
+const reportInstallResults = (
+  results: readonly InstallResult[],
+  json: boolean,
+  verbose: boolean,
+): void => {
+  const warnings = collectInstallResultWarnings(results);
+  writeInstallResultWarnings(warnings, json);
+  writeBulkInstallResultSuccess(results, json, INSTALL_RESULT_ACTION_LABELS, verbose);
+};
 
 export interface InstallCommandOptions {
   readonly global?: boolean;
@@ -46,14 +57,7 @@ export const registerInstallCommand = (program: Command): void => {
         if (packageIds.length === 0) {
           const service = new BulkInstallService();
           const results = await service.runAll(runOptions);
-          const warnings = collectInstallResultWarnings(results);
-          writeInstallResultWarnings(warnings, globals.json);
-          writeBulkInstallResultSuccess(
-            results,
-            globals.json,
-            INSTALL_RESULT_ACTION_LABELS,
-            globals.verbose,
-          );
+          reportInstallResults(results, globals.json, globals.verbose);
           return;
         }
 
@@ -63,14 +67,7 @@ export const registerInstallCommand = (program: Command): void => {
           ...runOptions,
         });
 
-        const warnings = collectInstallResultWarnings(results);
-        writeInstallResultWarnings(warnings, globals.json);
-        writeBulkInstallResultSuccess(
-          results,
-          globals.json,
-          INSTALL_RESULT_ACTION_LABELS,
-          globals.verbose,
-        );
+        reportInstallResults(results, globals.json, globals.verbose);
       } catch (error) {
         handleCliError(error);
       }

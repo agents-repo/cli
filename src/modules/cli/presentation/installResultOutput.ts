@@ -136,6 +136,34 @@ export const writeInstallResultWarnings = (
   }
 };
 
+const writeInstallJsonPayload = (payload: Record<string, unknown>): void => {
+  process.stdout.write(`${JSON.stringify(payload)}\n`);
+};
+
+const writeInstallTextSuccessLines = (
+  results: readonly InstallResult[],
+  labels: InstallResultActionLabels,
+  verbose: boolean,
+): void => {
+  for (const result of results) {
+    process.stdout.write(`${formatInstallResultSuccess(result, labels)}\n`);
+  }
+
+  if (verbose && collectDistinctInstallTargets(results).length > 1) {
+    for (const summary of formatMultiTargetInstallSummaries(results, labels)) {
+      process.stdout.write(`${summary}\n`);
+    }
+  }
+};
+
+const installResultsJsonPackages = (
+  results: readonly InstallResult[],
+): Record<string, unknown>[] =>
+  results.map((result) => ({
+    ...installResultToJson(result),
+    warnings: [],
+  }));
+
 export const writeSingleInstallResultSuccess = (
   result: InstallResult,
   json: boolean,
@@ -156,24 +184,14 @@ export const writeBulkInstallResultSuccess = (
   verbose = false,
 ): void => {
   if (json) {
-    const warnings = collectInstallResultWarnings(results);
-    const packages = results.map((result) => ({
-      ...installResultToJson(result),
-      warnings: [],
-    }));
-    process.stdout.write(`${JSON.stringify({ warnings, packages })}\n`);
+    writeInstallJsonPayload({
+      warnings: collectInstallResultWarnings(results),
+      packages: installResultsJsonPackages(results),
+    });
     return;
   }
 
-  for (const result of results) {
-    process.stdout.write(`${formatInstallResultSuccess(result, labels)}\n`);
-  }
-
-  if (verbose && collectDistinctInstallTargets(results).length > 1) {
-    for (const summary of formatMultiTargetInstallSummaries(results, labels)) {
-      process.stdout.write(`${summary}\n`);
-    }
-  }
+  writeInstallTextSuccessLines(results, labels, verbose);
 };
 
 export const writeCiInstallResultSuccess = (
@@ -183,22 +201,13 @@ export const writeCiInstallResultSuccess = (
   verbose = false,
 ): void => {
   if (json) {
-    const warnings = collectInstallResultWarnings(results);
-    const packages = results.map((result) => ({
-      ...installResultToJson(result),
-      warnings: [],
-    }));
-    process.stdout.write(`${JSON.stringify({ command: 'ci', warnings, packages })}\n`);
+    writeInstallJsonPayload({
+      command: 'ci',
+      warnings: collectInstallResultWarnings(results),
+      packages: installResultsJsonPackages(results),
+    });
     return;
   }
 
-  for (const result of results) {
-    process.stdout.write(`${formatInstallResultSuccess(result, labels)}\n`);
-  }
-
-  if (verbose && collectDistinctInstallTargets(results).length > 1) {
-    for (const summary of formatMultiTargetInstallSummaries(results, labels)) {
-      process.stdout.write(`${summary}\n`);
-    }
-  }
+  writeInstallTextSuccessLines(results, labels, verbose);
 };
