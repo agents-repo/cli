@@ -87,6 +87,16 @@ download layer. Application code MUST NOT repeat verification after `downloadArt
 
 Parallel CLI processes MAY race on the same blob path; behavior is best-effort for MVP.
 
+## Download metrics
+
+When step 2 of [Read-through download](#read-through-download) returns verified bytes from a cache
+blob, tooling MUST NOT contact the registry for that artifact. Those cache hits MUST NOT increment
+registry-proxy download stats (no HTTP `200` ZIP response through the proxy).
+
+Network fetches in step 3 MAY increment stats when the registry-proxy records a successful ZIP
+`200`, except when [`command-contracts.md`](command-contracts.md) requires the
+`Agents-Repo-Download-Metrics: skip` header (today: `ci` only).
+
 ## Cross-references
 
 - [`cli-protocol.md`](cli-protocol.md) — install pipeline steps 8–9

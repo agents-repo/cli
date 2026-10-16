@@ -59,6 +59,11 @@ for that package.
 a full uninstall of configured lock artifacts, not npm-style linked-package removal
 only. See [npm-cli-parity.md](../npm-cli-parity.md).
 
+### Download stats
+
+`remove` re-downloads locked ZIPs to enumerate paths and does **not** send the download-metrics
+opt-out header. Cache hits avoid registry GETs; see [`install`](install.md#download-stats).
+
 ## Exit codes
 
 | Code | Meaning |

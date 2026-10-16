@@ -369,6 +369,28 @@ When `--yes` is present, conflicts downgrade to warnings; tooling MUST exit `0` 
 Structured `error.code` values (e.g. `ERR_ZIP_TRAVERSAL`, `type_mismatch`) SHOULD appear in stderr
 or `--json` output without expanding the exit code range in MVP.
 
+## Download metrics (registry-proxy)
+
+Registry-proxy download stats count **successful versioned ZIP GETs** (HTTP `200`) served through
+the registry front door. Stats reflect **artifact fetches**, not successful on-disk installs,
+unique users, or projects.
+
+Tooling MUST send the request header `Agents-Repo-Download-Metrics: skip` (value `skip`,
+case-insensitive) only where this document explicitly requires it. All other artifact ZIP HTTP
+requests MUST NOT send that opt-out header unless a future spec revision says otherwise.
+
+| Command | Downloads ZIP? | MUST send skip header? | Counts on registry GET? |
+| --- | --- | --- | --- |
+| `install`, `update` | Yes (except `--dry-run`) | MUST NOT | Yes |
+| `ci` | Yes | MUST | No |
+| `verify` | MUST NOT | N/A | No |
+| `doctor` | Yes unless `--skip-artifact-download` | MUST NOT | Yes |
+| `remove` | Yes | MUST NOT | Yes |
+
+Local artifact cache hits (see [`artifact-cache.md`](artifact-cache.md)) MUST NOT perform a
+registry HTTP request and therefore MUST NOT increment download stats. This parallels npm: repeat
+installs from the client cache are not counted.
+
 ## Cross-References
 
-- CLI: `config-schema.md`, `lock-schema.md`, `cli-protocol.md`
+- CLI: `config-schema.md`, `lock-schema.md`, `cli-protocol.md`, `artifact-cache.md`

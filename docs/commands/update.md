@@ -73,6 +73,12 @@ satisfies the semver range in `agents.json` (no prereleases), same as bulk
 The command follows [`specs/cli-protocol.md`](../../specs/cli-protocol.md) (same
 steps as bulk `install` for configured ids).
 
+### Download stats
+
+Same rules as [`install`](install.md#download-stats): `update` does not send the download-metrics
+opt-out header. Registry ZIP GETs on cache miss may increment `/stats`; local artifact cache hits
+do not.
+
 ### Exit codes
 
 | Code | Meaning |

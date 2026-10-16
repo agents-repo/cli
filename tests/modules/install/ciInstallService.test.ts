@@ -9,6 +9,10 @@ import {
 } from '../../../src/modules/config/domain/configErrors.js'
 import { BulkInstallService } from '../../../src/modules/install/application/bulkInstallService.js'
 import { CiInstallService } from '../../../src/modules/install/application/ciInstallService.js'
+import {
+  DOWNLOAD_METRICS_HEADER_NAME,
+  DOWNLOAD_METRICS_SKIP_VALUE,
+} from '../../../src/modules/install/domain/artifactDownloadMetrics.js'
 import * as registrySourceConfig from '../../../src/modules/registry/infrastructure/registrySourceConfig.js'
 import {
   buildCursorSkillZip,
@@ -188,6 +192,45 @@ describe('CiInstallService', () => {
     expect(readFileSync(path.join(cwd, '.cursor/skills/agents-repo/sample-agent/agents-repo--sample-agent--sample/SKILL.md'), 'utf8')).toContain('name: agents-repo--sample-agent--sample')
     expect(readFileSync(path.join(cwd, 'agents.json'), 'utf8')).toBe(configBefore)
     expect(readFileSync(path.join(cwd, 'agents-lock.json'), 'utf8')).toBe(lockBefore)
+  })
+
+  it('sends download-metrics skip header on artifact ZIP GETs', async () => {
+    const cwd = mkdtempSync(path.join(os.tmpdir(), 'agents-ci-metrics-skip-'))
+    tempDirs.push(cwd)
+    writeDualPackageProject(cwd)
+
+    const sampleZipBytes = buildCursorSkillZip()
+    const otherZipBytes = buildOtherCursorSkillZip()
+    const sampleSha256 = createHash('sha256').update(sampleZipBytes).digest('hex')
+    const otherSha256 = createHash('sha256').update(otherZipBytes).digest('hex')
+    const sampleManifest = withInstallTestArtifactSha256(makeInstallTestManifest(), sampleSha256)
+    const otherManifest = withInstallTestArtifactSha256(makeInstallTestOtherManifest(), otherSha256)
+
+    const fetchSpy = mockDualPackageRegistryFetch(sampleManifest, otherManifest, {
+      sampleZipBytes,
+      otherZipBytes,
+    })
+    mockRegistrySource()
+
+    const noCacheEnv = { ...process.env, AGENTS_REPO_NO_CACHE: '1' }
+    const bulk = new BulkInstallService()
+    await bulk.runAll({ cwd, env: noCacheEnv })
+
+    const callsBeforeCi = fetchSpy.mock.calls.length
+    const ci = new CiInstallService()
+    await ci.run({ cwd, env: noCacheEnv })
+
+    const zipCalls = fetchSpy.mock.calls
+      .slice(callsBeforeCi)
+      .filter(([input]) => toFetchUrl(input).includes('.zip'))
+    expect(zipCalls.length).toBeGreaterThan(0)
+    zipCalls.forEach((call) => {
+      expect(call[1]).toMatchObject({
+        headers: {
+          [DOWNLOAD_METRICS_HEADER_NAME]: DOWNLOAD_METRICS_SKIP_VALUE,
+        },
+      })
+    })
   })
 
   it('overwrites modified managed files when re-running ci', async () => {

@@ -61,6 +61,21 @@ describe('downloadArtifact cache', () => {
     )
   })
 
+  it('does not send download-metrics skip header by default', async () => {
+    await downloadArtifact('https://example.test/artifact.zip', {
+      expectedSha256Hex: sampleSha256,
+      writeCache: false,
+      env: env(),
+    })
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://example.test/artifact.zip',
+      expect.objectContaining({
+        headers: undefined,
+      }),
+    )
+  })
+
   it('writes npm-style content blob on cache miss', async () => {
     const bytes = await downloadArtifact('https://example.test/artifact.zip', {
       expectedSha256Hex: sampleSha256,

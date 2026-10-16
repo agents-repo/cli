@@ -38,7 +38,12 @@ With `--json`, success stdout is:
 }
 ```
 
+## Download stats
+
+`verify` does not download registry ZIPs and does not affect registry-proxy `/stats`.
+
 ## See also
 
 - [`ci.md`](ci.md) — frozen install with artifact download (sends download-metrics opt-out header)
 - [`doctor.md`](doctor.md) — `--skip-artifact-download` uses the same surface checks
+- [`install.md`](install.md#download-stats) — when installs count toward `/stats`

@@ -64,6 +64,24 @@ Dropped selective-install designs are documented in
 [#19](https://github.com/agents-repo/cli/issues/19),
 [#20](https://github.com/agents-repo/cli/issues/20)).
 
+## Download stats (npm registry vs agents-repo)
+
+npm counts each **tarball HTTP 200** served from the public registry. Repeat `npm install` of the
+same version usually hits the local npm cache and is **not** counted. agents-repo follows the same
+client-cache rule via [`specs/artifact-cache.md`](../specs/artifact-cache.md).
+
+| Topic | npm | agents-repo |
+| --- | --- | --- |
+| What is counted | Registry tarball `200` | Registry-proxy versioned ZIP `200` |
+| Local client cache | Not counted | Not counted (`{AGENTS_REPO_HOME}/cache/`) |
+| Frozen / lockfile install | Counted on registry fetch | `ci` opts out via skip header |
+| Check without download | N/A | `verify` (no ZIP fetch) |
+
+Normative command matrix:
+[`specs/command-contracts.md`](../specs/command-contracts.md#download-metrics-registry-proxy).
+Troubleshooting flat webapp badges: use `AGENTS_REPO_NO_CACHE=1` with `install --prefer-online`,
+then confirm `GET /stats` on the registry base URL.
+
 ## Open parity gaps
 
 - **Global `ci` and `doctor`** — spec reserves `-g`; not implemented yet.
