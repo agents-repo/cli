@@ -131,6 +131,22 @@ Artifact ZIP download retries transient `[registry_fetch_error]` (including HTTP
 attempts with 2s then 4s backoff; abort, checksum mismatch, ZIP security, and schema errors are
 not retried as fetch failures. Install `--dry-run` does not download and does not write the cache.
 
+### Download stats
+
+`install` does **not** send `Agents-Repo-Download-Metrics: skip`. When the CLI performs a
+registry ZIP GET (cache miss), registry-proxy may increment package download totals exposed at
+`GET /stats` on the registry base URL.
+
+Repeat installs often read the same SHA from `{AGENTS_REPO_HOME}/cache/` and do **not** contact
+the registry (npm-like under-count). To force a registry fetch for testing:
+
+```bash
+AGENTS_REPO_NO_CACHE=1 agents-repo install <package-id> --prefer-online
+```
+
+Only [`ci`](ci.md) opts out of download metrics among install-family commands. See
+[`specs/command-contracts.md`](../../specs/command-contracts.md#download-metrics-registry-proxy).
+
 ## Exit codes
 
 | Code | Meaning |

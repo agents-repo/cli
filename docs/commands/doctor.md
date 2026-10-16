@@ -45,6 +45,13 @@ missing). `doctor` runs independent checks where possible instead of failing on 
 eol, other-major, malformed, or older-unlisted. Deprecated or newer-than-CLI additive index
 versions pass the check and appear in `warnings`.
 
+### Download stats
+
+Default `doctor` downloads locked ZIPs for path checks and does **not** send
+`Agents-Repo-Download-Metrics: skip` (network fetches may increment `/stats`). With
+`--skip-artifact-download`, doctor uses verify-style surface checks and does not download ZIPs.
+See [`specs/command-contracts.md`](../../specs/command-contracts.md#download-metrics-registry-proxy).
+
 ## Exit codes
 
 | Code | Meaning |
